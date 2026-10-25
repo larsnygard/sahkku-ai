@@ -221,7 +221,10 @@ def play_selfplay_game(net, device, cfg, rng, samples_out):
 def worker(args):
     wid, args_json = args
     cfg = json.loads(args_json)
-    torch.set_grad_enabled(False)
+    # MERK: ikkje rør torch.set_grad_enabled() globalt her. Med --workers 1
+    # køyrer worker() i same prosess som treninga (pipeline), og ein global
+    # «grad av» gjer at neste loss.backward() feilar med «does not require
+    # grad». Alle nettkalla under er alt @torch.no_grad-dekorerte.
     device = torch.device(cfg["device"])
     # Net.load() si map_location flyttar berre checkpoint-tensorane; modulen
     # sjølv vert verande på CPU (load_state_dict kopierer data inn i dei
