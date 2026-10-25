@@ -1,0 +1,45 @@
+[Event "Parti mot CPU"]
+[Date "2026-10-25"]
+[White "Menn (bieljet)"]
+[Black "Koner (giera)"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(X X X) K(III III III) -> M
+1. M: II II III
+2. K: _ X _
+   X->C2
+3. M: III II II
+4. K: X _ III
+   X->A2
+   III: QC2->F2
+5. M: II II II
+6. K: III III III
+   III: QF2->I2
+   III: KA2->D2
+   III: KD2->G2
+7. M: II _ X
+   X->M2
+   II: QM2->K2
+8. K: X II _
+   KG2->H2§
+   II: KH2->J2
+9. M: II II _
+   II: QK2->M2
+   II: QM2->K2
+10. K: II II II
+   II: QI2->G2
+   II: kH2->F2
+   II: kF2->H2
+11. M: _ _ II
+   II: QK2->I2
+12. K: X III II
+   KJ2->K2
+   III: KK2->N2
+   II: kH2->J2
+13. M: III III II
+   III: QI2->F2
+   III: QF2->I2
+   II: QI2->G2x [Q]
+1-0 {dronning}

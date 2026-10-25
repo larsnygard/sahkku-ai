@@ -1,0 +1,2 @@
+torch>=2.2        # CUDA-bygg for GPU-trening (sjå README)
+numpy>=1.24

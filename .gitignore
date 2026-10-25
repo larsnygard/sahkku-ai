@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Treningsartefakt (store, regenererbare — sjå README «Køyr alt i éin kommando»)
+checkpoints/
+runs/
+data/*.npz
+*.log
