@@ -63,7 +63,11 @@ def to_fen(st: State) -> str:
     for row in range(2, -1, -1):
         cells = []
         for c in range(15):
-            cells.append("+".join(rows[row][c]) if rows[row][c] else ".")
+            # Kanonisk stabelrekkjefylgje: same sett brikker på eit felt må gje
+            # SAME FEN-streng i Python og JS (elles driv paritetstesten på
+            # G'G vs GG' i stablar med blanda pass). "'" sorterer etter bokstav.
+            cells.append("+".join(sorted(rows[row][c], key=lambda t: t.replace("'", "~")))
+                         if rows[row][c] else ".")
         board.append("-".join(cells))
     side = "w" if st.turn == 0 else "b"
     dice = "".join(ENC[d] for d in st.dice) if len(st.dice) == 3 else "-"

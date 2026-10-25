@@ -279,9 +279,14 @@ var M = {};
     }
   }
   function activeRank(st) {
+    // Blank ('_') er eit dødt fjes: ho gjev ingen trekk og skal aldri verte
+    // vald som aktiv terning (diceLeft hoppar òg over henne). Utan dette
+    // kunne eit ubrukt blankt fjes verte lese som «II» (v=2) — t.d. rett
+    // etter eit omkast som gav blank.
     var best = 4, i;
     for (i = 0; i < 3; i++) {
-      if (!st.used[i] && RANK[st.dice[i]] < best) best = RANK[st.dice[i]];
+      if (st.used[i] || st.dice[i] === '_') continue;
+      if (RANK[st.dice[i]] < best) best = RANK[st.dice[i]];
     }
     return best === 4 ? null : best;
   }
@@ -297,7 +302,11 @@ var M = {};
   }
   function rerollX(st, rnd) {
     if (!canRerollX(st)) return null;
-    for (var i = 0; i < 3; i++) if (st.dice[i] === 'X') { st.dice[i] = rollDice(rnd)[0]; st.used[i] = false; }
+    for (var i = 0; i < 3; i++) if (st.dice[i] === 'X') {
+      var nf = rollDice(rnd)[0];
+      st.dice[i] = nf;
+      st.used[i] = (nf === '_');   // eit nytt blankt fjes er brukt med ein gong
+    }
     logReroll(st);
     return st.dice.slice();
   }
@@ -362,6 +371,12 @@ var M = {};
         }
       }
     }
+    // X (sáhkku) VEKKJER berre: ho løyser ei inaktiv brikke og flyttar henne
+    // eitt felt som del av vekkinga. Ho flyttar ALDRI brikker som alt er
+    // utløyste (soldat, dronning eller kongen) — det gjer II og III.
+    // Regelen er Lars si presisering: «X kan brukes til å vekke ei inaktiv
+    // brikke ... og deretter flytte ett felt. Flyttet er en del av vekkinga.»
+    if (rk === RANK.X) return out;
     for (i = 0; i < st.pieces.length; i++) {
       p = st.pieces[i];
       if (p.captured) continue;
@@ -595,7 +610,15 @@ var M = {};
     var board = [];
     for (row = 2; row >= 0; row--) {
       var cells = [];
-      for (c = 0; c < 15; c++) cells.push(rows[row][c].length ? rows[row][c].join('+') : '.');
+      // Kanonisk stabelrekkjefylgje (same som den Python-sida): "'" sorterer
+      // etter bokstav, so M < M' < N < NM < NK < Q. Utan dette gav same
+      // stilling ulik FEN-string avhengig av kva rekkjefylgje brikkene låg i.
+      for (c = 0; c < 15; c++) cells.push(rows[row][c].length
+        ? rows[row][c].slice().sort(function (a, b) {
+            var ka = a.replace(/'/g, '~'), kb = b.replace(/'/g, '~');
+            return ka < kb ? -1 : (ka > kb ? 1 : 0);
+          }).join('+')
+        : '.');
       board.push(cells.join('-'));
     }
     var side = st.turn === 0 ? 'w' : 'b';
@@ -1098,7 +1121,27 @@ M.onLine = function (line) {
 M.exported = {
   SS: SS, loadWeights: loadWeights, netForward: netForward,
   encodeState: encodeState, legalIds: legalIds, moveId: moveId,
-  state: function () { return st; }
+  state: function () { return st; },
+  // ---- nettlesar-API (SnartSahkku sin motorveljar) ----
+  // Gjev trekkobjektet til den beste aksjonen for ein vilkårleg tilstand, i
+  // same form som SS.legalMoves: {pid, dir, v, kind}. pass/reroll gjev null,
+  // slik at GUI-en held fram med sin eigen settle-flyt.
+  chooseMove: function (st_) {
+    var ids = legalIds(st_);
+    if (!ids.length) return null;
+    var pk = pick(st_);
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i][0] === pk.aid) {
+        var mv = ids[i][1];
+        return (mv && mv.pid !== undefined) ? mv : null;
+      }
+    }
+    return null;
+  },
+  setLookahead: function (k) {
+    var n = parseInt(k, 10);
+    LA = isNaN(n) ? 4 : Math.max(0, Math.min(12, n));
+  }
 };
 return M;
 })();

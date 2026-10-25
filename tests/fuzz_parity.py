@@ -68,8 +68,13 @@ def play_game(rnd, max_plies=400):
             continue
         fen_before = to_fen(st)
         pool = pool_tokens(st)
-        mv = lm[rnd.randrange(len(lm))]
-        tok = token_for(st, mv)
+        # S-UCI §4: når fleire brikker i ein stabel gjev same «frå-til», løyser
+        # dommaren til den FRØMSTE (høgast syklusposisjon). Vel trekket i same
+        # ånd, elles kan Python og JS flytte kvar si brikke i stabelen og
+        # produsere ulik FEN av heilt lovlege grunnar.
+        tok = pool[rnd.randrange(len(pool))]
+        mv = max((m for m in lm if token_for(st, m) == tok),
+                 key=lambda m: E.piece(st, m["pid"]).at)
         E.apply_move(st, mv)
         E.settle(st)
         steps.append((fen_before, pool, tok, to_fen(st)))

@@ -407,7 +407,27 @@ M.onLine = function (line) {
 M.exported = {
   SS: SS, loadWeights: loadWeights, netForward: netForward,
   encodeState: encodeState, legalIds: legalIds, moveId: moveId,
-  state: function () { return st; }
+  state: function () { return st; },
+  // ---- nettlesar-API (SnartSahkku sin motorveljar) ----
+  // Gjev trekkobjektet til den beste aksjonen for ein vilkårleg tilstand, i
+  // same form som SS.legalMoves: {pid, dir, v, kind}. pass/reroll gjev null,
+  // slik at GUI-en held fram med sin eigen settle-flyt.
+  chooseMove: function (st_) {
+    var ids = legalIds(st_);
+    if (!ids.length) return null;
+    var pk = pick(st_);
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i][0] === pk.aid) {
+        var mv = ids[i][1];
+        return (mv && mv.pid !== undefined) ? mv : null;
+      }
+    }
+    return null;
+  },
+  setLookahead: function (k) {
+    var n = parseInt(k, 10);
+    LA = isNaN(n) ? 4 : Math.max(0, Math.min(12, n));
+  }
 };
 return M;
 })();

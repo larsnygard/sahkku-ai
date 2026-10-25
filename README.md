@@ -16,11 +16,12 @@ regelfilene `js/engine.js` + `js/fen.js` blir *injisert* i motoren ved eksport
 
 | test | resultat |
 |---|---|
-| regelparitet Python ↔ JS (`tests/fuzz_parity.py`, 200 parti) | **6861 trekkpunkt, 0 avvik** (pool + FEN + trekkutførelse) |
+| terningreglane (`tests/test_rules.py`) | **33 sjekkar**: X vekkjer berre, omkast berre når X er ubrukeleg, X > III > II, resten tapt |
+| regelparitet Python ↔ JS (`tests/fuzz_parity.py`, 300 parti) | **14 483 trekkpunkt, 0 avvik** (pool + FEN + trekkutførelse) |
 | nettparitet PyTorch ↔ rein JS (`tests/test_net_parity.py`) | **25 posisjoner**, Δpolicy/Δvalue < 1e-2 |
 | nettlesar-stien (`tests/test_browser_path.js`) | modulen laster uten Node-globaler, Δ ≤ 5e-6 |
 | S-UCI/GUI-testen til SnartSahkku (heilt parti) | **31 pass, 0 fail** |
-| GPU-trening på Tesla P100 (cc 6.0) | 4 sykluser × 600 parti, ~51 000 prøver, 600 steg à 15 s |
+| GPU-trening på Tesla P100 (cc 6.0) | sjølvspel + trening + eksport + styrkemåling, fleire syklusar (sjå «Resultater») |
 
 ```
          .spg-samlinger ─┐
@@ -33,6 +34,26 @@ regelfilene `js/engine.js` + `js/fen.js` blir *injisert* i motoren ved eksport
                                                     ▼
                                        S-UCI-GUI / SnartSahkku-testkit
 ```
+
+## Spillereglene (terningane)
+
+Kortversjonen som motoren implementerer — og som er køyrbar som test i
+`tests/test_rules.py` (33 sjekkar):
+
+1. **X (sáhkku) vekkjer berre.** X løyser éi inaktiv brikke — soldat eller
+   dronning — og flyttar henne **eitt** felt; flyttet er ein del av vekkinga.
+   X flyttar aldri brikker som alt er utløyste, og aldri kongen (han er aldri
+   inaktiv). Det er II og III som flyttar.
+2. **X kan kastast om berre når X ikkje kan brukast** (inga vekking å gjera).
+   Å kaste om X for å sleppe å flytte brikkene er forbode — det var den gamle
+   regelen. Alle X-fjes kastast om samtidig, og regelen kan brukast på nytt så
+   lenge X framleis er ubrukeleg.
+3. **Rekkjefylgja er X > III > II.** Blanke fjes er brukte med ein gong.
+4. **Kan du ikkje flytte den aktive terningen, mistar du resten.** Får du III
+   og II og ikkje kan flytte III, vert II ikkje spelt — turen sluttar.
+
+X, III og II er elles 1, 3 og 2 steg. Vinst: fiendens dronning er slått ut,
+eller alle fiendens soldatar er borte.
 
 ## Innhold
 
@@ -180,7 +201,7 @@ skal lande på entropien til målet, ~0.37, ikke over):
 
 ```sh
 .venv/bin/python -m sahkku_ai.export \
-    --net checkpoints/r1/c4.pt --out engines/sahkku-nn
+    --net checkpoints/r3/c3.pt --out engines/sahkku-nn
 # eksport: engines/sahkku-nn.js + engines/sahkku-nn.weights.json + engines/sahkku-nn.pt
 ```
 
@@ -268,30 +289,39 @@ EVAL_SETOPT_A="Lookahead=0" node tools/eval_match.js … # berre A
 
 ### Resultater (målt, ikke ønsketenkning)
 
-Motstander er referansemotoren `engines/sahkku-ref.js` nivå 2 (grådig evaluering
-med ±125 støy). Kalibrering av skalaen, 20 parti hver:
+Motstander: referansemotoren `engines/sahkku-ref.js`. Nivå 2 = grådig med ±125
+støy (hver kjøring er derfor et nytt utvalg), nivå 3 = deterministisk grådig.
+Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
+**L3 95 %** — altså ligger et tilfeldig nett på ~15 % mot L2.
 
-| motor | mot ref L1 (uniform tilfeldig) | mot ref L2 (grådig) |
-|---|---|---|
-| ref L1 | 50 % (definisjon) | — |
-| ref L2 | 85 % | — |
-| ref L3 | 95 % | — |
-| **NN, 4 sykluser, `Lookahead=0`** | 45 % | 15–20 % |
-| **NN, 4 sykluser, `Lookahead=4`** | — | **35 %** |
+Siste motor (`checkpoints/r3/c3.pt`, 64×6, 3 sykluser à 500 parti, ~39 000
+prøver), 30 parti per benk (seed 41):
 
-Treningsløkka per syklus (600 parti, 600 steg, `--eval-games 20`):
+| benk | poeng |
+|---|---|
+| mot ref L2, `Lookahead=4` (levert) | **26.7 %** (8–22) |
+| mot ref L2, `Lookahead=0` (rein policy) | 20.0 % (6–24) |
+| mot ref L3 (deterministisk) | 20.0 % (6–24) |
+| `Lookahead=4` mot `Lookahead=0`, samme vekter, 20 parti | **85 %** (17–3) |
 
-| syklus | nye prøver | policy-xent (val) | mot ref L2 |
+Sideskillet er tydelig: som Menn 13 % (2–13), som Giera 40 % (6–9). Nettet ser
+absolutte posisjoner (ingen speiling), så det må lære hver side for seg — med
+halvparten av dataene til hver.
+
+Treningsløkka per syklus (500 parti, 8 arbeidere, 800 steg):
+
+| syklus | nye prøver | policy-xent (val) | value-MSE (val) |
 |---|---|---|---|
-| 1 (frå tilfeldig nett) | 14 993 | 1.90 | 10 % |
-| 2 | 11 901 | 1.41 | 20 % |
-| 3 | 12 363 | 1.15 | 15 % |
-| 4 | 11 866 | 1.11 | 15 % |
+| 1 | 12 799 | 0.971 | 0.696 |
+| 2 | 13 748 | 0.962 | 0.615 |
+| 3 | 12 416 | 0.965 | 0.680 |
 
-**Les dette riktig:** rammeverket virker og lærer (10 % → 20 % på to sykluser,
-83 % av sin egen policy-only-tvilling med lookahead), men 4 × 600 parti er
-*små* tall — 20 parti gir ±11 prosentpoeng støy, og nettet ligger omtrent på
-tilfeldig-nivå uten lookahead. Se «Begrensninger» nederst.
+**Les dette riktig:** rammeverket lærer og spiller gjenkjennelig sáhkku — det
+tar dronninger, slår referansen av og til, og vinner 85 % mot sin egen
+policy-only-tvilling — men det er ikke *sterkt*: 27 % mot en grådig heuristikk
+er et stykke under «god motstander». Lookahead er den enkeltendringen som gir
+mest (85 % mot seg selv uten), og den koster ~0,5 s per trekk. Se
+«Begrensninger» nederst.
 
 ## 6. Koble motoren på et GUI
 
@@ -305,6 +335,20 @@ Motoren er en vanlig S-UCI 1.0-motor (nivå A + `info movepool` + `debug` +
   SAHKKU_ENGINE="node ../sahkku-ai/engines/sahkku-nn.js" node tests/suci.test.js
   # kast: 4 · trekk: 8 · pass: 0 · omkast: 0 · resign: 0 · info-linjer: 28
   # 31 pass, 0 fail
+  ```
+
+- **Motorveljar i SnartSahkku** (fra v1.0.4): menyen har `CPU: Klassisk /
+  Nevral (NN)`. Nevral lastar `engines/sahkku-nn.js` + vektene lazy (først når
+  du vel han), og spelar gjennom appens eige `SS.applyMove` — altså same
+  dommar, same reglar. Tenkjer ~0,5 s per trekk. Klassisk CPU (1–3) er
+  standard og fungerer offline utan ekstra nedlasting.
+
+  Bundling = to filer inn i SnartSahkku (`engines/sahkku-nn.js` +
+  `engines/sahkku-nn.weights.json`) pluss `js/nn-adapter.js`:
+
+  ```sh
+  .venv/bin/python -m sahkku_ai.export --net checkpoints/r3/c3.pt \
+      --out ../SnartSahkku/engines/sahkku-nn
   ```
 
 - **I nettleseren** (ingen Node-globaler; samme fil, samme vekter):
@@ -333,6 +377,7 @@ FUZZ_GAMES=200 ./tests/run_all.sh       # full paritetskjøring
 
 | test | hva den beviser |
 |---|---|
+| `tests.test_rules` | terningreglene som kjøyrbar spesifikasjon: X vekkjer, omkast berre når X er ubrukeleg, X > III > II, resten av terningane er tapt |
 | `tests.test_features` | aksjons-ID-er entydige, `decode_id` runder, FEN runder, masker lekker ikke |
 | `tests/fuzz_parity.py` | Python-motoren = JS-motoren: pool, FEN og trekkutførelse, 1:1 |
 | `tests.test_net_parity` | PyTorch og rein JS regner samme nett (plan, policy, value) — mot checkpointet vektene kom fra |
@@ -392,14 +437,17 @@ sáhkku-nett. Ærlig status:
    policy-målet er derfor støyende: π har i snitt bare ~2.8 aksjoner i støtta og
    entropi 0.74 nats. Standard AlphaZero bruker hundrevis av simuleringer per
    stilling og verdinettet som løvverdi.
-2. **Skala.** 4 × 600 parti ≈ 51 000 stillinger; AlphaZero-klasse spill bruker
+2. **Skala.** 3 × 500 parti ≈ 39 000 stillinger; AlphaZero-klasse spill bruker
    millioner. `--games`, `--cycles` og flere arbeidere skalerer rett opp.
-3. **Verdinettet er bare delvis utnytta.** Motoren bruker det nå via
-   `Lookahead` (83 % mot seg selv uten), men treningsløkka bruker det ikke som
-   løvverdi i utspillingene.
+3. **Verdinettet er bare delvis utnytta.** Motoren bruker det via `Lookahead`
+   (85 % mot seg selv uten), men treningsløkka bruker det ikke som løvverdi i
+   utspillingene.
 4. **Taket er målstøyen, ikke optimeringa.** 4000 treningssteg gir marginalt
    bedre val-tap og *dårligere* value-MSE (overfitting på støy) — se
-   `checkpoints/`-historikken i `runs/<run>/training_log.jsonl`.
+   `runs/<run>/training_log.jsonl` og `history` i checkpoint-metaen.
+5. **Ingen sidespegling.** Nettet ser absolutte posisjoner. Det gir en målbar
+   Menn/Giera-skjevhet (13 % vs 40 % mot L2); speiling som augmentasjon ville
+   doblet mengden trening per side.
 
 Neste steg, i rekkefølge: (a) MCTS med verdinettet som løvverdi og
 `--rollouts` som simuleringsbudsjett, (b) sjølvspel som *spiller* med

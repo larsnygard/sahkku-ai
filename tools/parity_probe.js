@@ -52,9 +52,13 @@ for (const pos of input.positions) {
   });
   if (pos.mv) {
     const clone = SS.deserialize(SS.serialize(st));
-    let mv = null;
+    // S-UCI §4: stablar løysast til den FRØMSTE brikka (høgast syklusposisjon),
+    // ikkje «fyrste treff i legalMoves-rekkjefylgja».
+    let mv = null, bestAt = -Infinity;
     for (const m of SS.legalMoves(clone, clone.turn)) {
-      if (encL(clone, m) === pos.mv) { mv = m; break; }
+      if (encL(clone, m) !== pos.mv) continue;
+      const pm = SS.piece(clone, m.pid);
+      if (pm.at > bestAt) { bestAt = pm.at; mv = m; }
     }
     if (!mv) {
       rec.result = { mv: pos.mv, error: "ulovleg" };

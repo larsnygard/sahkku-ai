@@ -66,7 +66,15 @@
     var board = [];
     for (row = 2; row >= 0; row--) {
       var cells = [];
-      for (c = 0; c < 15; c++) cells.push(rows[row][c].length ? rows[row][c].join('+') : '.');
+      // Kanonisk stabelrekkjefylgje (same som den Python-sida): "'" sorterer
+      // etter bokstav, so M < M' < N < NM < NK < Q. Utan dette gav same
+      // stilling ulik FEN-string avhengig av kva rekkjefylgje brikkene låg i.
+      for (c = 0; c < 15; c++) cells.push(rows[row][c].length
+        ? rows[row][c].slice().sort(function (a, b) {
+            var ka = a.replace(/'/g, '~'), kb = b.replace(/'/g, '~');
+            return ka < kb ? -1 : (ka > kb ? 1 : 0);
+          }).join('+')
+        : '.');
       board.push(cells.join('-'));
     }
     var side = st.turn === 0 ? 'w' : 'b';

@@ -331,7 +331,9 @@ def active_rank(st: State):
     best = 4
     for i in range(min(3, len(st.dice))):
         used = st.used[i] if i < len(st.used) else False
-        if not used and RANK[st.dice[i]] < best:
+        if used or st.dice[i] == "_":
+            continue        # blank = dødt fjes, aldri aktiv (jf. dice_left)
+        if RANK[st.dice[i]] < best:
             best = RANK[st.dice[i]]
     return None if best == 4 else best
 
@@ -362,8 +364,9 @@ def reroll_x(st: State, rnd=None):
         return None
     for i in range(3):
         if st.dice[i] == "X":
-            st.dice[i] = roll_dice(rnd)[0]
-            st.used[i] = False
+            nf = roll_dice(rnd)[0]
+            st.dice[i] = nf
+            st.used[i] = (nf == "_")    # nytt blankt fjes er brukt med ein gong
     return st.dice[:]
 
 
@@ -410,6 +413,11 @@ def legal_moves(st: State, me: int):
                 ok, land, _ = path_for(q.at, d, 1)
                 if ok and soldier_landing_ok(st, q, land) and can_land(st, q, land):
                     out.append({"pid": q.id, "dir": d, "v": 1, "kind": "rel"})
+    # X (sáhkku) VEKKJER berre: ho løyser ei inaktiv brikke (soldat eller
+    # dronning) og flyttar henne eitt felt som del av vekkinga. Ho flyttar
+    # ALDRI brikker som alt er utløyste — det gjer II og III.
+    if rk == RANK["X"]:
+        return out
     for p in st.pieces:
         if p.captured:
             continue
