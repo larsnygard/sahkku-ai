@@ -49,6 +49,7 @@ regelfilene `js/engine.js` + `js/fen.js` blir *injisert* i motoren ved eksport
 | `sahkku_ai/export.py` | checkpoint → `engines/sahkku-nn.js` + vekter (JSON) |
 | `sahkku_ai/pipeline.py` | heile løkka i én kommando |
 | `engines/sahkku-nn.js` | den ferdige S-UCI-motoren (regler + nett, rein JS) |
+| `engines/sahkku-nn.pt` | checkpointet motoren vart eksportert frå (same nett som vektene) |
 | `engines/runner_template.js` | malen eksporten fyller inn regler/vekter i |
 | `tools/eval_match.js` | styrkemåling: to motorer mot hverandre, JS-dommer |
 | `tools/parity_probe.js` | JS-siden av regelpariteten |
@@ -97,7 +98,7 @@ alt er kjørt hoppes over, så kommandoen kan avbrytes og startes igjen:
 .venv/bin/python -m sahkku_ai.pipeline --run r1 --start-cycle 5 --cycles 8 ...
 ```
 
-Ferdig produkt: `engines/sahkku-nn.js` + `engines/sahkku-nn.weights.json`.
+Ferdig produkt: `engines/sahkku-nn.js` + `.weights.json` + `.pt` (same nett, tre deler).
 Vil du ha det steg for steg (lettere å feilsøke), er det de fem avsnittene under.
 
 ---
@@ -180,11 +181,13 @@ skal lande på entropien til målet, ~0.37, ikke over):
 ```sh
 .venv/bin/python -m sahkku_ai.export \
     --net checkpoints/r1/c4.pt --out engines/sahkku-nn
-# eksport: engines/sahkku-nn.js + engines/sahkku-nn.weights.json
+# eksport: engines/sahkku-nn.js + engines/sahkku-nn.weights.json + engines/sahkku-nn.pt
 ```
 
-Eksporten gjør tre ting:
+Eksporten gjør fire ting:
 
+0. kopierer checkpointet til `engines/sahkku-nn.pt`, så JS-kode, vekter og
+   kjeldenett alltid hører sammen (og en fersk klone kan kjøre nettparitetstesten);
 1. alle tensorer → **base64 float32** (én per tensor, med shapes) i `.weights.json`;
 2. `engines/runner_template.js` får `vendor/engine.js` + `vendor/fen.js`
    **injisert** (§RULES§/§FEN§-markørene) — samme regler som PWA-en;

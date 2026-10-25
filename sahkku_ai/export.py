@@ -10,7 +10,7 @@ Usage: python -m sahkku_ai.export --net checkpoints/r1/best.pt \
         --out engines/sahkku-nn --quant fp32
 """
 from __future__ import annotations
-import argparse, base64, io, json, os, sys
+import argparse, base64, io, json, os, shutil, sys
 import numpy as np
 import torch
 
@@ -30,9 +30,18 @@ def export(net_path, out_prefix, quant="fp32"):
     for k, v in sd.items():
         blobs[k] = tensor_b64(v)
         shapes[k] = list(v.shape)
+    # Checkpointet følgjer med eksporten (engines/<namn>.pt), slik at vekter,
+    # JS-kode og kjeldenett alltid er same nett — også i ein fersk klone, der
+    # stien i `source` ikkje finst.
+    cp_path = out_prefix + ".pt"
+    try:
+        shutil.copyfile(net_path, cp_path)
+    except (shutil.SameFileError, FileNotFoundError):
+        cp_path = net_path
     meta = {"cfg": net.cfg, "checkpoint_meta": net.meta,
             "planes": N_PLANES, "glob": N_GLOBAL, "actions": N_ACTIONS,
-            "quant": quant, "source": net_path}
+            "quant": quant, "source": net_path,
+            "checkpoint": os.path.basename(cp_path)}
     wpath = out_prefix + ".weights.json"
     with open(wpath, "w") as f:
         json.dump({"meta": meta, "shapes": shapes, "tensors": blobs}, f)
@@ -48,7 +57,7 @@ def export(net_path, out_prefix, quant="fp32"):
     rpath = out_prefix + ".js"
     with open(rpath, "w", encoding="utf-8") as f:
         f.write(src)
-    print(f"eksport: {rpath} + {wpath}")
+    print(f"eksport: {rpath} + {wpath} + {cp_path}")
     print(f"prøv:  node {rpath}  (S-UCI: uci → uciok, posisjonar + go)")
     return rpath, wpath
 

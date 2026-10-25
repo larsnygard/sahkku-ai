@@ -24,8 +24,13 @@ def exported_source():
     mot NETTOPP det checkpointet — elles kan han plukke eit nyare .pt som
     ikkje ligg i .js-fila og melde falsk avvik.
     """
-    wpath = os.path.join(os.path.dirname(__file__), "..", "engines",
-                         "sahkku-nn.weights.json")
+    eng = os.path.join(os.path.dirname(__file__), "..", "engines")
+    # 1) eksporten legg att si eiga kjelde: engines/sahkku-nn.pt
+    copy = os.path.join(eng, "sahkku-nn.pt")
+    if os.path.exists(copy):
+        return copy
+    # 2) elles stien eksporten hugsar (same maskin, same arbeidskopi)
+    wpath = os.path.join(eng, "sahkku-nn.weights.json")
     try:
         with open(wpath) as f:
             src = json.load(f).get("meta", {}).get("source")
