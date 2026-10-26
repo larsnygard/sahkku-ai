@@ -312,10 +312,20 @@
   // (Lokale variantar — Wikipedia/Berg-Nordlie — har fritt omkast; vi
   // følgjer dokumentet.) II/III/blank er faste og kan ikkje kastast om.
   function canRerollX(st) {
+    // Lars 2026-10-26: «Du kan alltid kaste om X, unntatt hvis aktivering av
+    // en brikke er det eneste du kan gjøre.» Ein spelar som aldri aktiverer
+    // noko ville elles kunne blokkere spelet for alltid — difor er omkast
+    // forbode berre når sida ikkje har éi einaste aktiv (utløyst) brikke.
     if (st.winner != null || st.phase !== 'move') return false;
-    var rk = activeRank(st);
-    if (rk !== RANK.X) return false;
-    return legalMoves(st, st.turn).length === 0;
+    if (activeRank(st) !== RANK.X) return false;
+    var me = st.turn, i, p, hasActive = false;
+    for (i = 0; i < st.pieces.length; i++) {
+      p = st.pieces[i];
+      if (p.captured) continue;
+      if (p.t === 'k' ? p.o === me : (p.o === me && p.released)) { hasActive = true; break; }
+    }
+    if (hasActive) return true;                       // alltid lov
+    return legalMoves(st, me).length === 0;           // utan aktive: berre om inga vekking finst
   }
 
   // konge/dronning: alle lovlige trekk med verdi v: v steg i SAMME

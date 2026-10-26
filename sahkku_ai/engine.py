@@ -350,13 +350,22 @@ def dice_left(st: State) -> int:
 
 
 def can_reroll_x(st: State) -> bool:
-    """sa hkku.no rule: reroll Xs only when X (and the rest of the roll)
-    cannot be used at all."""
+    """X kan ALLTID kastast om — bortsett frå når aktivering er det einaste
+    ein kan gjere (sida har ikkje éi einaste utløyst brikke). Elles kunne ein
+    spelar som aldri aktiverer noko blokkere spelet for alltid (Lars
+    2026-10-26). Etter eit omkast gjeld vanlege reglar for det nye fjeset —
+    òg eit nytt X, som kan kastast om på nytt."""
     if st.winner is not None or st.phase != "move":
         return False
     if active_rank(st) != RANK["X"]:
         return False
-    return len(legal_moves(st, st.turn)) == 0
+    me = st.turn
+    for p in st.pieces:
+        if p.captured:
+            continue
+        if (p.o == me and p.released) or (p.t == "k" and p.o == me):
+            return True
+    return len(legal_moves(st, me)) == 0
 
 
 def reroll_x(st: State, rnd=None):

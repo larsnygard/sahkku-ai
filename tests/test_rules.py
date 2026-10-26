@@ -67,11 +67,30 @@ def test_x_wakes_one_piece():
 
 # ---------------------------------------------------------------- clause 2
 def test_reroll_only_when_x_unusable():
-    # (a) a wake exists -> X may NOT be re-rolled ("ikkje for å unngå å flytte")
+    # (a) INGEN aktive brikker (alle heime): aktivering er det einaste du kan
+    # gjere — då er omkast forbode (elles kunne ein blokkere spelet for alltid)
     st = start_state(["X", "III", "II"], [False, False, False])
     check(E.legal_moves(st, st.turn), "startstilling: X har lovleg vekking")
     check(not E.can_reroll_x(st),
-          "X med lovleg vekking kan IKKJE kastast om (gammal regel, no forbode)")
+          "utan aktive brikker er X-omkast forbode (aktivering er einaste trekk)")
+
+    # (a2) har du fyrst éi aktiv brikke, kan X ALLTID kastast om — òg når du
+    # kunne vekkje noko
+    st_a = start_state(["X", "III", "II"], [False, False, False])
+    rel = [p for p in E.soldiers(st_a, 0)][0]
+    rel.released = True
+    rel.at = 20
+    check(E.legal_moves(st_a, st_a.turn), "framleis ei vekking tilgjengeleg")
+    check(E.can_reroll_x(st_a),
+          "med éi aktiv brikke er X-omkast lovleg sjølv om vekking finst")
+
+    # (a3) nytt X etter omkast kan kastast om på nytt (vanlege reglar gjeld)
+    rnd_x = random.Random(9)
+    st_a.dice = ["X", "_", "_"]; st_a.used = [False, True, True]
+    for _ in range(20):
+        st_a.dice[0] = "X"; st_a.used[0] = False
+        check(E.can_reroll_x(st_a), "nytt X kan kastast om på nytt")
+        E.reroll_x(st_a, rnd_x.random)
 
     # (b) X has nothing to wake -> re-roll allowed
     st2 = start_state(["X", "III", "II"], [False, False, False])
