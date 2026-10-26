@@ -467,6 +467,39 @@ GPU-kø). `OMP_NUM_THREADS=1` endra ingenting — det er ikkje CPU-sult.
 | `soldier_at` (memo-tabell i staden for `_mod` per kall) | 10 s / 3 parti | **7 s / 3 parti** |
 | same, med 8 arbeidarar | 23 s / 24 parti | 23 s (GPU-køya er taket) |
 
+### Vektorisert sjølvspel (`--k-games`, målt)
+
+`sahkku_ai/fastplay.py` held K parti i lufta per arbeidar og sender alle
+utspelingane deira i éin forward per ply, med CUDA-graph på fast batch:
+
+```sh
+.venv/bin/python -m sahkku_ai.selfplay --net checkpoints/ail01/c9.pt \
+    --outdir runs/x --games 48 --workers 8 --k-games 8 --batch 64 --device cuda
+```
+
+| oppsett | parti/min |
+|---|---|
+| klassisk, 1 arbeidar | 20 |
+| vektorisert k=8, 1 arbeidar | **51** (2,4×, `graph=ja`) |
+| klassisk, 8 arbeidarar | 63 |
+| vektorisert k=8, 8 arbeidarar | 64 |
+| vektorisert k=8, 12 arbeidarar | 63 |
+
+**Så: 1+2 gjer éin arbeidar 2,4× raskare, men produksjonskøyringa (8–12
+arbeidarar) står på same ~64 parti/min.** Måling under køyring syner kvifor:
+8 arbeidarar ligg på ~99 % CPU kvar (792 % totalt) medan GPU-en er 100 %
+oppteken — når mange arbeidarar deler same GPU, er det Python-regelverket som
+er veggen, ikkje forward-kostnaden. Skal produksjonsløkka verta raskare må
+regelarbeidet ned (opptaksindeks, vektoriser `encode_state`, færre `legal_ids`
+per ply), eller utspelingane kortast ned.
+
+**Ikkje slått på som standard** (`--k-games 1` er klassisk løype). Grunn:
+z-fordelinga i dei vektoriserte shardane er annleis — 20 % av avgjerdene har
+|z| > 0,5 og 18 % er nøyaktig 0, mot 92 % / 2 % i den klassiske løypa. Det kan
+vere rimeleg (meir blanda utfall når åtte born får kvar sine terningar), men
+det er ikkje verifisert mot treningskvalitet enno, so løypa vert verken brukt
+i pipeline-en eller påstått å vere ekvivalent før det er målt.
+
 ### Kva som faktisk ville gjort løkka raskare (målt/estimert)
 
 1. **CUDA-graph per fast batch-storleik** — målt på denne P100-en:

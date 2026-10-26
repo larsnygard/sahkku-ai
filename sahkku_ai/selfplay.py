@@ -252,23 +252,29 @@ def worker(args):
 
 def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  rollouts=6, temp=1.0, noise_alpha=0.3, noise_eps=0.25,
-                 seed=1, prior_eps=0.2, tau_q=1.0):
+                 seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
            "rollouts": rollouts, "temp": temp,
            "noise_alpha": noise_alpha, "noise_eps": noise_eps, "seed": seed,
-           "prior_eps": prior_eps, "tau_q": tau_q}
+           "prior_eps": prior_eps, "tau_q": tau_q,
+           "k_games": k_games, "batch": batch}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
+    # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
+    fn = worker
+    if cfg.get("k_games", 1) > 1:
+        from . import fastplay
+        fn = fastplay.worker_batch
     t0 = time.time()
     if workers == 1:
-        tot = worker(jobs[0])
+        tot = fn(jobs[0])
     else:
         # spawn (ikkje fork): far-prosessen kan alt ha ein CUDA-kontekst
         # (treningsløkka), og CUDA kan ikkje re-initialiserast i eit born
         # etter fork. spawn gjev kvar arbeidar sin eigen kontekst.
         with mp.get_context("spawn").Pool(workers) as pool:
-            tot = sum(pool.map(worker, jobs))
+            tot = sum(pool.map(fn, jobs))
     print(f"selfplay: ~{games} parti, {tot} prøver på {time.time()-t0:.0f}s -> {outdir}")
     return tot
 
@@ -289,7 +295,11 @@ if __name__ == "__main__":
                     help="vekt på nett-prioren i policy-målet (0 = berre utfall)")
     ap.add_argument("--tau-q", type=float, default=1.0,
                     help="temperatur på utfallsvektinga, π ∝ n·exp(q/tau)")
+    ap.add_argument("--k-games", type=int, default=1,
+                    help="vektorisert løype: K parti i lufta per arbeidar (1 = klassisk)")
+    ap.add_argument("--batch", type=int, default=64,
+                    help="fast batch for CUDA-graph-inferens")
     a = ap.parse_args()
     run_selfplay(a.net, a.outdir, a.device, a.games, a.workers,
                  a.rollouts, a.temp, a.noise_alpha, a.noise_eps, a.seed,
-                 a.prior_eps, a.tau_q)
+                 a.prior_eps, a.tau_q, a.k_games, a.batch)
