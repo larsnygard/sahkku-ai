@@ -443,11 +443,52 @@ og nettet kunne ikke lære noe om aktiveringstidspunkt).
 
 ## Ytelse og GPU-notater
 
-- P100 (16 GB, cc 6.0): 4 sjølvspel-arbeidere gir ~50 parti/minutt og ~99 %
-  GPU-utnyttelse; hver arbeider bruker ~330 MB VRAM. Sjekk med
+### Kvar tida faktisk går (profilert, `cProfile`, 3 parti / 1 arbeidar)
+
+| del | tid | merknad |
+|---|---|---|
+| nettet framover (conv/bn/relu) | **35 %** | 2,0 ms per forward — **same for batch 1, 8 og 64** |
+| regelverket i Python (`occ`, `soldier_at`, `legal_moves`, `move_id`) | **~30 %** | `occ` åleine 11 % (70 000 kall), `soldier_at` 2,4 mill. kall |
+| Python/torch-dispatch | ~15 % | 110 000 modulkall per 3 parti |
+| treninga | ~4 % | 900 steg ≈ 25 s mot ~600 s per syklus |
+
+**Hovudfunnet: GPU-en er ikkje berekningsbunden, han er *latens*bunden.**
+Eit forward kostar 2,0 ms same om batchen er 1 eller 64 rad, fordi grafen er
+~15 kjerner som kvar kostar ~0,13 ms i launch — P100-en sit og ventar.
+Målt tak under produksjonslast: ~900–1000 forward/s, uansett kor mange
+arbeidarar som spør.
+
+Det forklarar òg at **flere arbeidarar gjer vondt verre**: 8 arbeidarar gav
+63 parti/min, 12 gav 45 (kvar arbeidar vart 2× treigare av å stå i same
+GPU-kø). `OMP_NUM_THREADS=1` endra ingenting — det er ikkje CPU-sult.
+
+| grep | før | etter |
+|---|---|---|
+| `soldier_at` (memo-tabell i staden for `_mod` per kall) | 10 s / 3 parti | **7 s / 3 parti** |
+| same, med 8 arbeidarar | 23 s / 24 parti | 23 s (GPU-køya er taket) |
+
+### Kva som faktisk ville gjort løkka raskare (målt/estimert)
+
+1. **CUDA-graph per fast batch-storleik** — målt på denne P100-en:
+   batch 8: 2,01 → **0,49 ms (4,1×)**; batch 64: 1,97 → 1,46 ms. Sidan nettet er
+   65 % av tida, er dette den største einskildgevinsten (~2–2,5× på heile
+   syklusen). Krev faste batchar (padding) og statiske innbuffera.
+2. **Buntlegg fleire avgjerder per forward** (vektorisert sjølvspel): GPU-en tek
+   same 2 ms for 8 som for 64 rader, so 8 avgjerder kan dele éin forward.
+   ~2–3×, medium inngrep.
+3. **Kutt utspelingane og bootstrap med verdinettet** (t.d. 25 ply i staden for
+   heile partiet): kuttar både forwardar og regelarbeid ~3×. Endrar måla, so det
+   må validerast på tap-kurva.
+4. **Regel-mikrooptimalisering** (opptaksindeks per stilling, vektoriser
+   `encode_state`): ~1,3×, låg risiko — `soldier_at`-memoet over er fyrste steg.
+
+Med 1+2 (eller 3) er 9 syklusar ~2 timar → ~35–45 minutt. Med berre 8 arbeidarar
+og dagens kode er taket rundt 600 s per syklus.
+
+- P100 (16 GB, cc 6.0): 8 sjølvspel-arbeidarar gir ~63 parti/min; ~330 MB VRAM
+  per arbeidar. Sjekk med
   `nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv`.
-- Treningssteget er billig (600 steg på 15 s); flaskehalsen er regelarbeidet i
-  Python under sjølvspel, ikke nettet.
+- Treningssteget er billig (900 steg på ~25 s); flaskehalsen er sjølvspelet.
 - Er GPU-en opptatt: `--device cpu` fungerer (bare langsommere).
 - Minne: shards holdes i RAM som tett f32 (`8282 × 4 B ≈ 33 kB` per prøve), så
   ~30 000 prøver ≈ 1 GB. `--window` i pipelinen begrenser hvor mange sykluser

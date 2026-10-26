@@ -82,8 +82,14 @@ def _tour2_of(t: int) -> int:
 TOUR2 = [_tour2_of(t) for t in range(60)]
 
 
+_SQ = [TOUR1, TOUR2]
+
+
 def soldier_at(pl: int, t: int) -> int:
-    return TOUR1[_mod(t, 60)] if pl == 0 else TOUR2[_mod(t, 60)]
+    # Hot path: ~2.4 million kall per 3 sjølvspelparti, og kvart kall gjorde
+    # først ein _mod(). Ei oppslagstabell per side (60 felt) gjer dette til
+    # eitt listeoppslag. Sjå profilen i README («Ytelse»).
+    return _SQ[pl][t % 60]
 
 
 def start_t(pl: int, col: int) -> int:
