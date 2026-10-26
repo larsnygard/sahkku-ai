@@ -24,6 +24,8 @@ function encL(st, mv) {
   if (p.t === "s") {
     frm = SS.soldierAt(p.o, p.at);
     to = SS.soldierAt(p.o, p.at + (mv.kind === "rel" ? 1 : mv.v));
+  } else if (mv.to !== undefined && mv.to !== null) {
+    frm = p.at; to = mv.to;
   } else {
     const r = SS.pathFor(st, p, mv.dir, mv.v);
     if (!r.legal || !r.path.length) return null;

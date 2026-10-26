@@ -20,6 +20,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from sahkku_ai import engine as E
+from sahkku_ai.fen import sq_of_name
 
 OK = []
 
@@ -133,8 +134,64 @@ def test_forfeits_rest():
     check(st2.turn == 1, "III utan trekk -> II vert aldri spelt")
 
 
+# ---------------------------------------------------------------- clause 5
+def test_king_and_queen_follow_the_cycle():
+    """Konge og dronning går langs TALLSYKLUSEN (åttetalet), begge vegar.
+
+    Lars 2026-10-26: «The King can jump pieces ... from M2 to J1 and the other
+    direction to O1». O1 er berre nåbar om brikka følgjer syklusen (M2→N2→O2→O1)
+    — ei rett line kjem aldri dit. Ho hoppar over brikker: berre landingsfeltet
+    er regulert.
+    """
+    st = E.State(first=1)
+    for p in st.pieces:
+        if p.t in ("s", "q"):
+            p.captured = True
+    k = E.king(st)
+    k.o = 1                                  # kapt av koner
+    k.at = sq_of_name("M2")
+    st.dice = ["III", "_", "_"]
+    st.used = [False, True, True]
+    st.phase = "move"
+    st.turn = 1
+
+    def king_dest():
+        return sorted(E.sq_name(mv["to"]) for mv in E.legal_moves(st, 1)
+                      if E.piece(st, mv["pid"]).t == "k")
+
+    check(king_dest() == ["J2", "O1"], f"M2 med III: J2 bakover og O1 framover (fekk {king_dest()})")
+
+    # ... og ho hoppar over ei brikke som står mellom (N2)
+    blocker = [p for p in st.pieces if p.t == "s" and p.o == 1][0]
+    blocker.captured = False
+    blocker.released = True
+    blocker.at = 28                            # P2 t28 = N2
+    check(E.soldier_at(1, blocker.at) == sq_of_name("N2"), "blokkeringa står på N2")
+    check(king_dest() == ["J2", "O1"], "kongen hoppar over brikka på N2 og når O1")
+    # ... men ho kan ikkje lande på henne
+    blocker.at = 24                            # P2 t24 -> J2
+    check(E.soldier_at(1, blocker.at) == sq_of_name("J2"), "blokkeringa står no på J2")
+    check(king_dest() == ["O1"], f"kongen landar ikkje på brikke (fekk {king_dest()})")
+
+    # dronninga følgjer same syklus: P1-dronning L2 med II -> J2 og N2
+    st2 = E.State(first=0)
+    q = E.queen(st2, 0)
+    for p in st2.pieces:
+        if p.id != q.id:
+            p.captured = True
+    q.released = True
+    q.at = sq_of_name("L2")
+    st2.dice = ["II", "_", "_"]
+    st2.used = [False, True, True]
+    st2.phase = "move"
+    st2.turn = 0
+    qd = sorted(E.sq_name(mv["to"]) for mv in E.legal_moves(st2, 0))
+    check(qd == ["J2", "N2"], f"dronninga L2 med II: J2 og N2 (fekk {qd})")
+
+
 def main():
     test_x_wakes_one_piece()
+    test_king_and_queen_follow_the_cycle()
     test_reroll_only_when_x_unusable()
     test_dice_order()
     test_forfeits_rest()

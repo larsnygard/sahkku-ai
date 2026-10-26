@@ -115,6 +115,8 @@ def _apply_token(st, piece_letter, from_name, to_name, samples, strict, want_v=N
         if p.t == "s":
             frm = E.soldier_at(p.o, p.at)
             to = E.soldier_at(p.o, p.at + (1 if mv["kind"] == "rel" else mv["v"]))
+        elif mv.get("to") is not None:
+            frm, to = p.at, mv["to"]
         else:
             ok, land, _ = E.path_for(p.at, mv["dir"], mv["v"])
             frm, to = p.at, land

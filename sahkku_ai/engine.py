@@ -370,15 +370,45 @@ def reroll_x(st: State, rnd=None):
     return st.dice[:]
 
 
+_CYC = [{}, {}]
+
+
+def cycle_index(pl: int, sq: int) -> int:
+    """Felt → syklusposisjon (fyrste pass) for sida `pl`.
+
+    Kongen og dronninga går langs tallsyklusen (åttetalet). Eit felt på
+    midtrekka ligg på TO syklusposisjonar; konvensjonen er å bruke den fyrste
+    (elles måtte brikka bere pass-merke i FEN-en slik soldatane gjer).
+    """
+    m = _CYC[pl]
+    if not m:
+        for t in range(60):
+            s = soldier_at(pl, t)
+            if s not in m:
+                m[s] = t
+    return m.get(sq, -1)
+
+
 def gen_kq_moves(st: State, p: Piece, v: int):
+    """Konge/dronning: v steg langs tallsyklusen, BEGGE vegar.
+
+    Ho kan hoppe over brikker (berre landingsfeltet er regulert av can_land),
+    og syklusen snor seg, so landingsfeltet vert rekna ut her og følgjer med
+    som "to" i trekket.
+    """
     res = []
-    for d in free_dirs_at(p.at, v):
-        ok, land, _ = path_for(p.at, d, v)
-        if not ok:
+    sq = p.at
+    t0 = cycle_index(p.o, sq)
+    if t0 < 0:
+        return res
+    for sign in (-1, 1):
+        land = soldier_at(p.o, t0 + sign * v)
+        if land == sq:                      # heil runde attende til same felt
             continue
         if not can_land(st, p, land):
             continue
-        res.append({"pid": p.id, "dir": d, "v": v, "kind": "mv"})
+        res.append({"pid": p.id, "dir": "F" if sign > 0 else "B",
+                    "v": v, "kind": "mv", "to": land, "cyc": sign})
     return res
 
 
@@ -460,7 +490,10 @@ def apply_move(st: State, mv: dict):
         p.at = p.at + (1 if mv["kind"] == "rel" else mv["v"])
     else:
         from_idx = p.at
-        ok, land, _ = path_for(p.at, mv["dir"], mv["v"])
+        if mv.get("to") is not None:
+            land = mv["to"]          # konge/dronning langs tallsyklusen
+        else:
+            ok, land, _ = path_for(p.at, mv["dir"], mv["v"])   # dronninga sin X-løysing
         p.at = land
     if mv["kind"] == "rel":
         p.released = True

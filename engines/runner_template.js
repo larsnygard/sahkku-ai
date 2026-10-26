@@ -96,6 +96,8 @@ function moveId(st, mv) {
   if (p.t === 's') {
     frm = SS.soldierAt(p.o, p.at);
     to = SS.soldierAt(p.o, p.at + mv.v);
+  } else if (mv.to !== undefined && mv.to !== null) {
+    frm = p.at; to = mv.to;
   } else {
     var r2 = SS.pathFor(st, p, mv.dir, mv.v);
     frm = p.at; to = r2.path[r2.path.length - 1];
@@ -218,6 +220,7 @@ function encode(st_, mv) {
     var to = SS.soldierAt(p.o, p.at + (mv.kind === 'rel' ? 1 : mv.v));
     return SS.name(from) + '-' + SS.name(to);
   }
+  if (mv.to !== undefined && mv.to !== null) return SS.name(p.at) + '-' + SS.name(mv.to);
   var r = SS.pathFor(st_, p, mv.dir, mv.v);
   if (!r.legal || !r.path.length) return null;
   return SS.name(p.at) + '-' + SS.name(r.path[r.path.length - 1]);

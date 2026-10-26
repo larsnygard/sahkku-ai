@@ -232,6 +232,17 @@ var M = {};
   function isHome(p) { return (p.t === 's' || p.t === 'q') && !p.released && !p.captured; }
   function atIdx(st, p) { return p.t === 's' ? soldierAt(p.o, p.at) : p.at; }
 
+  // Kvar landar eit trekk? Soldat: +v i syklusen (eller +1 ved løysing).
+  // Konge/dronning: trekket ber landingsfeltet i `to` (tallsyklusen snor seg);
+  // dronninga si X-løysing er ei rett line og vert rekna med pathFor.
+  function moveDest(st, mv) {
+    var p = piece(st, mv.pid);
+    if (p.t === 's') return soldierAt(p.o, p.at + (mv.kind === 'rel' ? 1 : mv.v));
+    if (mv.to !== undefined && mv.to !== null) return mv.to;
+    var r = pathFor(st, p, mv.dir, mv.v);
+    return r.path[r.path.length - 1];
+  }
+
   // ---------- terninger ----------
   function rollDice(rnd) {
     var d = [], i;
@@ -327,18 +338,25 @@ var M = {};
   // retning (ingen snuing underveis — dokumentets regel).
   // Fritt pass gjennom alt (soldater, hjemmestående, kongen) — landing er
   // det som reguleres av canLand.
-  function genKingMoves(st, p, v, me) {
-    var res = [], dirs = freeDirsAt(p.at, v), d, k, r, cur, on, j, q, blocked;
-    for (d = 0; d < dirs.length; d++) {
-      cur = p.at;
-      for (k = 0; k < v; k++) cur = stepDir(cur, dirs[d]);
-      if (cur == null) continue;
-      if (!canLand(st, p, cur)) continue;
-      // landing ok: banen (mellomfelt + landingsfelt) må være INNBAR —
-      // landingen selv kan/kaprer fiender; mellomfelt er fri (passering),
-      // UNNTATT landing: kanLand sjekker landing; banen: ingen landing
-      // kan skje «underveis» — kun Sluttfelt teller.
-      res.push({ pid: p.id, dir: dirs[d], v: v, kind: 'mv' });
+  // ---- tallsyklusen (åttetalet): konge og dronning går LANGS ho ----
+  // Brikka går v steg framover eller bakover i sin eigen side sin syklus, kan
+  // hoppe over brikker (berre landingsfeltet er regulert) og må lande på eit
+  // felt ho kan lande på (canLand). Fyrste-syklus-konvensjonen: ei brikke på
+  // midtrekka tel som fyrste pass — same felt ligg på to syklusposisjonar.
+  var CYC = [];
+  function cycleIndexOf(pl, sq) {
+    var m = CYC[pl];
+    if (!m) { m = CYC[pl] = {}; for (var t = 0; t < 60; t++) { var s = soldierAt(pl, t); if (m[s] === undefined) m[s] = t; } }
+    return m[sq] === undefined ? -1 : m[sq];
+  }
+  function genCycleMoves(st, p, v) {
+    var res = [], sq = p.at, t0 = cycleIndexOf(p.o, sq), s, land;
+    if (t0 < 0) return res;
+    for (s = -1; s <= 1; s += 2) {
+      land = soldierAt(p.o, t0 + s * v);
+      if (land === sq) continue;              // heil runde attende til same felt
+      if (!canLand(st, p, land)) continue;
+      res.push({ pid: p.id, dir: s > 0 ? 'F' : 'B', v: v, kind: 'mv', to: land, cyc: s });
     }
     return res;
   }
@@ -392,11 +410,11 @@ var M = {};
         out.push({ pid: p.id, dir: +1, v: v, kind: 'mv' });
       } else if (p.t === 'q') {
         if (!st.queenMode || p.o !== me || !p.released) continue;
-        var km = genKingMoves(st, p, v, me);
-        for (var z = 0; z < km.length; z++) out.push(km[z]);
+        var qm = genCycleMoves(st, p, v);
+        for (var z = 0; z < qm.length; z++) out.push(qm[z]);
       } else if (p.t === 'k') {
         if (p.o !== me) continue;
-        var km2 = genKingMoves(st, p, v, me);
+        var km2 = genCycleMoves(st, p, v);
         for (var z2 = 0; z2 < km2.length; z2++) out.push(km2[z2]);
       }
     }
@@ -419,8 +437,14 @@ var M = {};
       p.at = mv.kind === 'rel' ? p.at + 1 : p.at + mv.v;
     } else {
       fromIdx = p.at;
-      var res = pathFor(st, p, mv.dir, mv.v);
-      land = res.path[res.path.length - 1];
+      if (mv.to !== undefined && mv.to !== null) {
+        // konge/dronning langs tallsyklusen: landingsfeltet er rekna ut på
+        // førehand (syklusen snor seg, so dir/v åleine gjev ikkje feltet)
+        land = mv.to;
+      } else {
+        var res = pathFor(st, p, mv.dir, mv.v);   // dronninga sin X-løysing
+        land = res.path[res.path.length - 1];
+      }
       p.at = land;
     }
     if (mv.kind === 'rel') p.released = true;
@@ -527,7 +551,7 @@ var M = {};
     N: N, DICE: DICE, RANK: RANK, CASTLE: CASTLE, TOUR1: TOUR1,
     pt: pt, idx: idx, name: name, rowLine: rowLine, mod: mod,
     tour2Of: tour2Of, soldierAt: soldierAt, startT: startT,
-    pathFor: pathFor, canLand: canLand, soldierLandingOk: soldierLandingOk,
+    pathFor: pathFor, moveDest: moveDest, canLand: canLand, soldierLandingOk: soldierLandingOk,
     newGame: newGame, occ: occ, piece: piece, soldiers: soldiers, queen: queen,
     king: king, isHome: isHome, atIdx: atIdx, aliveSoldiers: aliveSoldiers,
     sqName: sqName,
@@ -810,6 +834,8 @@ function moveId(st, mv) {
   if (p.t === 's') {
     frm = SS.soldierAt(p.o, p.at);
     to = SS.soldierAt(p.o, p.at + mv.v);
+  } else if (mv.to !== undefined && mv.to !== null) {
+    frm = p.at; to = mv.to;
   } else {
     var r2 = SS.pathFor(st, p, mv.dir, mv.v);
     frm = p.at; to = r2.path[r2.path.length - 1];
@@ -932,6 +958,7 @@ function encode(st_, mv) {
     var to = SS.soldierAt(p.o, p.at + (mv.kind === 'rel' ? 1 : mv.v));
     return SS.name(from) + '-' + SS.name(to);
   }
+  if (mv.to !== undefined && mv.to !== null) return SS.name(p.at) + '-' + SS.name(mv.to);
   var r = SS.pathFor(st_, p, mv.dir, mv.v);
   if (!r.legal || !r.path.length) return null;
   return SS.name(p.at) + '-' + SS.name(r.path[r.path.length - 1]);

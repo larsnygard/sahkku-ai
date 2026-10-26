@@ -89,6 +89,8 @@ function decodeMove(st, tok) {
     if (p.t === 's') {
       f = SS.soldierAt(p.o, p.at);
       t = SS.soldierAt(p.o, p.at + (mv.kind === 'rel' ? 1 : mv.v));
+    } else if (mv.to !== undefined && mv.to !== null) {
+      f = p.at; t = mv.to;                       // konge/dronning: tallsyklusen
     } else {
       const r = SS.pathFor(st, p, mv.dir, mv.v);
       if (!r.legal || !r.path.length) continue;
@@ -107,6 +109,8 @@ function poolStrings(st) {
     if (p.t === 's') {
       f = SS.soldierAt(p.o, p.at);
       t = SS.soldierAt(p.o, p.at + (mv.kind === 'rel' ? 1 : mv.v));
+    } else if (mv.to !== undefined && mv.to !== null) {
+      f = p.at; t = mv.to;
     } else {
       const r = SS.pathFor(st, p, mv.dir, mv.v);
       if (!r.legal || !r.path.length) continue;

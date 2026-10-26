@@ -118,7 +118,9 @@ def move_id(st: E.State, mv: dict) -> int:
     if p.t == "s":
         frm = E.soldier_at(p.o, p.at)
         to = E.soldier_at(p.o, p.at + mv["v"])
-    else:
+    elif mv.get("to") is not None:      # konge/dronning: tallsyklusen
+        frm, to = p.at, mv["to"]
+    else:                               # dronninga si X-løysing
         ok, land, _ = E.path_for(p.at, mv["dir"], mv["v"])
         frm, to = p.at, land
     return MOVE_BASE + CLASS_IDX[letter] * 2025 + frm * 45 + to
