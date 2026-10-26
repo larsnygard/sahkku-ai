@@ -269,7 +269,16 @@ def can_land(st: State, p: Piece, land: int) -> bool:
                 return False
             return True
         if p.t == "k":
-            return False
+            # Kongen KAPRAR som andre brikker (Lars 2026-10-26): fiendtleg
+            # soldat/dronning kan slåast ut, men ikkje eigne brikker eller
+            # uutløyste (heimeståande) brikker.
+            if q.t == "k":
+                return False
+            if q.o == p.o:
+                return False
+            if is_home(q):
+                return False
+            return True
         if p.t == "q":
             if q.t == "s" and q.o == p.o:
                 return False

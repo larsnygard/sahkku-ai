@@ -132,10 +132,13 @@
         return true;
       }
       if (p.t === 'k') {
-        // Kongen lander ALDRI på en linje med brikker: han kan ikke slå ut
-        // og deler ikke linje med andre. Kapring av kongen skjer bare når
-        // EN SOLDAT eller DRONNING lander på han (canLand sin soldat-gren).
-        return false;
+        // Kongen KAPRAR som andre brikker (Lars 2026-10-26): han kan lande på
+        // og slå ut fiendtlege soldatar og dronninga (og dermed vinne), men
+        // ikkje på eigne brikker eller på uutløyste (heimeståande) brikker.
+        if (q.t === 'k') return false;          // berre éin konge — han kan ikkje lande på seg sjølv
+        if (q.o === p.o) return false;          // eigne brikker: nei
+        if (isHome(q)) return false;            // uutløyst brikke på heimrad: nei
+        return true;                            // fiende: kaprast
       }
       if (p.t === 'q') {
         if (q.t === 's' && q.o === p.o) return false;  // deler ikke felt med egne
