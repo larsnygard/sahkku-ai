@@ -23,7 +23,7 @@ def tensor_b64(t):
     return base64.b64encode(a.tobytes()).decode("ascii")
 
 
-def export(net_path, out_prefix, quant="fp32"):
+def export(net_path, out_prefix, quant="fp32", name="SahkkuNN 1.0"):
     net = Net.load(net_path, map_location="cpu")
     sd = net.state_dict()
     blobs, shapes = {}, {}
@@ -54,6 +54,7 @@ def export(net_path, out_prefix, quant="fp32"):
     fen = open(os.path.join(root, "vendor", "fen.js"), encoding="utf-8").read()
     src = src.replace("/*§RULES§*/", rules).replace("/*§FEN§*/", fen)
     src = src.replace("__WEIGHTS_FILE__", os.path.basename(wpath))
+    src = src.replace("__ENGINE_NAME__", name)
     rpath = out_prefix + ".js"
     with open(rpath, "w", encoding="utf-8") as f:
         f.write(src)
@@ -67,5 +68,7 @@ if __name__ == "__main__":
     ap.add_argument("--net", required=True)
     ap.add_argument("--out", default="engines/sahkku-nn")
     ap.add_argument("--quant", default="fp32")
+    ap.add_argument("--name", default="SahkkuNN 1.0",
+                    help="S-UCI-id, t.d. «AIL0.1»")
     a = ap.parse_args()
-    export(a.net, a.out, a.quant)
+    export(a.net, a.out, a.quant, a.name)

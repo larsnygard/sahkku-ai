@@ -71,8 +71,9 @@ function encodeState(st) {
   g[3] = SS.aliveSoldiers(st, 0).length / 15;
   g[4] = SS.aliveSoldiers(st, 1).length / 15;
   g[5] = Math.min(st.moves, 200) / 200;
-  g[6] = SS.queen(st, 0) ? 1 : 0;
-  g[7] = SS.queen(st, 1) ? 1 : 0;
+  var q0 = SS.queen(st, 0), q1 = SS.queen(st, 1);
+  g[6] = (q0 && q0.released) ? 1 : 0;   // UTLØYST, ikkje berre «finst» (jf. features.py)
+  g[7] = (q1 && q1.released) ? 1 : 0;
   g[8] = (st.dice ? st.dice.filter(function (d) { return d === 'X'; }).length : 0) / 3;
   g[9] = st.winner === null || st.winner === undefined ? 1 : (st.winner === st.turn ? 1 : -1);
   return { planes: pl, glob: g };
@@ -208,6 +209,7 @@ function netForward(planes, glob) {
 
 // ==================== S-UCI LOOP (referee-checked, spec §4-5) =============
 var START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-./m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';
+var ENGINE_NAME = '__ENGINE_NAME__';   // settast ved eksport (--name)
 var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
@@ -353,7 +355,7 @@ M.onLine = function (line) {
   var cmd = words[0];
   try {
     if (cmd === 'uci') {
-      out('id name SahkkuNN 1.0');
+      out('id name ' + ENGINE_NAME);
       out('id author sahkku-ai (PyTorch -> JS export)');
       out('option name Debug type check default false');
       out('option name Lookahead type spin default 4 min 0 max 12');

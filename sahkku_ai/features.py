@@ -81,8 +81,12 @@ def encode_state(st: E.State):
     g[3] = len(E.alive_soldiers(st, 0)) / 15.0
     g[4] = len(E.alive_soldiers(st, 1)) / 15.0
     g[5] = min(st.moves, 200) / 200.0
-    g[6] = 1.0 if E.queen(st, 0) else 0.0
-    g[7] = 1.0 if E.queen(st, 1) else 0.0
+    # g[6]/g[7] = dronninga er UTLØYST (ikkje berre «finst»: ei dronning som
+    # er slått ut avsluttar partiet, so før var desse to konstant 1.0 og
+    # nettet kunne ikkje lære noko om tidleg vs sein aktivering).
+    q0, q1 = E.queen(st, 0), E.queen(st, 1)
+    g[6] = 1.0 if (q0 and q0.released) else 0.0
+    g[7] = 1.0 if (q1 and q1.released) else 0.0
     g[8] = (st.dice.count("X") if st.dice else 0) / 3.0
     g[9] = (1.0 if st.winner is None else
             (1.0 if st.winner == st.turn else -1.0))

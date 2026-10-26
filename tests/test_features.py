@@ -36,6 +36,11 @@ def test_pool(seed=1, games=12):
             assert len(ids) == len(set(ids)), f"legal_ids must dedupe by id: pool {len(lm)} ids {len(set(ids))}"
             for aid, mv in FT.legal_ids(st):
                 kind, letter, frm, to, side = FT.decode_id(aid)
+                if mv.get("kind") in ("pass", "reroll"):
+                    # spesialtrekk kan no stå saman med vanlege trekk (X kan
+                    # alltid kastast om når sida har aktive brikker)
+                    assert kind == mv["kind"], f"spesial {aid} -> {kind}"
+                    continue
                 if mv.get("kind") == "rel":
                     assert kind == "rel"
                 else:

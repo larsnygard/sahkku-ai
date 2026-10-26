@@ -136,8 +136,9 @@ var M = {};
       if (q === p) continue;
       if (p.t === 's') {
         if (q.t === 'k') {
-          if (q.o === p.o) return false;               // egen konge: kongen deler ALDRI linje med egne
-          continue;                                    // fiendtlig konge: kapre ved landing
+          if (q.o === p.o) return false;
+          if (st.nesseby && q.o == null) return false;   // Nesseby: ikkje aktivert enno
+          continue;
         }
         if (q.t === 'q' && q.o !== p.o) continue;      // slå fiendtlig dronning
         if (q.t === 'q' && q.o === p.o) return false;  // egen dronning: nektet
@@ -147,15 +148,21 @@ var M = {};
         return true;
       }
       if (p.t === 'k') {
-        // Kongen lander ALDRI på en linje med brikker: han kan ikke slå ut
-        // og deler ikke linje med andre. Kapring av kongen skjer bare når
-        // EN SOLDAT eller DRONNING lander på han (canLand sin soldat-gren).
-        return false;
+        // Kongen KAPRAR som andre brikker (Lars 2026-10-26): han kan lande på
+        // og slå ut fiendtlege soldatar og dronninga (og dermed vinne), men
+        // ikkje på eigne brikker eller på uutløyste (heimeståande) brikker.
+        if (q.t === 'k') return false;          // berre éin konge — han kan ikkje lande på seg sjølv
+        if (q.o === p.o) return false;          // eigne brikker: nei
+        if (isHome(q)) return false;            // uutløyst brikke på heimrad: nei
+        return true;                            // fiende: kaprast
       }
       if (p.t === 'q') {
         if (q.t === 's' && q.o === p.o) return false;  // deler ikke felt med egne
         if (q.t === 'q' && q.o === p.o) return false;
-        if (q.t === 'k') continue;                     // kapre kongen
+        if (q.t === 'k') {
+          if (st.nesseby && q.o == null) return false;  // Nesseby: ikkje aktivert enno
+          continue;                                     // kapre kongen
+        }
         if (isHome(q)) return false;                   // hjemmestående: kan ikke flyttes inn på
         return true;                                   // slår fiendesoldat / fiendedronning
       }
@@ -173,6 +180,10 @@ var M = {};
   }
 
   // ---------- tilstand ----------
+  // Nesseby-regelen (valfri): kongen er IKKJE kaprbar ved landing før nokon
+  // har nådd motstandarens heimrad. Den fyrste soldaten som når dit kaprar
+  // kongen for si side; etter det gjeld vanlege landingskapringar.
+  // (Konge utan eigar = ikkje aktivert, so me treng ingen eigen «aktivert»-flagg.)
   function newGame(opts) {
     opts = opts || {};
     var pieces = [], id = 0, pl, col;
@@ -194,7 +205,8 @@ var M = {};
       phase: 'roll', dice: [], used: [], diceBy: null, log: [],
       winner: null, winReason: '', lastMove: null,
       kings: 0, kills: [0, 0], moves: 0,
-      queenMode: opts.queenMode !== false
+      queenMode: opts.queenMode !== false,
+      nesseby: opts.nesseby === true        // valfri regel, sjå newGame()
     };
   }
   // soldaters plassering: lagre tallsyklus-posisjon i .at for soldater,
@@ -328,10 +340,20 @@ var M = {};
   // (Lokale variantar — Wikipedia/Berg-Nordlie — har fritt omkast; vi
   // følgjer dokumentet.) II/III/blank er faste og kan ikkje kastast om.
   function canRerollX(st) {
+    // Lars 2026-10-26: «Du kan alltid kaste om X, unntatt hvis aktivering av
+    // en brikke er det eneste du kan gjøre.» Ein spelar som aldri aktiverer
+    // noko ville elles kunne blokkere spelet for alltid — difor er omkast
+    // forbode berre når sida ikkje har éi einaste aktiv (utløyst) brikke.
     if (st.winner != null || st.phase !== 'move') return false;
-    var rk = activeRank(st);
-    if (rk !== RANK.X) return false;
-    return legalMoves(st, st.turn).length === 0;
+    if (activeRank(st) !== RANK.X) return false;
+    var me = st.turn, i, p, hasActive = false;
+    for (i = 0; i < st.pieces.length; i++) {
+      p = st.pieces[i];
+      if (p.captured) continue;
+      if (p.t === 'k' ? p.o === me : (p.o === me && p.released)) { hasActive = true; break; }
+    }
+    if (hasActive) return true;                       // alltid lov
+    return legalMoves(st, me).length === 0;           // utan aktive: berre om inga vekking finst
   }
 
   // konge/dronning: alle lovlige trekk med verdi v: v steg i SAMME
@@ -389,12 +411,11 @@ var M = {};
         }
       }
     }
-    // X (sáhkku) VEKKJER berre: ho løyser ei inaktiv brikke og flyttar henne
-    // eitt felt som del av vekkinga. Ho flyttar ALDRI brikker som alt er
-    // utløyste (soldat, dronning eller kongen) — det gjer II og III.
-    // Regelen er Lars si presisering: «X kan brukes til å vekke ei inaktiv
-    // brikke ... og deretter flytte ett felt. Flyttet er en del av vekkinga.»
-    if (rk === RANK.X) return out;
+    // X er eit 1-TAL (Lars 2026-10-26): ho kan vekkje ei inaktiv brikke
+    // (soldat/dronning — flyttet er ein del av vekkinga) OG flytte ei
+    // utløyst brikke eitt steg: soldat framover i tallsyklusen, dronning og
+    // konge eitt steg langs syklusen. Vekkinga er alt lagd til ovanfor; den
+    // generelle løkka nedanfor gjev 1-stegstrekka (v = activeValue = 1).
     for (i = 0; i < st.pieces.length; i++) {
       p = st.pieces[i];
       if (p.captured) continue;
@@ -476,6 +497,19 @@ var M = {};
         lg.k++; lg.cap = (lg.cap || []).concat(['Q']);
         ev.push({ type: 'kill', pid: q.id, at: land, by: me });
         st.winner = me; st.winReason = 'dronning';
+      }
+    }
+    // Nesseby: fyrste soldat som når MOTSTANDARENS heimrad kaprar kongen.
+    // (Kongen har då ingen eigar enno — landingskapring var stengd.)
+    if (st.nesseby && p.t === 's') {
+      var kk = king(st);
+      if (kk && kk.o == null) {
+        var lr = pt(land), enemyHome = (me === 0 ? 2 : 0);   // menn -> rad 3, koner -> rad 1
+        if (lr.row === enemyHome) {
+          kk.o = me;
+          st.kings += 1;
+          ev.push({ type: 'king', by: me, at: land, nesseby: true });
+        }
       }
     }
     // seier: utryddelse. Lágesvuotna-reglene kjenner BARE to vinnings-
@@ -809,8 +843,9 @@ function encodeState(st) {
   g[3] = SS.aliveSoldiers(st, 0).length / 15;
   g[4] = SS.aliveSoldiers(st, 1).length / 15;
   g[5] = Math.min(st.moves, 200) / 200;
-  g[6] = SS.queen(st, 0) ? 1 : 0;
-  g[7] = SS.queen(st, 1) ? 1 : 0;
+  var q0 = SS.queen(st, 0), q1 = SS.queen(st, 1);
+  g[6] = (q0 && q0.released) ? 1 : 0;   // UTLØYST, ikkje berre «finst» (jf. features.py)
+  g[7] = (q1 && q1.released) ? 1 : 0;
   g[8] = (st.dice ? st.dice.filter(function (d) { return d === 'X'; }).length : 0) / 3;
   g[9] = st.winner === null || st.winner === undefined ? 1 : (st.winner === st.turn ? 1 : -1);
   return { planes: pl, glob: g };
