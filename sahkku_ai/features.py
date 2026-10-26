@@ -74,19 +74,26 @@ def encode_state(st: E.State):
             S(11, 0, 1)
         else:
             S(11, 0, 2)
+    # Globale tal er POV-relative (mi side fyrst). MERK: g[3]/g[4] tel
+    # UTLØYSTE soldatar, ikkje «i live» — ei brikke som står heime er trygg og
+    # kan ikkje takast; det er dei utløyste som gjev mobilitet og risiko.
+    # (Kor mange som er slagtekne ligg alt i g[1]/g[2], so talet på heimebrikker
+    # er 15 − utløyste − slagtekne og er implisitt kjent.)
+    me = st.turn
+    foe = 1 - me
     g = np.zeros(N_GLOBAL, np.float32)
     g[0] = 1.0 if st.turn == 0 else -1.0
-    g[1] = st.kills[0] / 15.0
-    g[2] = st.kills[1] / 15.0
-    g[3] = len(E.alive_soldiers(st, 0)) / 15.0
-    g[4] = len(E.alive_soldiers(st, 1)) / 15.0
+    g[1] = st.kills[me] / 15.0
+    g[2] = st.kills[foe] / 15.0
+    g[3] = len([p for p in E.soldiers(st, me) if p.released and not p.captured]) / 15.0
+    g[4] = len([p for p in E.soldiers(st, foe) if p.released and not p.captured]) / 15.0
     g[5] = min(st.moves, 200) / 200.0
     # g[6]/g[7] = dronninga er UTLØYST (ikkje berre «finst»: ei dronning som
     # er slått ut avsluttar partiet, so før var desse to konstant 1.0 og
     # nettet kunne ikkje lære noko om tidleg vs sein aktivering).
-    q0, q1 = E.queen(st, 0), E.queen(st, 1)
-    g[6] = 1.0 if (q0 and q0.released) else 0.0
-    g[7] = 1.0 if (q1 and q1.released) else 0.0
+    qm, qf = E.queen(st, me), E.queen(st, foe)
+    g[6] = 1.0 if (qm is not None and qm.released) else 0.0
+    g[7] = 1.0 if (qf is not None and qf.released) else 0.0
     g[8] = (st.dice.count("X") if st.dice else 0) / 3.0
     g[9] = (1.0 if st.winner is None else
             (1.0 if st.winner == st.turn else -1.0))

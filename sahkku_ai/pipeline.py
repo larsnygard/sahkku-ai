@@ -107,7 +107,9 @@ def run_loop(args):
                             noise_eps=args.noise_eps, seed=args.seed + cycle,
                             prior_eps=args.prior_eps, tau_q=args.tau_q,
                             sims=args.sims, c_puct=args.c_puct,
-                            leaf_batch=args.leaf_batch)
+                            leaf_batch=args.leaf_batch,
+                            opponent=args.train_opponent,
+                            opponent_level=args.train_opponent_level)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -182,6 +184,9 @@ def main():
                     help="MCTS-simuleringar per avgjerd i sjølvspel (0 = utspelingar)")
     ap.add_argument("--c-puct", type=float, default=1.6)
     ap.add_argument("--leaf-batch", type=int, default=8)
+    ap.add_argument("--train-opponent", dest="train_opponent", default="",
+                    help="tren mot klassisk CPU i staden for sjølvspel (t.d. «classic3»)")
+    ap.add_argument("--train-opponent-level", dest="train_opponent_level", type=int, default=3)
     ap.add_argument("--steps", type=int, default=1500)
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--lr", type=float, default=2e-3)

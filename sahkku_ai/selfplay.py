@@ -240,6 +240,67 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
     return st.winner
 
 
+
+def play_vs_opponent(net, device, cfg, rng, samples_out, pred=None):
+    """Agenten (nettet) spelar mot klassisk CPU; sida vert bytt kvar kamp.
+
+    Treningssignalet er partiresultatet mot ein STERK, deterministisk
+    motstandar — ikkje agenten sine eigne utspelingar. Det er det som gjer at
+    ho kan lære noko ho ikkje alt kan (t.d. ikkje å henge dronninga).
+    """
+    from . import classic as CL
+    level = cfg.get("opponent_level", 3)
+    net_side = rng.randint(0, 1)
+    st = E.State(first=rng.randint(0, 1))
+    E.opening_roll(st, rng.random)
+    outcome_idx = []
+    for _ in range(MAX_PLIES):
+        if st.winner is not None:
+            break
+        if st.phase == "roll":
+            E.roll(st, rng.random)
+            st.phase = "move"
+        ids = FT.legal_ids(st)
+        if not ids:
+            if E.can_reroll_x(st):
+                E.reroll_x(st, rng.random)
+                st.phase = "move"
+                continue
+            E.pass_remaining(st)
+            continue
+        if st.turn != net_side:
+            mv = CL.pick(st, level, rng.random)
+            if mv is None:
+                E.pass_remaining(st)
+                continue
+            E.apply_move(st, mv)
+            E.settle(st)
+            continue
+        planes, g = FT.encode_state(st)
+        if pred is not None and cfg.get("sims", 0) > 0:
+            from . import mcts as MCTS
+            pi, z = MCTS.search(pred, st, cfg, rng, root_noise=True)
+            legal = list(pi.keys())
+            if not legal:
+                E.pass_remaining(st)
+                continue
+        else:
+            pi, z, legal = evaluate_root(net, device, st, cfg, rng)
+        pol = np.zeros(FT.N_ACTIONS, np.float32)
+        for a in legal:
+            pol[a] = pi[a]
+        samples_out.append((planes.reshape(-1), g, pol, np.float32(z)))
+        outcome_idx.append((len(samples_out) - 1, st.turn))
+        best = max(legal, key=lambda a: pi[a])
+        apply_choice(st, ids, best, rng)
+    if outcome_idx and st.winner is not None:
+        for i, side in outcome_idx:
+            pl_, g_, pol_, _ = samples_out[i]
+            samples_out[i] = (pl_, g_, pol_,
+                              np.float32(1.0 if st.winner == side else -1.0))
+    return st.winner
+
+
 def worker(args):
     wid, args_json = args
     cfg = json.loads(args_json)
@@ -261,7 +322,10 @@ def worker(args):
     wins = [0, 0]
     t0 = time.time()
     for g in range(cfg["games_per_worker"]):
-        w = play_selfplay_game(net, device, cfg, rng, samples, pred)
+        if cfg.get("opponent", "").startswith("classic"):
+            w = play_vs_opponent(net, device, cfg, rng, samples, pred)
+        else:
+            w = play_selfplay_game(net, device, cfg, rng, samples, pred)
         if w is not None:
             wins[w] += 1
         if (g + 1) % 5 == 0:
@@ -279,7 +343,7 @@ def worker(args):
 def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  rollouts=6, temp=1.0, noise_alpha=0.3, noise_eps=0.25,
                  seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64,
-                 sims=0, c_puct=1.6, leaf_batch=8):
+                 sims=0, c_puct=1.6, leaf_batch=8, opponent="", opponent_level=3):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -287,7 +351,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "noise_alpha": noise_alpha, "noise_eps": noise_eps, "seed": seed,
            "prior_eps": prior_eps, "tau_q": tau_q,
            "k_games": k_games, "batch": batch,
-           "sims": sims, "c_puct": c_puct, "leaf_batch": leaf_batch}
+           "sims": sims, "c_puct": c_puct, "leaf_batch": leaf_batch,
+           "opponent": opponent, "opponent_level": opponent_level}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker
@@ -331,8 +396,11 @@ if __name__ == "__main__":
                     help="MCTS-simuleringar per avgjerd (0 = dagens utspelingar)")
     ap.add_argument("--c-puct", type=float, default=1.6)
     ap.add_argument("--leaf-batch", type=int, default=8)
+    ap.add_argument("--opponent", default="",
+                    help="tren mot denne i staden for sjølvspel (t.d. «classic3»)")
+    ap.add_argument("--opponent-level", type=int, default=3)
     a = ap.parse_args()
     run_selfplay(a.net, a.outdir, a.device, a.games, a.workers,
                  a.rollouts, a.temp, a.noise_alpha, a.noise_eps, a.seed,
                  a.prior_eps, a.tau_q, a.k_games, a.batch,
-                 a.sims, a.c_puct, a.leaf_batch)
+                 a.sims, a.c_puct, a.leaf_batch, a.opponent, a.opponent_level)

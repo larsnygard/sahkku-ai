@@ -65,15 +65,18 @@ function encodeState(st) {
     else S(11, 0, 2);
   }
   var g = new Float32Array(N_GLOBAL);
+  var me = st.turn, foe = 1 - me;
   g[0] = st.turn === 0 ? 1 : -1;
-  g[1] = st.kills[0] / 15;
-  g[2] = st.kills[1] / 15;
-  g[3] = SS.aliveSoldiers(st, 0).length / 15;
-  g[4] = SS.aliveSoldiers(st, 1).length / 15;
+  g[1] = st.kills[me] / 15;                       // POV-relativt (mi side fyrst)
+  g[2] = st.kills[foe] / 15;
+  // UTLØYSTE soldatar, ikkje «i live»: heimebrikker er trygge og gjev ingen
+  // mobilitet. Talet på heimebrikker er implisitt 15 − utløyste − slagtekne.
+  g[3] = SS.aliveSoldiers(st, me).filter(function (p) { return p.released; }).length / 15;
+  g[4] = SS.aliveSoldiers(st, foe).filter(function (p) { return p.released; }).length / 15;
   g[5] = Math.min(st.moves, 200) / 200;
-  var q0 = SS.queen(st, 0), q1 = SS.queen(st, 1);
-  g[6] = (q0 && q0.released) ? 1 : 0;   // UTLØYST, ikkje berre «finst» (jf. features.py)
-  g[7] = (q1 && q1.released) ? 1 : 0;
+  var qm = SS.queen(st, me), qf = SS.queen(st, foe);
+  g[6] = (qm && qm.released) ? 1 : 0;   // UTLØYST og POV-relativ (jf. features.py)
+  g[7] = (qf && qf.released) ? 1 : 0;
   g[8] = (st.dice ? st.dice.filter(function (d) { return d === 'X'; }).length : 0) / 3;
   g[9] = st.winner === null || st.winner === undefined ? 1 : (st.winner === st.turn ? 1 : -1);
   return { planes: pl, glob: g };

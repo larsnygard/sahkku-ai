@@ -238,6 +238,18 @@ def is_home(p: Piece) -> bool:
     return (p.t == "s" or p.t == "q") and not p.released and not p.captured
 
 
+def move_dest(st: State, mv: dict) -> int:
+    """Kvar landar eit trekk? Soldat: +v i syklusen (+1 ved løysing).
+    Konge/dronning: trekket ber feltet i `to` (syklusen snor seg); dronninga
+    si X-løysing er ei rett line og vert rekna med path_for."""
+    p = piece(st, mv["pid"])
+    if p.t == "s":
+        return soldier_at(p.o, p.at + (1 if mv.get("kind") == "rel" else mv["v"]))
+    if mv.get("to") is not None:
+        return mv["to"]
+    return path_for(p.at, mv["dir"], mv["v"])[1]
+
+
 def at_idx(st: State, p: Piece) -> int:
     return soldier_at(p.o, p.at) if p.t == "s" else p.at
 
