@@ -120,8 +120,9 @@
       if (q === p) continue;
       if (p.t === 's') {
         if (q.t === 'k') {
-          if (q.o === p.o) return false;               // egen konge: kongen deler ALDRI linje med egne
-          continue;                                    // fiendtlig konge: kapre ved landing
+          if (q.o === p.o) return false;
+          if (st.nesseby && q.o == null) return false;   // Nesseby: ikkje aktivert enno
+          continue;
         }
         if (q.t === 'q' && q.o !== p.o) continue;      // slå fiendtlig dronning
         if (q.t === 'q' && q.o === p.o) return false;  // egen dronning: nektet
@@ -139,7 +140,10 @@
       if (p.t === 'q') {
         if (q.t === 's' && q.o === p.o) return false;  // deler ikke felt med egne
         if (q.t === 'q' && q.o === p.o) return false;
-        if (q.t === 'k') continue;                     // kapre kongen
+        if (q.t === 'k') {
+          if (st.nesseby && q.o == null) return false;  // Nesseby: ikkje aktivert enno
+          continue;                                     // kapre kongen
+        }
         if (isHome(q)) return false;                   // hjemmestående: kan ikke flyttes inn på
         return true;                                   // slår fiendesoldat / fiendedronning
       }
@@ -157,6 +161,10 @@
   }
 
   // ---------- tilstand ----------
+  // Nesseby-regelen (valfri): kongen er IKKJE kaprbar ved landing før nokon
+  // har nådd motstandarens heimrad. Den fyrste soldaten som når dit kaprar
+  // kongen for si side; etter det gjeld vanlege landingskapringar.
+  // (Konge utan eigar = ikkje aktivert, so me treng ingen eigen «aktivert»-flagg.)
   function newGame(opts) {
     opts = opts || {};
     var pieces = [], id = 0, pl, col;
@@ -178,7 +186,8 @@
       phase: 'roll', dice: [], used: [], diceBy: null, log: [],
       winner: null, winReason: '', lastMove: null,
       kings: 0, kills: [0, 0], moves: 0,
-      queenMode: opts.queenMode !== false
+      queenMode: opts.queenMode !== false,
+      nesseby: opts.nesseby === true        // valfri regel, sjå newGame()
     };
   }
   // soldaters plassering: lagre tallsyklus-posisjon i .at for soldater,
@@ -383,12 +392,11 @@
         }
       }
     }
-    // X (sáhkku) VEKKJER berre: ho løyser ei inaktiv brikke og flyttar henne
-    // eitt felt som del av vekkinga. Ho flyttar ALDRI brikker som alt er
-    // utløyste (soldat, dronning eller kongen) — det gjer II og III.
-    // Regelen er Lars si presisering: «X kan brukes til å vekke ei inaktiv
-    // brikke ... og deretter flytte ett felt. Flyttet er en del av vekkinga.»
-    if (rk === RANK.X) return out;
+    // X er eit 1-TAL (Lars 2026-10-26): ho kan vekkje ei inaktiv brikke
+    // (soldat/dronning — flyttet er ein del av vekkinga) OG flytte ei
+    // utløyst brikke eitt steg: soldat framover i tallsyklusen, dronning og
+    // konge eitt steg langs syklusen. Vekkinga er alt lagd til ovanfor; den
+    // generelle løkka nedanfor gjev 1-stegstrekka (v = activeValue = 1).
     for (i = 0; i < st.pieces.length; i++) {
       p = st.pieces[i];
       if (p.captured) continue;
@@ -470,6 +478,19 @@
         lg.k++; lg.cap = (lg.cap || []).concat(['Q']);
         ev.push({ type: 'kill', pid: q.id, at: land, by: me });
         st.winner = me; st.winReason = 'dronning';
+      }
+    }
+    // Nesseby: fyrste soldat som når MOTSTANDARENS heimrad kaprar kongen.
+    // (Kongen har då ingen eigar enno — landingskapring var stengd.)
+    if (st.nesseby && p.t === 's') {
+      var kk = king(st);
+      if (kk && kk.o == null) {
+        var lr = pt(land), enemyHome = (me === 0 ? 2 : 0);   // menn -> rad 3, koner -> rad 1
+        if (lr.row === enemyHome) {
+          kk.o = me;
+          st.kings += 1;
+          ev.push({ type: 'king', by: me, at: land, nesseby: true });
+        }
       }
     }
     // seier: utryddelse. Lágesvuotna-reglene kjenner BARE to vinnings-

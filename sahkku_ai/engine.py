@@ -452,11 +452,10 @@ def legal_moves(st: State, me: int):
                 ok, land, _ = path_for(q.at, d, 1)
                 if ok and soldier_landing_ok(st, q, land) and can_land(st, q, land):
                     out.append({"pid": q.id, "dir": d, "v": 1, "kind": "rel"})
-    # X (sáhkku) VEKKJER berre: ho løyser ei inaktiv brikke (soldat eller
-    # dronning) og flyttar henne eitt felt som del av vekkinga. Ho flyttar
-    # ALDRI brikker som alt er utløyste — det gjer II og III.
-    if rk == RANK["X"]:
-        return out
+    # X er eit 1-TAL (Lars 2026-10-26): ho kan vekkje ei inaktiv brikke
+    # (soldat/dronning, flyttet er del av vekkinga) OG flytte ei utløyst
+    # brikke eitt steg — soldat framover i syklusen, dronning/konge eitt steg
+    # langs syklusen. Vekkinga ligg ovanfor; løkka nedanfor gjev 1-steget.
     for p in st.pieces:
         if p.captured:
             continue

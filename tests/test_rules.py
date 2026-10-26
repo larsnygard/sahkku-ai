@@ -43,26 +43,45 @@ def start_state(dice, used, turn=0):
 
 # ---------------------------------------------------------------- clause 1
 def test_x_wakes_one_piece():
-    """X only ever WAKES (release, one step); never moves a released piece."""
+    """X er eit 1-TAL: ho VEKKJER ei inaktiv brikke (flyttet er del av
+    vekkinga) OG flyttar utløyste brikker eitt steg — soldat framover i
+    tallsyklusen, dronning og konge eitt steg langs syklusen."""
     st = start_state(["X", "_", "_"], [False, True, True])
     lm = E.legal_moves(st, st.turn)
-    check(lm, "startstilling med X: minst éi vekking")
-    for mv in lm:
+    rel = [mv for mv in lm if mv.get("kind") == "rel"]
+    check(rel, "startstilling med X: vekking finst")
+    for mv in rel:
         p = E.piece(st, mv["pid"])
-        check(mv["kind"] == "rel", "X gjev berre vekking (kind='rel')")
         check(not p.released, "vekkinga gjeld ei INAKTIV brikke")
         check(mv["v"] == 1, "vekking flyttar nøyaktig eitt felt")
-        check(p.t in ("s", "q"), "både soldat og dronning kan vekkast")
+    check({E.piece(st, mv["pid"]).t for mv in rel} == {"s", "q"},
+          "både soldat og dronning kan vekkast med X")
 
-    kinds = {E.piece(st, mv["pid"]).t for mv in lm}
-    check(kinds == {"s", "q"}, "startstillinga gjev vekking for både soldat og dronning")
-
-    # applied: the piece is released and stands exactly one cycle step further
-    mv = [m for m in lm if E.piece(st, m["pid"]).t == "s"][0]
+    mv = [m for m in rel if E.piece(st, m["pid"]).t == "s"][0]
     p = E.piece(st, mv["pid"])
     before = p.at
     E.apply_move(st, mv)
     check(p.released and p.at == before + 1, "vekking = inaktiv -> utløyst, +1 i tallsyklusen")
+
+    # X flyttar òg brikker som alt er ute — eitt steg
+    st2 = start_state(["X", "_", "_"], [False, True, True])
+    s = E.soldiers(st2, 0)[0]
+    s.released = True
+    s.at = 20
+    mvs = E.legal_moves(st2, 0)
+    check(any(mv.get("kind") != "rel" for mv in mvs), "X gjev 1-stegstrekk for utløyst soldat")
+    check(all(mv["v"] == 1 for mv in mvs), "alle X-trekk er nøyaktig 1 steg")
+
+    # ... og konge/dronning eitt steg langs syklusen
+    st3 = start_state(["X", "_", "_"], [False, True, True])
+    for q in (E.queen(st3, 0), E.king(st3)):
+        q.released = True
+        q.o = 0
+        q.at = 17                      # M2
+    dests = sorted(E.sq_name(mv["to"]) for mv in E.legal_moves(st3, 0)
+                   if E.piece(st3, mv["pid"]).t in ("q", "k"))
+    check(dests == ["L2", "L2", "N2", "N2"],
+          f"dronning+konge M2 med X: eitt steg kvar veg (fekk {dests})")
 
 
 # ---------------------------------------------------------------- clause 2
@@ -99,8 +118,9 @@ def test_reroll_only_when_x_unusable():
     q = E.queen(st2, st2.turn)
     q.released = True
     q.at = 18
-    check(E.legal_moves(st2, st2.turn) == [], "alle brikker utløyste: X har inga vekking")
-    check(E.can_reroll_x(st2), "X utan bruk -> omkast er lovleg")
+    check(not any(mv.get("kind") == "rel" for mv in E.legal_moves(st2, st2.turn)),
+          "alle brikker utløyste: X har inga vekking")
+    check(E.can_reroll_x(st2), "med aktive brikker er X-omkast lovleg")
 
     # (c) re-roll replaces only the X dice, and the turn does not end
     before_turn, before_dice = st2.turn, len(st2.dice)
