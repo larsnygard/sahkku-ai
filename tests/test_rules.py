@@ -228,8 +228,36 @@ def test_king_and_queen_follow_the_cycle():
     check(qd == ["J2", "N2"], f"dronninga L2 med II: J2 og N2 (fekk {qd})")
 
 
+def test_reroll_when_blocked():
+    """Lars 2026-10-26: har du éi aktiv brikke, kan X ALLTID kastast om — òg
+    når ho ikkje har noko lovleg trekk (t.d. blokkert av eiga uutløyst
+    dronning). Berre utan aktive brikker er du tvungen til å vekkje."""
+    st = start_state(["X", "_", "_"], [False, True, True])
+    st.queen_mode = False                      # dronninga kan ikkje løysast
+    for p in st.pieces:
+        if p.t == "s":
+            p.captured = True
+    s = E.soldiers(st, 0)[0]
+    s.captured = False
+    s.released = True
+    s.at = 17                                  # M2; +1 -> L2 (eiga dronning heime)
+    q = E.queen(st, 0)
+    q.captured = False
+    q.released = False
+    q.at = 18
+    check(E.legal_moves(st, 0) == [],
+          "inga lovleg trekk: soldaten er blokkert av eiga uutløyst dronning")
+    check(E.can_reroll_x(st),
+          "éi aktiv brikke (blokkert) => X kan framleis kastast om")
+
+    # motsett side av same regel: ingen aktive brikker -> må vekkje
+    st2 = start_state(["X", "_", "_"], [False, True, True])
+    check(not E.can_reroll_x(st2), "utan aktive brikker er X-omkast forbode")
+
+
 def main():
     test_x_wakes_one_piece()
+    test_reroll_when_blocked()
     test_king_and_queen_follow_the_cycle()
     test_reroll_only_when_x_unusable()
     test_dice_order()
