@@ -192,9 +192,10 @@ def evaluate_root(net, device, st, cfg, rng):
     return pi, z_root, legal
 
 
-def play_selfplay_game(net, device, cfg, rng, samples_out):
+def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
     st = E.State(first=rng.randint(0, 1))
     E.opening_roll(st, rng.random)
+    outcome_idx = []      # (indeks i samples_out, sida-som-trekte) for MCTS
     for _ in range(MAX_PLIES):
         if st.winner is not None:
             break
@@ -207,14 +208,35 @@ def play_selfplay_game(net, device, cfg, rng, samples_out):
             E.pass_remaining(st)
             continue
         planes, g = FT.encode_state(st)
-        pi, z, legal = evaluate_root(net, device, st, cfg, rng)
+        if pred is not None and cfg.get("sims", 0) > 0:
+            # MCTS: π frå vitjingstal, z frå søket (verdien vert likevel
+            # overstyrt av partresultatet nedanfor, som før)
+            from . import mcts as MCTS
+            pi, z_search = MCTS.search(pred, st, cfg, rng, root_noise=True)
+            legal = list(pi.keys())
+            if not legal:
+                E.pass_remaining(st)
+                continue
+            z = z_search
+        else:
+            pi, z, legal = evaluate_root(net, device, st, cfg, rng)
         pol = np.zeros(FT.N_ACTIONS, np.float32)
         for a in legal:
             pol[a] = pi[a]
         samples_out.append((planes.reshape(-1), g, pol, np.float32(z)))
+        if pred is not None and cfg.get("sims", 0) > 0:
+            outcome_idx.append((len(samples_out) - 1, st.turn))
         # Play the outcome-weighted best action (π), not the raw prior.
         best = max(legal, key=lambda a: pi[a])
         apply_choice(st, ids, best, rng)
+    # MCTS: verdimålet er PARTIRESULTATET (AlphaZero-konvensjonen), ikkje
+    # søkets eige verdianslag — elles vert måla mjuke tal som ikkje lærer
+    # nettet kven som faktisk vann.
+    if outcome_idx and st.winner is not None:
+        for i, side in outcome_idx:
+            pl_, g_, pol_, _ = samples_out[i]
+            samples_out[i] = (pl_, g_, pol_,
+                              np.float32(1.0 if st.winner == side else -1.0))
     return st.winner
 
 
@@ -231,11 +253,15 @@ def worker(args):
     # eksisterande CPU-parametrane). Difor: last på CPU, flytt så modulen.
     net = Net.load(cfg["net"], map_location="cpu").to(device).eval()
     rng = random.Random(cfg["seed"] * 1000 + wid)
+    pred = None
+    if cfg.get("sims", 0) > 0:
+        from .fastplay import Predictor
+        pred = Predictor(net, device, cfg.get("batch", 64))
     samples = []
     wins = [0, 0]
     t0 = time.time()
     for g in range(cfg["games_per_worker"]):
-        w = play_selfplay_game(net, device, cfg, rng, samples)
+        w = play_selfplay_game(net, device, cfg, rng, samples, pred)
         if w is not None:
             wins[w] += 1
         if (g + 1) % 5 == 0:
@@ -252,14 +278,16 @@ def worker(args):
 
 def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  rollouts=6, temp=1.0, noise_alpha=0.3, noise_eps=0.25,
-                 seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64):
+                 seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64,
+                 sims=0, c_puct=1.6, leaf_batch=8):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
            "rollouts": rollouts, "temp": temp,
            "noise_alpha": noise_alpha, "noise_eps": noise_eps, "seed": seed,
            "prior_eps": prior_eps, "tau_q": tau_q,
-           "k_games": k_games, "batch": batch}
+           "k_games": k_games, "batch": batch,
+           "sims": sims, "c_puct": c_puct, "leaf_batch": leaf_batch}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker
@@ -299,7 +327,12 @@ if __name__ == "__main__":
                     help="vektorisert løype: K parti i lufta per arbeidar (1 = klassisk)")
     ap.add_argument("--batch", type=int, default=64,
                     help="fast batch for CUDA-graph-inferens")
+    ap.add_argument("--sims", type=int, default=0,
+                    help="MCTS-simuleringar per avgjerd (0 = dagens utspelingar)")
+    ap.add_argument("--c-puct", type=float, default=1.6)
+    ap.add_argument("--leaf-batch", type=int, default=8)
     a = ap.parse_args()
     run_selfplay(a.net, a.outdir, a.device, a.games, a.workers,
                  a.rollouts, a.temp, a.noise_alpha, a.noise_eps, a.seed,
-                 a.prior_eps, a.tau_q, a.k_games, a.batch)
+                 a.prior_eps, a.tau_q, a.k_games, a.batch,
+                 a.sims, a.c_puct, a.leaf_batch)
