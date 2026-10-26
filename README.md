@@ -303,7 +303,20 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 |---|---|---|---|---|
 | **AIL0.1** (`ail01/c9.pt`) | 9 sykl. / 120 093 prøver | 0.957 | 26.7 % (8–22, n=30) | — |
 | **AIL0.2** (`ail02/c12.pt`) | 12 sykl. / 152 351 prøver | **0.840** | 16.7 % (5–25, n=30) | 46.7 % (14–16, n=30) |
+| **AIL0.3** (`ail03/c3.pt`, MCTS-mål 25 sims) | 3 sykl. / 156 632 prøver | 1.441\* | **30.0 %** (9–21, n=30) | 40.0 % (12–18) mot AIL0.2 |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
+
+\* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
+fordelt på fleire trekk), so kryssentropien *må* bli høgre. Verdi-MSE (0.06) er
+heller ikkje samanliknbar — 88 % av partia når ply-taket, so målet er då
+søkets eige anslag. Berre hovud-mot-hovud-tal er meiningsfulle her.
+
+**Tre modellar, ~430 000 prøver, ingen målbar styrkeauke.** AIL0.3 får 30 %
+mot referansen (AIL0.1: 26.7 %, AIL0.2: 16.7 %) men taper 40–60 mot AIL0.2
+innbyrdes. Alle tala ligg i eit band der n=30 gjev ±11 prosentpoeng, so
+skilnadene er ikkje avgjorde — men *ingen* av dei tre skil seg klart ut.
+Det som faktisk ville avgjere det er fleire parti per benk (n≥100), ikkje
+fleire treningsrundar.
 
 **To timar meir av same metode gav betre tap og *inga* styrke.** AIL0.2 spår
 si eiga spelargrein betre (0.957 → 0.840) men taper mot AIL0.1 (46,7 %) og
