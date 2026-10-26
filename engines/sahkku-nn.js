@@ -981,6 +981,7 @@ function netForward(planes, glob) {
 
 // ==================== S-UCI LOOP (referee-checked, spec §4-5) =============
 var START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-./m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';
+var ENGINE_NAME = 'AIL0.1';   // settast ved eksport (--name)
 var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
@@ -1126,7 +1127,7 @@ M.onLine = function (line) {
   var cmd = words[0];
   try {
     if (cmd === 'uci') {
-      out('id name SahkkuNN 1.0');
+      out('id name ' + ENGINE_NAME);
       out('id author sahkku-ai (PyTorch -> JS export)');
       out('option name Debug type check default false');
       out('option name Lookahead type spin default 4 min 0 max 12');

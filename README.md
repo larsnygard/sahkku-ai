@@ -38,19 +38,24 @@ regelfilene `js/engine.js` + `js/fen.js` blir *injisert* i motoren ved eksport
 ## Spillereglene (terningane)
 
 Kortversjonen som motoren implementerer — og som er køyrbar som test i
-`tests/test_rules.py` (33 sjekkar):
+`tests/test_rules.py` (58 sjekkar):
 
-1. **X (sáhkku) vekkjer berre.** X løyser éi inaktiv brikke — soldat eller
-   dronning — og flyttar henne **eitt** felt; flyttet er ein del av vekkinga.
-   X flyttar aldri brikker som alt er utløyste, og aldri kongen (han er aldri
-   inaktiv). Det er II og III som flyttar.
-2. **X kan kastast om berre når X ikkje kan brukast** (inga vekking å gjera).
-   Å kaste om X for å sleppe å flytte brikkene er forbode — det var den gamle
-   regelen. Alle X-fjes kastast om samtidig, og regelen kan brukast på nytt så
-   lenge X framleis er ubrukeleg.
+1. **X er eit 1-tal.** Ho vekkjer éi inaktiv brikke (soldat eller dronning —
+   flyttet er ein del av vekkinga) **og** flyttar ei utløyst brikke eitt steg:
+   soldat framover i tallsyklusen, dronning og konge eitt steg langs syklusen.
+2. **X kan alltid kastast om** — bortsett frå når aktivering er det einaste du
+   kan gjere (inga brikker er utløyste). Elles kunne ein spelar som aldri
+   aktiverer noko blokkere spelet for alltid. Etter eit omkast gjeld vanlege
+   reglar, òg om det nye fjeset òg er ein X.
 3. **Rekkjefylgja er X > III > II.** Blanke fjes er brukte med ein gong.
 4. **Kan du ikkje flytte den aktive terningen, mistar du resten.** Får du III
    og II og ikkje kan flytte III, vert II ikkje spelt — turen sluttar.
+5. **Konge og dronning går langs tallsyklusen** (åttetalet), begge vegar, og
+   kan hoppe over brikker. **Kongen slår ut** fiendtlege soldatar og dronninga
+   (tek han dronninga, vinn han), men landar aldri på eigne eller uutløyste
+   brikker.
+6. **Nesseby** (valfri): kongen kan ikkje kaprast ved landing før nokon har
+   nådd motstandarens heimrad; den fyrste soldaten som når dit kaprar kongen.
 
 X, III og II er elles 1, 3 og 2 steg. Vinst: fiendens dronning er slått ut,
 eller alle fiendens soldatar er borte.
@@ -201,7 +206,7 @@ skal lande på entropien til målet, ~0.37, ikke over):
 
 ```sh
 .venv/bin/python -m sahkku_ai.export \
-    --net checkpoints/r3/c3.pt --out engines/sahkku-nn
+    --net checkpoints/ail01/c9.pt --out engines/sahkku-nn
 # eksport: engines/sahkku-nn.js + engines/sahkku-nn.weights.json + engines/sahkku-nn.pt
 ```
 
@@ -294,15 +299,24 @@ støy (hver kjøring er derfor et nytt utvalg), nivå 3 = deterministisk grådig
 Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 **L3 95 %** — altså ligger et tilfeldig nett på ~15 % mot L2.
 
-Siste motor (`checkpoints/r3/c3.pt`, 64×6, 3 sykluser à 500 parti, ~39 000
-prøver), 30 parti per benk (seed 41):
+**AIL0.1** (`checkpoints/ail01/c9.pt`, 64×6, 9 sykluser à 600 parti,
+**120 093 prøver**, ~2 timar på P100), 30 parti per benk (seed 41):
 
 | benk | poeng |
 |---|---|
-| mot ref L2, `Lookahead=4` (levert) | **26.7 %** (8–22) |
-| mot ref L2, `Lookahead=0` (rein policy) | 20.0 % (6–24) |
-| mot ref L3 (deterministisk) | 20.0 % (6–24) |
-| `Lookahead=4` mot `Lookahead=0`, samme vekter, 20 parti | **85 %** (17–3) |
+| mot ref L2 (grådig + støy) | **26.7 %** (8–22) |
+| mot ref L3 (deterministisk) | 30.0 % (6–14) |
+| `Lookahead=4` mot `Lookahead=0`, samme vekter | 85 % (17–3) |
+
+Treningskurva: val policy-xent **1.144 → 0.957** (value-MSE 0.83 → 0.57) over
+ni syklusar — jamn framgang, ingen kollisjon. Styrken mot den grådige
+referansemotoren er derimot *flat* (~27 %) samanlikna med den førre modellen,
+så auken i tap ligg i kalibrering, ikkje i spelestyrke enno.
+
+Dronning-aktivering (60 parti med AIL0.1): median utløyst **trekk 3** for båe
+sider, og den som utløyser fyrst vinn 54 % — altså aktiverer nettet så tidleg
+det kan og vinn ingenting målbart på å vere fyrst. No kan det i det minste
+*sjå* skilnaden (før var flagget konstant).
 
 Sideskillet er tydelig: som Menn 13 % (2–13), som Giera 40 % (6–9). Nettet ser
 absolutte posisjoner (ingen speiling), så det må lære hver side for seg — med
@@ -323,7 +337,28 @@ er et stykke under «god motstander». Lookahead er den enkeltendringen som gir
 mest (85 % mot seg selv uten), og den koster ~0,5 s per trekk. Se
 «Begrensninger» nederst.
 
-## 6. Koble motoren på et GUI
+## 6. Publisere en ny motor til SnartSahkku
+
+Motorene appen kan velge mellom står i `engines/engines.json` i SnartSahkku
+(én rad per motor: `id`, `name`, `type`, `script`, `weights`). Å publisere en
+ny trent modell er tre steg:
+
+```sh
+# 1. eksporter med motornavnet som skal vises i S-UCI-handshaken
+.venv/bin/python -m sahkku_ai.export --net checkpoints/ail01/c7.pt \
+    --out ../SnartSahkku/engines/ail0.1 --name "AIL0.1"
+
+# 2. legg raden i engines/engines.json (eller lag en ny id, t.d. ail0.2)
+
+# 3. deploy
+cd ../SnartSahkku && ./sendsahkku.sh
+```
+
+Motoren lastes lazy — klassisk CPU er standard, og en NN-modell hentes først
+når spilleren velger den. Flere NN-modeller kan ligge side om side; hver modul
+holder vektene sine for seg selv, så de kan være lastet samtidig.
+
+## 7. Koble motoren på et GUI
 
 Motoren er en vanlig S-UCI 1.0-motor (nivå A + `info movepool` + `debug` +
 `setoption`):
@@ -347,7 +382,7 @@ Motoren er en vanlig S-UCI 1.0-motor (nivå A + `info movepool` + `debug` +
   `engines/sahkku-nn.weights.json`) pluss `js/nn-adapter.js`:
 
   ```sh
-  .venv/bin/python -m sahkku_ai.export --net checkpoints/r3/c3.pt \
+  .venv/bin/python -m sahkku_ai.export --net checkpoints/ail01/c9.pt \
       --out ../SnartSahkku/engines/sahkku-nn
   ```
 
@@ -401,7 +436,10 @@ sitt syn).
 En aksjon er identiteten `(bokstav, fra, til)` som paritetsproben bruker;
 lovlighet maskeres ved beslutning. **16 plan** à 3×15: utløste soldater per side,
 soldater på hjemrad, dronninger (utløst/hjemme), konge (nøytral/M/K), aktiv
-terning, stakktelling, andre-pass-markør på midtrekka.
+terning, stakktelling, andre-pass-markør på midtrekka. De 10 globale tallene
+inkluderer `g[6]/g[7]` = **dronninga er utløst** (ikke bare «finnes» — en
+slått ut dronning avslutter partiet, så den gamle betydningen var konstant 1.0
+og nettet kunne ikke lære noe om aktiveringstidspunkt).
 
 ## Ytelse og GPU-notater
 
