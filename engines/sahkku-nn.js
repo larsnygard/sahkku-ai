@@ -984,10 +984,11 @@ function netForward(planes, glob) {
 
 // ==================== S-UCI LOOP (referee-checked, spec §4-5) =============
 var START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-./m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';
-var ENGINE_NAME = 'AIL0.4';   // settast ved eksport (--name)
+var ENGINE_NAME = 'AIL0.5-blokk1';   // settast ved eksport (--name)
 var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
+var DEEP = 0;            // 0 = av; m > 0 = 2-ply: motstandaren sine m beste svar vert rekna med
 var DEC = { X: 'X', '2': 'II', '3': 'III', '_': '_' };  // wire-faces -> interne fjes (som i ref)
 
 function encode(st_, mv) {
@@ -1072,6 +1073,32 @@ function childValue(ch, rootTurn) {
   var v = valueOf(ch);
   return ch.turn === rootTurn ? v : -v;
 }
+// 2-ply: etter vårt trekk er motstandaren i tur. Verdistett vårt trekk som
+// det VERSTE motstandaren kan gjere mot oss, blant dei m beste svara hans
+// (etter policy). Det fangar t.d. «trekket mitt ser bra ut, men han tek
+// dronninga mi neste gong» — noko 1-ply lookahead ikkje ser.
+function deepScore(ch, rootTurn, m) {
+  var ids = legalIds(ch);
+  if (!ids.length) return childValue(ch, rootTurn);
+  var real = [];
+  for (var i = 0; i < ids.length; i++) if (ids[i][0] < SPEC_BASE) real.push(ids[i]);
+  if (!real.length) return childValue(ch, rootTurn);   // berre pass/reroll
+  var e = encodeState(ch), f = netForward(e.planes, e.glob);
+  real.sort(function (a, b) { return f.policy[b[0]] - f.policy[a[0]]; });
+  var worst = Infinity;
+  for (var j = 0; j < Math.min(m, real.length); j++) {
+    var tok = encode(ch, real[j][1]);
+    if (!tok) continue;
+    var g = SS.deserialize(SS.serialize(ch));
+    var mv2 = decode(g, tok);
+    if (!mv2) continue;
+    SS.applyMove(g, mv2); SS.settle(g);
+    var v = childValue(g, rootTurn);
+    if (v < worst) worst = v;
+  }
+  return worst === Infinity ? childValue(ch, rootTurn) : worst;
+}
+
 function pick(st_) {
   var ids = legalIds(st_);
   var enc = encodeState(st_);
@@ -1094,7 +1121,9 @@ function pick(st_) {
       var mv2 = decode(ch, tok);
       if (!mv2) continue;
       SS.applyMove(ch, mv2); SS.settle(ch);
-      var cv = childValue(ch, st_.turn);
+      var cv = (DEEP > 0 && ch.winner == null)
+        ? deepScore(ch, st_.turn, DEEP)
+        : childValue(ch, st_.turn);
       if (cv > bestV) { bestV = cv; bestC = cand[c][0]; }
     }
     if (bestV > -Infinity) return { aid: bestC, value: bestV };
@@ -1134,6 +1163,7 @@ M.onLine = function (line) {
       out('id author sahkku-ai (PyTorch -> JS export)');
       out('option name Debug type check default false');
       out('option name Lookahead type spin default 4 min 0 max 12');
+      out('option name Deep type spin default 0 min 0 max 4');
       out('uciok');
     } else if (cmd === 'isready') {
       out('readyok');
@@ -1147,7 +1177,11 @@ M.onLine = function (line) {
         if (onm === 'debug') dbg = oval === 'true';
         else if (onm === 'lookahead') {
           var n = parseInt(oval, 10);
-          LA = isNaN(n) ? 0 : Math.max(0, Math.min(12, n));
+          LA = isNaN(n) ? 4 : Math.max(0, Math.min(12, n));
+        }
+        else if (onm === 'deep') {
+          var d = parseInt(oval, 10);
+          DEEP = isNaN(d) ? 0 : Math.max(0, Math.min(4, d));
         }
       }
     } else if (cmd === 'position') {
