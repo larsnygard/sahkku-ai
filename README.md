@@ -299,14 +299,18 @@ støy (hver kjøring er derfor et nytt utvalg), nivå 3 = deterministisk grådig
 Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 **L3 95 %** — altså ligger et tilfeldig nett på ~15 % mot L2.
 
-**AIL0.1** (`checkpoints/ail01/c9.pt`, 64×6, 9 sykluser à 600 parti,
-**120 093 prøver**, ~2 timar på P100), 30 parti per benk (seed 41):
+| modell | data | val-xent | mot ref L2 | mot sin forgjengar |
+|---|---|---|---|---|
+| **AIL0.1** (`ail01/c9.pt`) | 9 sykl. / 120 093 prøver | 0.957 | 26.7 % (8–22, n=30) | — |
+| **AIL0.2** (`ail02/c12.pt`) | 12 sykl. / 152 351 prøver | **0.840** | 16.7 % (5–25, n=30) | 46.7 % (14–16, n=30) |
+| referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
-| benk | poeng |
-|---|---|
-| mot ref L2 (grådig + støy) | **26.7 %** (8–22) |
-| mot ref L3 (deterministisk) | 30.0 % (6–14) |
-| `Lookahead=4` mot `Lookahead=0`, samme vekter | 85 % (17–3) |
+**To timar meir av same metode gav betre tap og *inga* styrke.** AIL0.2 spår
+si eiga spelargrein betre (0.957 → 0.840) men taper mot AIL0.1 (46,7 %) og
+gjer det dårlegare mot den grådige referansen (16,7 % mot 26,7 %). Det er
+den same diagnosen som tidlegare: måla kjem frå 8 tilfeldige utspelingar av
+nettet sjølv, so meir trening finpussar vanane i staden for å lære noko nytt.
+Betre mål — søk, ikkje fleire timar — er vegen vidare; AIL0.3 er det forsøket.
 
 Treningskurva: val policy-xent **1.144 → 0.957** (value-MSE 0.83 → 0.57) over
 ni syklusar — jamn framgang, ingen kollisjon. Styrken mot den grådige
@@ -336,6 +340,39 @@ policy-only-tvilling — men det er ikke *sterkt*: 27 % mot en grådig heuristik
 er et stykke under «god motstander». Lookahead er den enkeltendringen som gir
 mest (85 % mot seg selv uten), og den koster ~0,5 s per trekk. Se
 «Begrensninger» nederst.
+
+## MCTS (`--sims N`)
+
+`sahkku_ai/mcts.py` er eit bladbunta PUCT-søk som erstattar utspelingane når
+`--sims N` er sett (0 = dagens løype).
+
+**Designet, og kvifor:**
+
+* **Terningane er ikkje sjansjenodar i treet.** Turen sine terningar er kjende,
+  og eit trekk som avsluttar turen er eit *løv* som verdsettast av verdinettet —
+  det ukjende neste kastet ligg dermed implisitt i verdien, og treet slepp
+  expectimax over 4³ terningar.
+* **Verdi, ikkje utspelingar.** Løv vert skorne av verdinettet, so eit 25-sims
+  søk kostar ~25 forward i staden for 8 utspelingar à ~52 ply.
+* **Bladbunta løv med PUCT** (`c_puct`, Dirichlet-støy ved rot), og forteiknet
+  vert snutt når *sida* skiftar — ikkje for kvar ply, sidan same spelar gjer
+  opptil tre trekk i ein tur.
+* **Verdimålet er partiresultatet** (AlphaZero-konvensjonen), ikkje søkets eige
+  verdianslag. Er partiet ikkje avgjort (ply-taket), vert søkeverdien brukt.
+
+**Tre ting som kosta ein køyring kvar:**
+
+1. **Å søkje på `reroll` er meiningslaust** — ho er ei null-handling som kastar
+   terningane på nytt utanfor treet, og ho fekk 86 % av vitjingane då ho var
+   med (partia sto på 300-ply-taket). Ho er no ute av søkjesettet, men framleis
+   lovleg når ho er det einaste ein kan gjere.
+2. **Kostnaden er Python per node**, ikkje forwarden: 366 sims/s ved 100 sims,
+   og `--leaf-batch` 8/16/32 gjer ingen skilnad. `State.clone()` (0,09 ms) og
+   `legal_ids` per utviding er det som dominerer.
+3. **Sterkare spel gjev lange parti.** Med AIL0.1-nettet gav 25 sims korte,
+   avgjorte parti (3 s/parti); med AIL0.2-nettet gjev same setting 182
+   prøver/parti og 88 % av partia når taket. Partilengda styrast av
+   nettstyrken, ikkje av sims-talet.
 
 ## 6. Publisere en ny motor til SnartSahkku
 

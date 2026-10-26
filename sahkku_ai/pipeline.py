@@ -105,7 +105,9 @@ def run_loop(args):
                             workers=args.workers, rollouts=args.rollouts,
                             temp=args.temp, noise_alpha=args.noise_alpha,
                             noise_eps=args.noise_eps, seed=args.seed + cycle,
-                            prior_eps=args.prior_eps, tau_q=args.tau_q)
+                            prior_eps=args.prior_eps, tau_q=args.tau_q,
+                            sims=args.sims, c_puct=args.c_puct,
+                            leaf_batch=args.leaf_batch)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -176,6 +178,10 @@ def main():
     ap.add_argument("--noise-eps", type=float, default=0.25)
     ap.add_argument("--prior-eps", type=float, default=0.2)
     ap.add_argument("--tau-q", type=float, default=1.0)
+    ap.add_argument("--sims", type=int, default=0,
+                    help="MCTS-simuleringar per avgjerd i sjølvspel (0 = utspelingar)")
+    ap.add_argument("--c-puct", type=float, default=1.6)
+    ap.add_argument("--leaf-batch", type=int, default=8)
     ap.add_argument("--steps", type=int, default=1500)
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--lr", type=float, default=2e-3)
