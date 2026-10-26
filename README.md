@@ -303,7 +303,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 |---|---|---|---|---|
 | **AIL0.1** (`ail01/c9.pt`) | 9 sykl. / 120 093 prøver | 0.957 | 26.7 % (8–22, n=30) | — |
 | **AIL0.2** (`ail02/c12.pt`) | 12 sykl. / 152 351 prøver | **0.840** | 16.7 % (5–25, n=30) | 46.7 % (14–16, n=30) |
-| **AIL0.3** (`ail03/c3.pt`, MCTS-mål 25 sims) | 3 sykl. / 156 632 prøver | 1.441\* | **30.0 %** (9–21, n=30) | 40.0 % (12–18) mot AIL0.2 |
+| **AIL0.3** (`ail03/c3.pt`, MCTS-mål 25 sims) | 3 sykl. / 156 632 prøver | 1.441\* | **30.0 %** (9–21, n=30) · **22.5 % mot L3** (9–31, n=40) | 40.0 % (12–18) mot AIL0.2 |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
