@@ -236,9 +236,16 @@ def evaluate_root(net, device, st, cfg, rng):
 
 def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
     st = E.State(first=rng.randint(0, 1))
-    E.opening_roll(st, rng.random)
+    _op = E.opening_roll(st, rng.random)
     qd_side = qd_side_for_game(cfg, rng)
     qd_min = int(cfg.get("queen_delay_soldiers", 2))
+    rec = cfg.get("_record")        # valfritt opptak -> SPG-eksport
+    if isinstance(rec, dict):
+        rec.clear()
+        rec.update({"first": _op["first"],
+                    "opening": [{"p0": _op["p0"], "p1": _op["p1"]}],
+                    "plies": [], "qd_side": qd_side})
+    rec_ply = None
     outcome_idx = []      # (indeks i samples_out, sida-som-trekte) for MCTS
     for _ in range(int(cfg.get("max_plies", MAX_PLIES))):
         if st.winner is not None:
@@ -246,6 +253,9 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
         if st.phase == "roll":
             E.roll(st, rng.random)
             st.phase = "move"
+            if isinstance(rec, dict):
+                rec_ply = {"dice": [list(st.dice)], "moves": []}
+                rec["plies"].append(rec_ply)
             continue
         ids = filter_qd(st, FT.legal_ids(st), qd_side, qd_min)
         if not ids:
@@ -295,7 +305,18 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
                 stats_soldiers = len(E.alive_soldiers(st, qd_side))
                 if isinstance(stats, dict):
                     stats.setdefault("fallback_soldiers", []).append(stats_soldiers)
+        _before = list(st.dice)
         apply_choice(st, ids, best, rng)
+        if isinstance(rec, dict) and rec_ply is not None:
+            _mv = dict(next((m for a, m in ids if a == best), {}))
+            _kind = _mv.get("kind")
+            if _kind in ("pass", "reroll"):
+                # spesialhandling: ikkje eit trekk med pid — gøym henne for seg
+                rec_ply["special"] = _kind
+                if len(st.dice) == 3 and list(st.dice) != _before:
+                    rec_ply["dice"].append(list(st.dice))   # nytt kast etter omkast
+            else:
+                rec_ply["moves"].append(_mv)
     cfg["_last_state"] = st          # feilsøking: kva enda partiet i?
     # MCTS: verdimålet er PARTIRESULTATET (AlphaZero-konvensjonen), ikkje
     # søkets eige verdianslag — elles vert måla mjuke tal som ikkje lærer
