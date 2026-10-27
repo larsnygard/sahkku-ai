@@ -1135,6 +1135,25 @@ function pick(st_) {
   if (LA > 0 && real.length > 1) {
     real.sort(function (a, b) { return r.policy[b[0]] - r.policy[a[0]]; });
     var cand = real.slice(0, Math.min(LA + 1, real.length));
+    // SLAG SKAL ALLTID VURDERAST, ikkje berre om dei er mellom dei k beste
+    // etter policy. Nettet er trena på data der slag var sjeldne, so eit
+    // vinnande slag kan hamne på 12. plass og aldri verte rekna ut.
+    // (Lars 2026-10-27: AI-en oversåg konge-/dronningkapslar.)
+    var inCand = {};
+    for (var ci = 0; ci < cand.length; ci++) inCand[cand[ci][0]] = 1;
+    for (var ri = 0; ri < real.length; ri++) {
+      var mvR = real[ri][1];
+      var dR = SS.moveDest(st_, mvR);
+      var onR = SS.occ ? SS.occ(st_, dR) : null;
+      var kill = false;
+      if (onR) {
+        for (var oi = 0; oi < onR.length; oi++) {
+          var q = onR[oi];
+          if (q.o != null && q.o !== st_.turn && q.id !== mvR.pid) kill = true;
+        }
+      }
+      if (kill && !inCand[real[ri][0]]) { cand.push(real[ri]); inCand[real[ri][0]] = 1; }
+    }
     var bestV = -Infinity, bestC = cand[0][0];
     for (var c = 0; c < cand.length; c++) {
       var tok = encode(st_, cand[c][1]);
