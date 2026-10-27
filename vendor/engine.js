@@ -307,13 +307,22 @@
     for (var i = 0; i < 3; i++) if (!st.used[i] && st.dice[i] !== '_') n++;
     return n;
   }
-  function rerollX(st, rnd) {
+  // Kvar X-terning er si EIGA handling (Lars 2026-10-27): «Xs can be
+  // rerolled individually». Slår ein to X, kan ein halde på den eine og
+  // kaste om den andre. Utan `slot` kastar vi om den fyrste ubrukte X-en —
+  // det er kva protokollen (S-UCI `reroll`) og CPU-en gjer.
+  function rerollX(st, rnd, slot) {
     if (!canRerollX(st)) return null;
-    for (var i = 0; i < 3; i++) if (st.dice[i] === 'X') {
-      var nf = rollDice(rnd)[0];
-      st.dice[i] = nf;
-      st.used[i] = (nf === '_');   // eit nytt blankt fjes er brukt med ein gong
+    var i = (slot === undefined || slot === null) ? -1 : slot | 0;
+    if (i >= 0) {
+      if (st.dice[i] !== 'X' || st.used[i]) return null;   // berre ein ubrukt X
+    } else {
+      for (var k = 0; k < 3; k++) if (st.dice[k] === 'X' && !st.used[k]) { i = k; break; }
+      if (i < 0) return null;
     }
+    var nf = rollDice(rnd)[0];
+    st.dice[i] = nf;
+    st.used[i] = (nf === '_');     // eit nytt blankt fjes er brukt med ein gong
     logReroll(st);
     return st.dice.slice();
   }

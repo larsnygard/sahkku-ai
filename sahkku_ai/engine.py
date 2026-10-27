@@ -395,14 +395,26 @@ def can_reroll_x(st: State) -> bool:
     return len(legal_moves(st, me)) == 0
 
 
-def reroll_x(st: State, rnd=None):
+def reroll_x(st: State, rnd=None, slot=None):
+    """Kast om ÉIN X-terning (Lars 2026-10-27: «Xs can be rerolled individually»).
+
+    `slot` = kva terning (0-2). Utan slot: den fyrste ubrukte X-en, som er kva
+    protokollen (S-UCI `reroll`) og CPU-en gjer. Slår ein to X, kan ein halde
+    på den eine og kaste om den andre.
+    """
     if not can_reroll_x(st):
         return None
-    for i in range(3):
-        if st.dice[i] == "X":
-            nf = roll_dice(rnd)[0]
-            st.dice[i] = nf
-            st.used[i] = (nf == "_")    # nytt blankt fjes er brukt med ein gong
+    if slot is None:
+        i = next((k for k in range(3) if st.dice[k] == "X" and not st.used[k]), -1)
+        if i < 0:
+            return None
+    else:
+        i = int(slot)
+        if st.dice[i] != "X" or st.used[i]:
+            return None
+    nf = roll_dice(rnd)[0]
+    st.dice[i] = nf
+    st.used[i] = (nf == "_")            # nytt blankt fjes er brukt med ein gong
     return st.dice[:]
 
 

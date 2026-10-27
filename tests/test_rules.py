@@ -300,12 +300,50 @@ def test_annihilation_beats_king_and_queen():
     check(not q1.captured, "utryddelse: dronninga levde framleis (ho bergar ikkje)")
 
 
+def test_reroll_one_die_at_a_time():
+    """Kvar X er si eiga handling (Lars 2026-10-27: «Xs can be rerolled
+    individually»). Slår ein to X, kan ein halde på éin og kaste om den andre."""
+    def rig():
+        st = E.State(first=0)
+        st.phase = "move"
+        st.turn = 0
+        s = E.soldiers(st, 0)[0]
+        s.released = True
+        s.captured = False                      # éi aktiv brikke -> omkast lovleg
+        st.dice = ["X", "X", "III"]
+        st.used = [False, False, False]
+        return st
+
+    fast = lambda: 0.5                          # -> fjes III
+
+    st = rig()
+    E.reroll_x(st, fast, 1)
+    check(st.dice == ["X", "III", "III"], "omkast av terning 1 rører ikkje terning 0")
+
+    st = rig()
+    E.reroll_x(st, fast, 0)
+    check(st.dice == ["III", "X", "III"], "omkast av terning 0 rører ikkje terning 1")
+
+    st = rig()
+    check(E.reroll_x(st, fast, 2) is None, "terning 2 er III — kan ikkje kastast om")
+    check(st.dice == ["X", "X", "III"], "nekta omkast let terningane stå")
+
+    st = rig()
+    st.used = [True, False, False]
+    check(E.reroll_x(st, fast, 0) is None, "ein BRUKT X kan ikkje kastast om")
+
+    st = rig()
+    E.reroll_x(st, fast)
+    check(st.dice == ["III", "X", "III"], "utan slot vert den fyrste ubrukte X-en kasta om")
+
+
 def main():
     test_x_wakes_one_piece()
     test_reroll_when_blocked()
     test_king_and_queen_follow_the_cycle()
     test_annihilation_beats_king_and_queen()
     test_reroll_only_when_x_unusable()
+    test_reroll_one_die_at_a_time()
     test_dice_order()
     test_forfeits_rest()
     for m in OK:
