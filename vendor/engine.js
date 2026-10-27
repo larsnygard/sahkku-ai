@@ -355,6 +355,23 @@
     if (!m) { m = CYC[pl] = {}; for (var t = 0; t < 60; t++) { var s = soldierAt(pl, t); if (m[s] === undefined) m[s] = t; } }
     return m[sq] === undefined ? -1 : m[sq];
   }
+  // Loddrett: konge og dronning går rett OPP eller rett NED i same kolonne
+  // (Lars 2026-10-27: «kongen flyttar seg som dronninga, men opp/ned var
+  // blokkert»). stepDir('F'/'B') fanst alt, men vart aldri kalla for konge
+  // og dronning — difor var berre syklusvegen (åttetalet) tilgjengeleg.
+  // Banen kan passere brikker; berre landinga er regulert (canLand).
+  function genVerticalMoves(st, p, v) {
+    var res = [], dirs = ['F', 'B'], k, r2, land;
+    for (k = 0; k < dirs.length; k++) {
+      r2 = pathFor(st, p, dirs[k], v);
+      if (!r2.legal) continue;
+      land = r2.path[r2.path.length - 1];
+      if (!canLand(st, p, land)) continue;
+      res.push({ pid: p.id, dir: dirs[k], v: v, kind: 'mv' });
+    }
+    return res;
+  }
+
   function genCycleMoves(st, p, v) {
     var res = [], sq = p.at, t0 = cycleIndexOf(p.o, sq), s, land;
     if (t0 < 0) return res;
@@ -417,10 +434,14 @@
         if (!st.queenMode || p.o !== me || !p.released) continue;
         var qm = genCycleMoves(st, p, v);
         for (var z = 0; z < qm.length; z++) out.push(qm[z]);
+        var qv = genVerticalMoves(st, p, v);
+        for (var zv = 0; zv < qv.length; zv++) out.push(qv[zv]);
       } else if (p.t === 'k') {
         if (p.o !== me) continue;
         var km2 = genCycleMoves(st, p, v);
         for (var z2 = 0; z2 < km2.length; z2++) out.push(km2[z2]);
+        var kv = genVerticalMoves(st, p, v);
+        for (var zk = 0; zk < kv.length; zk++) out.push(kv[zk]);
       }
     }
     return out;

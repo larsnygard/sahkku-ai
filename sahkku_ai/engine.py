@@ -425,6 +425,25 @@ def cycle_index(pl: int, sq: int) -> int:
     return m.get(sq, -1)
 
 
+def gen_vertical_moves(st: State, p: Piece, v: int):
+    """Konge/dronning: rett OPP eller rett NED, same kolonne, v steg.
+
+    Lars 2026-10-27: «kongen flyttar seg som dronninga, men opp/ned var
+    blokkert». step_dir('F'/'B') fanst alt, men vart aldri brukt for konge
+    og dronning — berre syklusvegen (åttetalet) var tilgjengeleg. Banen kan
+    passere brikker; berre landinga er regulert (can_land).
+    """
+    res = []
+    for d in ("F", "B"):
+        ok, land, _ = path_for(p.at, d, v)
+        if not ok or land is None:
+            continue
+        if not can_land(st, p, land):
+            continue
+        res.append({"pid": p.id, "dir": d, "v": v, "kind": "mv"})
+    return res
+
+
 def gen_kq_moves(st: State, p: Piece, v: int):
     """Konge/dronning: v steg langs tallsyklusen, BEGGE vegar.
 
@@ -445,6 +464,8 @@ def gen_kq_moves(st: State, p: Piece, v: int):
             continue
         res.append({"pid": p.id, "dir": "F" if sign > 0 else "B",
                     "v": v, "kind": "mv", "to": land, "cyc": sign})
+    # loddrett: same kolonne opp/ned (Lars 2026-10-27)
+    res.extend(gen_vertical_moves(st, p, v))
     return res
 
 

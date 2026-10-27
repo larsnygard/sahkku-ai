@@ -466,6 +466,20 @@ M.exported = {
     }
     return null;
   },
+  // Vel ei HANDLING (ikkje berre eit trekk): omkast og pass er no val, og
+  // GUI-et skal ikkje kaste om på eigen hand. Returnerer {kind, aid, mv?}.
+  chooseAction: function (st_) {
+    var ids = legalIds(st_);
+    if (!ids.length) return null;
+    var pk = pick(st_);
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i][0] !== pk.aid) continue;
+      var mv = ids[i][1], k = mv && mv.kind ? mv.kind : 'mv';
+      return { kind: (k === 'pass' || k === 'reroll') ? k : 'move',
+               aid: ids[i][0], mv: mv };
+    }
+    return null;
+  },
   setLookahead: function (k) {
     var n = parseInt(k, 10);
     LA = isNaN(n) ? 4 : Math.max(0, Math.min(12, n));
