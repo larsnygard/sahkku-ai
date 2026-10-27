@@ -54,6 +54,8 @@ def main():
     out.append('[Event "AIL0.6 — langt uavgjort parti (sein dronning, side %s)"]'
                % ("Menn" if rec.get("qd_side") == 0 else "Koner"))
     out.append('[Date "2026-10-27"]')
+    out.append('[Time "12:00:00"]')
+    out.append('[UTC "2026-10-27T12:00:00Z"]')
     out.append('[Menn "%s"]' % ("AIL0.5 (sein dronning)" if rec.get("qd_side") == 0 else "AIL0.5"))
     out.append('[Koner "%s"]' % ("AIL0.5 (sein dronning)" if rec.get("qd_side") == 1 else "AIL0.5"))
     out.append('[Result "%s"]' % ("1-0" if st.winner == 0 else ("0-1" if st.winner == 1 else "*")))

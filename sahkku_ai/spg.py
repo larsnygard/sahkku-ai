@@ -18,11 +18,57 @@ MV_RE = re.compile(r"^(?:(II|III):\s*)?([MkKQ])([A-O][123])->([A-O][123])(\u00a7
 REL_RE = re.compile(r"^X->([A-O][123])\s*$")
 END_RE = re.compile(r"^(1-0|0-1|\*)\s*(?:\{(\w+)\})?\s*$")
 XMARK_RE = re.compile(r"^X!\s*$")
+# SPG 1.2-kommentarar (PGN-syntaks): {…} kan gå over fleire linjer og kan ikkje
+# nestast — alt til fyrste } er kommentar. ; let til linjeslutt.
+BRACE_RE = re.compile(r"\{([^{}]*)\}", re.S)
+
+
+RESULT_LINE_RE = re.compile(r"^(1-0|0-1|\*)\s*\{[^{}]*\}\s*$")
+
+
+def strip_comments(text: str):
+    """Fjern kommentarar; returner (tekst utan kommentarar, liste med kommentarar).
+
+    Kommentarar ber ingen spelestand: eit parti skal spelast likt med og utan
+    dei. Vi tek vare på dei so verktøy kan syne eller skrive dei ut att.
+
+    Særfall: resultatlinja «1-0 {dronning}» har eit {…} som er ÅRSAK, ikkje
+    kommentar — END_RE les henne. Difor vert slike linjer haldne utanfor
+    fjerninga og sette tilbake etterpå.
+    """
+    found = []
+    PROT = "\x00SPGESULT\x00"
+    protected, lines = [], []
+    for raw in text.splitlines():
+        if RESULT_LINE_RE.match(raw.strip()):
+            protected.append(raw.strip())
+            lines.append(PROT)
+        else:
+            lines.append(raw)
+
+    def take(m):
+        found.append(m.group(1).strip())
+        return " "
+
+    body = BRACE_RE.sub(take, "\n".join(lines))
+    out = []
+    for raw in body.splitlines():
+        if raw.strip() == PROT:
+            out.append(protected.pop(0) if protected else raw)
+            continue
+        if ";" in raw:
+            cut, note = raw.split(";", 1)
+            if note.strip():
+                found.append(note.strip())
+            raw = cut
+        out.append(raw)
+    return "\n".join(out), found
 
 
 def parse_spg(text: str):
     """Return {'tags':…, 'events':[…], 'result':…, 'reason':…, 'bad':…}."""
     tags, events, result, reason, bad = {}, [], None, "", None
+    text, comments = strip_comments(text)      # SPG 1.2: {…} og ; kommentarar
     for raw in text.splitlines():
         line = raw.strip()
         if not line:
@@ -62,7 +108,7 @@ def parse_spg(text: str):
             continue
         bad = line
     return {"tags": tags, "events": events, "result": result,
-            "reason": reason, "bad": bad}
+            "reason": reason, "bad": bad, "comments": comments}
 
 
 def game_from_spg(text: str, strict: bool = True):
