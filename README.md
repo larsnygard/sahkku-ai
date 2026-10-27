@@ -236,6 +236,30 @@ printf 'uci\nisready\nposition startpos\ndiceroll X 2 _\ngo\nquit\n' | node engi
 # bestmove L2-K2
 ```
 
+### Søkefeil som gjorde netta slag-blinde (retta 2026-10-27)
+
+`mcts.py` krediterte ikkje avgjorte løv. Eit trekk som vinn med ein gong —
+konge- eller dronningkapsel — fekk verdien sett, men vart aldri ført oppover,
+so forelderen sin `N`/`W` stod på 0; og eit ferdig born vart hoppa over i
+seleksjonen, so søket gjekk attende til eit roleg trekk. Følgja: policy-måla
+AIL0.3–0.5 vart trena på lærte netta å **unngå** slag. Målt i eit verkeleg
+parti: 197 lovlege slag, 30 spela (2 av 20 konge-, 4 av 53 dronningkapslar).
+Med eit heilt nøytralt stub-nett tek søket no kapselen (π 0,76–0,88);
+`tests/test_mcts_capture.py` pinnar det over alle tre terningverdiane.
+
+Motoren i nettlesaren er òg retta: kandidatane i lookaheaden var berre dei
+k beste etter policy, so eit vinnande slag kunne hamne utanfor. No vert alle
+lovlege slag alltid vurderte (målt 32,5 % → 42,5 % slag tekne på 40
+stillingar frå det uavgjorte partiet).
+
+### Loddrett gang er nytt — eldre nett kann ikkje bruke det
+
+Konge og dronning fekk rett opp/ned-gang 2026-10-27. AIL0.5 og eldre er
+trena **før** det, so policyen deira legg nesten null vekt på loddrette
+trekk (målt: 746 lovlege, 2 spela i eitt parti). Fyrst eit nett trena etter
+regelendringa kan bruke dei — søket utforskar alle lovlege trekk, so måla
+for eit nytt nett inneheld dei.
+
 ### Motorvalg
 
 | option | type | default | betydning |
@@ -308,6 +332,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.4** (`ail04/c8.pt`, trena MOT klassisk L3, MCTS-mål, nye globale trekk) | 8 sykl. / 91 934 prøver | 0.772 | **27.5 % mot L3** (11–29, n=40) · 25 % som Menn / 30 % som Giera | — |
 | **AIL0.5 blokk 1** (`ail05/c6.pt`, held fram mot L3) | 6 sykl. til | 0.842 | **42.5 % mot L3** (17–23, n=40) · 30 % Menn / **55 % Giera** | — |
 | **AIL0.5** (`ail05/c12.pt`, 12 sykl. mot L3, lr 4e-4 + vindauge 3) | 12 sykl. / 219 312 prøver | **0.7705** | **50.0 % mot L3** (20–20, n=40) · 11–9 Menn / 9–11 Giera | — |
+| **AIL0.6** (`ail06/c6.pt`, sjølvspel med «sein dronning»-handikap, 2 t, retta søk) | 6 sykl. / 255 735 prøver | 1.221 | **85.0 % mot L3** (34–6, n=40) · **80.0 % mot AIL0.5** (32–8) | 17–3 / 17–3 mot L3 |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
