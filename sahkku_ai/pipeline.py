@@ -90,7 +90,14 @@ def run_loop(args):
             net_path = p
             print(f"[init] ny nett {net.cfg} -> {p}", flush=True)
 
+    t_run = time.time()
     for cycle in range(args.start_cycle, args.cycles + 1):
+        # tidsbudsjett: ein syklus tek 8-15 min, so vi stoppar mellom syklusar
+        # heller enn midt i datagenereringa (ein halv shard er verdilaus)
+        if args.max_seconds and (time.time() - t_run) >= args.max_seconds:
+            print(f"[stopp] tidsbudsjettet ({args.max_seconds}s) er brukt opp "
+                  f"etter syklus {cycle - 1}", flush=True)
+            break
         cyc_dir = os.path.join(rundir, f"cycle{cycle}")
         t0 = time.time()
         games = args.games if cycle > 1 else args.games_first or args.games
@@ -109,7 +116,10 @@ def run_loop(args):
                             sims=args.sims, c_puct=args.c_puct,
                             leaf_batch=args.leaf_batch,
                             opponent=args.train_opponent,
-                            opponent_level=args.train_opponent_level)
+                            opponent_level=args.train_opponent_level,
+                            queen_delay=args.queen_delay,
+                            queen_delay_soldiers=args.queen_delay_soldiers,
+                            max_plies=args.max_plies)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -187,6 +197,15 @@ def main():
     ap.add_argument("--train-opponent", dest="train_opponent", default="",
                     help="tren mot klassisk CPU i staden for sjølvspel (t.d. «classic3»)")
     ap.add_argument("--train-opponent-level", dest="train_opponent_level", type=int, default=3)
+    ap.add_argument("--queen-delay", type=int, default=-1,
+                    help="sjølvspel-handikap: -1 av, 0/1 fast side, 2 = tilfeldig side "
+                         "per parti. Sida får ikkje vekkje dronninga før ho har "
+                         "--queen-delay-soldiers soldatar att (AIL0.6-eksperimentet)")
+    ap.add_argument("--queen-delay-soldiers", type=int, default=2)
+    ap.add_argument("--max-plies", type=int, default=300,
+                    help="tak på ply per parti i datagenereringa")
+    ap.add_argument("--max-seconds", type=int, default=0,
+                    help="stopp etter N sekund (0 = berre --cycles). Sjekka mellom syklusar.")
     ap.add_argument("--steps", type=int, default=1500)
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--lr", type=float, default=2e-3)

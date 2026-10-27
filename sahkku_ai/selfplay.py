@@ -118,6 +118,48 @@ def rollout_batch(net, device, children, temp, rng):
     return z
 
 
+# ---------- «sein dronning»: handikap for éi side i sjølvspel ----------
+# Lars 2026-10-27: AIL0.6 skal trenast AIL0.5 mot AIL0.5, men éi side får
+# ALDRI lov til å vekkje dronninga før ho har berre N soldatar att. Då ser
+# nettet kva som faktisk skjer når dronninga kjem seint — noko sjølvspel
+# elles aldri utforskar, fordi begge sider vekkjer henne tidleg.
+#
+# Handikapet er eit TREKKVAL, ikkje ei endra regel: den handikappa sida
+# spelar berre andre lovlege trekk. Er ho blokkert utan dronningvekking
+# (kan skje når ho berre har dronninga att), får ho vekkje likevel — elles
+# ville partiet stått fast og datagenereringa gjeve søppel.
+
+def qd_side_for_game(cfg, rng):
+    """Kva side er handikappa i dette partiet (-1 = ingen)."""
+    qd = cfg.get("queen_delay", -1)
+    if qd is None or qd < 0:
+        return -1
+    if qd == 2:                      # «alt»: byt side frå parti til parti
+        return rng.randint(0, 1)
+    return 1 if qd == 1 else 0
+
+
+def queen_activation_blocked(st, mv, side, min_soldiers):
+    """Er dette ei dronning-vekking som handikapet forbyr nett no?"""
+    if side is None or side < 0 or st.turn != side:
+        return False
+    if mv.get("kind") != "rel":          # berre vekking (X), ikkje vanlege trekk
+        return False
+    p = E.piece(st, mv["pid"])
+    if p is None or p.t != "q":
+        return False
+    return len(E.alive_soldiers(st, side)) > min_soldiers
+
+
+def filter_qd(st, ids, side, min_soldiers):
+    """Fjern dronningvekking frå trekkmengda; aldri tøm heile mengda."""
+    if side is None or side < 0:
+        return ids
+    keep = [(a, mv) for a, mv in ids
+            if not queen_activation_blocked(st, mv, side, min_soldiers)]
+    return keep or ids                   # fallback: heller vekkje enn å stå fast
+
+
 def dirichlet(rng, alpha, k):
     gs = [rng.gammavariate(alpha, 1.0) for _ in range(k)]
     s = sum(gs) + 1e-12
@@ -195,15 +237,17 @@ def evaluate_root(net, device, st, cfg, rng):
 def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
     st = E.State(first=rng.randint(0, 1))
     E.opening_roll(st, rng.random)
+    qd_side = qd_side_for_game(cfg, rng)
+    qd_min = int(cfg.get("queen_delay_soldiers", 2))
     outcome_idx = []      # (indeks i samples_out, sida-som-trekte) for MCTS
-    for _ in range(MAX_PLIES):
+    for _ in range(int(cfg.get("max_plies", MAX_PLIES))):
         if st.winner is not None:
             break
         if st.phase == "roll":
             E.roll(st, rng.random)
             st.phase = "move"
             continue
-        ids = FT.legal_ids(st)
+        ids = filter_qd(st, FT.legal_ids(st), qd_side, qd_min)
         if not ids:
             E.pass_remaining(st)
             continue
@@ -220,6 +264,17 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             z = z_search
         else:
             pi, z, legal = evaluate_root(net, device, st, cfg, rng)
+        # Handikapet må gjelde SØKET òg: søket kan ha vitja eit forbode
+        # dronningtrekk (det kjenner ikkje filteret), so π vert maskert her.
+        # Står alt att som forbode (skal ikkje skje — filter_qd let alltid
+        # noko stå), held vi på søket sitt svar.
+        if qd_side >= 0:
+            ok = {a for a, _ in ids}
+            pi2 = {a: p for a, p in pi.items() if a in ok}
+            tot2 = sum(pi2.values())
+            if pi2 and tot2 > 0:
+                pi = {a: p / tot2 for a, p in pi2.items()}
+                legal = list(pi.keys())
         pol = np.zeros(FT.N_ACTIONS, np.float32)
         for a in legal:
             pol[a] = pi[a]
@@ -228,7 +283,20 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             outcome_idx.append((len(samples_out) - 1, st.turn))
         # Play the outcome-weighted best action (π), not the raw prior.
         best = max(legal, key=lambda a: pi[a])
+        # Tel brot på handikapet: skal vere 0 utanom fallbacken (der ho må
+        # vekkje for ikkje å stå fast). Eit tal i treningsloggen er betre
+        # prov enn at filteret «ser rett ut».
+        if qd_side >= 0:
+            mv_best = next((m for a, m in ids if a == best), None)
+            if mv_best is not None and queen_activation_blocked(st, mv_best, qd_side, qd_min):
+                stats = cfg.get("_qd_stats")
+                if isinstance(stats, dict):
+                    stats["viol"] = stats.get("viol", 0) + 1
+                stats_soldiers = len(E.alive_soldiers(st, qd_side))
+                if isinstance(stats, dict):
+                    stats.setdefault("fallback_soldiers", []).append(stats_soldiers)
         apply_choice(st, ids, best, rng)
+    cfg["_last_state"] = st          # feilsøking: kva enda partiet i?
     # MCTS: verdimålet er PARTIRESULTATET (AlphaZero-konvensjonen), ikkje
     # søkets eige verdianslag — elles vert måla mjuke tal som ikkje lærer
     # nettet kven som faktisk vann.
@@ -320,6 +388,8 @@ def worker(args):
         pred = Predictor(net, device, cfg.get("batch", 64))
     samples = []
     wins = [0, 0]
+    if cfg.get("queen_delay", -1) >= 0:
+        cfg["_qd_stats"] = {"viol": 0}
     t0 = time.time()
     for g in range(cfg["games_per_worker"]):
         if cfg.get("opponent", "").startswith("classic"):
@@ -335,15 +405,21 @@ def worker(args):
                   f"({(g+1)/el*60:.1f} parti/min)", flush=True)
     out = os.path.join(cfg["outdir"], f"shard_{wid:03d}.npz")
     save_shard(samples, out)
+    qds = cfg.get("_qd_stats")
+    qdtxt = ""
+    if qds is not None:
+        qdtxt = (f", dronning-handikap: {qds.get('viol', 0)} fallback-vekkingar"
+                 f" (av {len(qds.get('fallback_soldiers', []))})")
     print(f"[w{wid}] ferdig: {cfg['games_per_worker']} parti, {len(samples)} prøver -> {out} "
-          f"(Menn-vinn {wins[0]}, Giera-vinn {wins[1]})", flush=True)
+          f"(Menn-vinn {wins[0]}, Giera-vinn {wins[1]}{qdtxt})", flush=True)
     return len(samples)
 
 
 def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  rollouts=6, temp=1.0, noise_alpha=0.3, noise_eps=0.25,
                  seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64,
-                 sims=0, c_puct=1.6, leaf_batch=8, opponent="", opponent_level=3):
+                 sims=0, c_puct=1.6, leaf_batch=8, opponent="", opponent_level=3,
+                 queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -352,7 +428,10 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "prior_eps": prior_eps, "tau_q": tau_q,
            "k_games": k_games, "batch": batch,
            "sims": sims, "c_puct": c_puct, "leaf_batch": leaf_batch,
-           "opponent": opponent, "opponent_level": opponent_level}
+           "opponent": opponent, "opponent_level": opponent_level,
+           "queen_delay": queen_delay,
+           "queen_delay_soldiers": queen_delay_soldiers,
+           "max_plies": max_plies}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker
@@ -396,6 +475,12 @@ if __name__ == "__main__":
                     help="MCTS-simuleringar per avgjerd (0 = dagens utspelingar)")
     ap.add_argument("--c-puct", type=float, default=1.6)
     ap.add_argument("--leaf-batch", type=int, default=8)
+    ap.add_argument("--queen-delay", type=int, default=-1,
+                    help="handikap: -1 av, 0/1 fast side, 2 = tilfeldig side per parti "
+                         "(sida får ikkje vekkje dronninga før --queen-delay-soldiers soldatar att)")
+    ap.add_argument("--queen-delay-soldiers", type=int, default=2)
+    ap.add_argument("--max-plies", type=int, default=MAX_PLIES,
+                    help="tak på ply per parti i datagenereringa (handikappa parti blir lange)")
     ap.add_argument("--opponent", default="",
                     help="tren mot denne i staden for sjølvspel (t.d. «classic3»)")
     ap.add_argument("--opponent-level", type=int, default=3)
@@ -403,4 +488,5 @@ if __name__ == "__main__":
     run_selfplay(a.net, a.outdir, a.device, a.games, a.workers,
                  a.rollouts, a.temp, a.noise_alpha, a.noise_eps, a.seed,
                  a.prior_eps, a.tau_q, a.k_games, a.batch,
-                 a.sims, a.c_puct, a.leaf_batch, a.opponent, a.opponent_level)
+                 a.sims, a.c_puct, a.leaf_batch, a.opponent, a.opponent_level,
+                 a.queen_delay, a.queen_delay_soldiers, a.max_plies)
