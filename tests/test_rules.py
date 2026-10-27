@@ -255,10 +255,56 @@ def test_reroll_when_blocked():
     check(not E.can_reroll_x(st2), "utan aktive brikker er X-omkast forbode")
 
 
+def test_annihilation_beats_king_and_queen():
+    """Siste soldat fell = tapt, same om ein eig kongen og har dronninga.
+
+    Lars 2026-10-27: «If all soldiers are fallen, the game is lost to
+    annihilation, even if you control the king and have an unactivated
+    queen.» Difor kan heller ikkje stillinga «berre dronninga att» oppstå
+    i eit verkeleg parti — den sida har alt tapt.
+    """
+    pair = None
+    for t0 in range(60):
+        for t1 in range(60):
+            if E.soldier_at(0, t0 + 1) == E.soldier_at(1, t1):
+                pair = (t0, t1)
+                break
+        if pair:
+            break
+    check(pair is not None, "fann eit par der side 0 kan ta side 1 sin siste soldat")
+    assert pair is not None          # for typane sin skuld; check() garanterer det
+
+    st = E.State(first=0)
+    st.queen_mode = True
+    st.phase = "move"
+    st.turn = 0
+    for p in st.pieces:
+        if p.t == "s":
+            p.captured = True
+    s0 = E.soldiers(st, 0)[0]
+    s0.captured, s0.released, s0.at = False, True, pair[0]
+    s1 = E.soldiers(st, 1)[0]
+    s1.captured, s1.released, s1.at = False, True, pair[1]
+    E.king(st).o = 1                                   # fienden EIG kongen
+    q1 = E.queen(st, 1)
+    q1.captured, q1.released, q1.at = False, True, 20  # og har dronninga ute
+    st.dice = ["X", "_", "_"]
+    st.used = [False, True, True]
+
+    mv = next(m for m in E.legal_moves(st, 0) if m["pid"] == s0.id and m["kind"] == "mv")
+    E.apply_move(st, mv)
+    check(len(E.alive_soldiers(st, 1)) == 0, "utryddelse: siste soldat er fallen")
+    check(st.winner == 0, "utryddelse: motstandaren vinn sjølv om fienden eig kongen")
+    check(st.win_reason == "utryddelse", "utryddelse: årsaka er utryddelse, ikkje dronning")
+    check(st.phase == "over", "utryddelse: partiet er over")
+    check(not q1.captured, "utryddelse: dronninga levde framleis (ho bergar ikkje)")
+
+
 def main():
     test_x_wakes_one_piece()
     test_reroll_when_blocked()
     test_king_and_queen_follow_the_cycle()
+    test_annihilation_beats_king_and_queen()
     test_reroll_only_when_x_unusable()
     test_dice_order()
     test_forfeits_rest()
