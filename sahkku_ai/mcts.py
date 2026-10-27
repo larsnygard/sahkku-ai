@@ -114,7 +114,11 @@ def _select(root, c_puct):
         best_a, best_u = None, -1e18
         for a, p in node.P.items():
             child = node.kids.get(a)
-            if child is not None and (child.pending or child.done):
+            # Berre ventande born vert hoppa over. Eit AVGJORT born (vinnande
+            # kapsel) må halde fram å vere valbart: verdien er låst til ±1, og
+            # PUCT skal då leggje nesten alle vitjingar der. Før vart det
+            # hoppa over, so søket gjekk attende til det rolege trekket.
+            if child is not None and child.pending:
                 continue
             n = node.N.get(a, 0)
             w = node.W.get(a, 0.0)
@@ -193,6 +197,11 @@ def search(pred, st, cfg, rng, root_noise=True):
         for _ in range(todo):
             leaf = _select(root, c_puct)
             if leaf.done:
+                # Eit alt avgjort løv (t.d. vinnande kapsel) vert valt på nytt
+                # kvar sim — og må krediterast kvar gong, elles står N på 1
+                # medan resten av budsjettet renn ut i inkje, og π (som er
+                # vitjingsbasert) viser feil favoritt.
+                _backup(leaf)
                 immediate.append(leaf)
                 continue
             if leaf.P and leaf.kids and all((ch.pending or ch.done)
@@ -201,6 +210,11 @@ def search(pred, st, cfg, rng, root_noise=True):
             tv = _terminal_value(leaf.st)
             if tv is not None:
                 leaf.value, leaf.done = tv, True
+                # AVGJORT LØV MÅ FØRAST OPPOVER. Utan denne linja vart ein
+                # vinnande konge-/dronningkapsel aldri kreditert: verdien
+                # vart sett, men N/W hjå forelderen stod på 0, so søket
+                # føretrekte eit roleg trekk framfor å ta dronninga og vinne.
+                _backup(leaf)
                 immediate.append(leaf)
                 continue
             leaf.pending = True
@@ -220,6 +234,11 @@ def search(pred, st, cfg, rng, root_noise=True):
         if not pending and not immediate:
             break
 
+    if cfg.get("_debug"):
+        print("[mcts] rot:", {a: {"N": root.N.get(a, 0), "W": round(root.W.get(a, 0.0), 2),
+                                "done": (root.kids.get(a).done if root.kids.get(a) else None),
+                                "har_born": (len(root.kids.get(a).kids) if root.kids.get(a) else None)}
+                             for a in root.P}, flush=True)
     total = root.visits()
     if total == 0:
         return {a: p for a, p in root.P.items()}, root.value
