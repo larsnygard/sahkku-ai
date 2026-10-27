@@ -242,7 +242,7 @@ printf 'uci\nisready\nposition startpos\ndiceroll X 2 _\ngo\nquit\n' | node engi
 |---|---|---|---|
 | `Debug` | check | false | `info string` med verdi per trekk |
 | `Lookahead` | spin 0–12 | **4** | 1-ply verdilookahead over de k+1 beste policy-trekkene |
-| `Deep` | spin 0–4 | 0 | 2-ply: hvert kandidattrekk scores med det **verste** motstanderen kan gjøre mot oss blant hans m beste svar. Fanger «trekket ser bra ut, men han tar dronninga mi neste tur», som 1-ply ikke ser. Koster ~2× per trekk (målt 1,05 s → 1,68 s per trekk med m=2). |
+| `Deep` | spin 0–4 | 0 | 2-ply: hvert kandidattrekk scores med det **verste** motstanderen kan gjøre mot oss blant hans m beste svar. Koster ~2× per trekk (målt 1,05 s → 1,68 s med m=2). **Målt dårligere: 20 % (6–24) mot samme vekter uten Deep**, så den er av som standard — verdinettet er for svakt til å bære minimax, og pessimismen gjør spillet passivt. Beholdt som option for forsøk med sterkere verdinett. |
 
 `Lookahead` er ikke pynt: verdinettet blir trent, men policy-hodet alene bruker
 det ikke. Med `k=4` spilles de fem beste policy-trekkene på en klon av den ekte
@@ -307,6 +307,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.3** (`ail03/c3.pt`, MCTS-mål 25 sims) | 3 sykl. / 156 632 prøver | 1.441\* | **30.0 %** (9–21, n=30) · **22.5 % mot L3** (9–31, n=40) | 40.0 % (12–18) mot AIL0.2 |
 | **AIL0.4** (`ail04/c8.pt`, trena MOT klassisk L3, MCTS-mål, nye globale trekk) | 8 sykl. / 91 934 prøver | 0.772 | **27.5 % mot L3** (11–29, n=40) · 25 % som Menn / 30 % som Giera | — |
 | **AIL0.5 blokk 1** (`ail05/c6.pt`, held fram mot L3) | 6 sykl. til | 0.842 | **42.5 % mot L3** (17–23, n=40) · 30 % Menn / **55 % Giera** | — |
+| **AIL0.5** (`ail05/c12.pt`, 12 sykl. mot L3, lr 4e-4 + vindauge 3) | 12 sykl. / 219 312 prøver | **0.7705** | **50.0 % mot L3** (20–20, n=40) · 11–9 Menn / 9–11 Giera | — |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
