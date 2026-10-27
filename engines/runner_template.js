@@ -19,7 +19,7 @@ var M = {};
 var SS = (typeof globalThis !== 'undefined' ? globalThis : this).SS;
 
 // ==================== FEATURES + ACTIONS (mirrors features.py) ============
-var N_PLANES = 16, N_GLOBAL = 10;
+var N_PLANES = 16, N_GLOBAL = __N_GLOBAL__;   // fylt inn av export.py
 var REL_BASE = 0, MOVE_BASE = 180, SPEC_BASE = 180 + 8100;
 var CLASSES = ['M', 'K', 'Q', 'k'];
 var FIRST_PASS = [[], []];
@@ -79,7 +79,71 @@ function encodeState(st) {
   g[7] = (qf && qf.released) ? 1 : 0;
   g[8] = (st.dice ? st.dice.filter(function (d) { return d === 'X'; }).length : 0) / 3;
   g[9] = st.winner === null || st.winner === undefined ? 1 : (st.winner === st.turn ? 1 : -1);
+
+  // ---- kongedoktrinen + terningane (spegl av features.py) --------------
+  // NB: alt nedanfor må reknast UTAN å endre stillinga til kallaren.
+  var k = SS.king(st);
+  var mine = (k && k.o === me), theirs = (k && k.o === foe);
+  g[10] = mine ? 1 : 0;
+  g[11] = theirs ? 1 : 0;
+  if (mine) {
+    var foes = SS.aliveSoldiers(st, foe);
+    var best = 99;
+    for (var fi = 0; fi < foes.length; fi++) {
+      var fs = SS.soldierAt(foes[fi].o, foes[fi].at);
+      var d = cheb(k.at, fs);
+      if (d < best) best = d;
+    }
+    if (best < 99) g[12] = 1 - Math.min(best, 14) / 14;
+  }
+  var us = usableAndCapture(st, foe);
+  if (qm && qm.released && !qm.captured) {
+    g[13] = us.caps[qm.at] ? 1 : 0;              // dronninga er takeleg NO
+  }
+  g[14] = DICE_USE_PROB[us.mask];                 // friheit i neste kast
   return { planes: pl, glob: g };
+}
+
+function cheb(a, b) {
+  var pa = SS.pt(a), pb = SS.pt(b);
+  return Math.max(Math.abs(pa.col - pb.col), Math.abs(pa.row - pb.row));
+}
+
+// Sannsynet for at eit kast har minst éin terning sida kan nytte, gjeve
+// kva fjes ho kan nytte i det heile (bit 0 = X, bit 1 = II, bit 2 = III).
+var DICE_USE_PROB = [0.0, 0.5781, 0.5781, 0.8750, 0.5781, 0.8750, 0.8750, 0.9844];
+
+// Kva terningverdiar kan `side` nytte, og kva felt kan ho slå på no?
+// (same som _usable_mask/_capture_squares i features.py)
+function usableAndCapture(st, side) {
+  var save = { dice: st.dice ? st.dice.slice() : null,
+               used: st.used ? st.used.slice() : null,
+               phase: st.phase, turn: st.turn };
+  var mask = 0, caps = {};
+  try {
+    st.turn = side; st.phase = 'move';
+    var faces = [['X', 1], ['II', 2], ['III', 3]];
+    for (var i = 0; i < 3; i++) {
+      st.dice = [faces[i][0], '_', '_'];
+      st.used = [false, true, true];
+      var pool = SS.legalMoves(st, side);
+      for (var j = 0; j < pool.length; j++) {
+        var mv = pool[j];
+        if (mv.v === faces[i][1]) mask |= (1 << (faces[i][1] - 1));
+        var land = SS.moveDest(st, mv);
+        var on = SS.occ(st, land);
+        for (var oi = 0; oi < on.length; oi++) {
+          var q = on[oi];
+          if (q.o != null && q.o !== side && q.id !== mv.pid) {
+            caps[land] = (caps[land] || []).concat([faces[i][1]]);
+          }
+        }
+      }
+    }
+  } finally {
+    st.dice = save.dice; st.used = save.used; st.phase = save.phase; st.turn = save.turn;
+  }
+  return { mask: mask, caps: caps };
 }
 function letterOf(p) {
   return p.t === 'q' ? 'Q' : (p.t === 'k' ? 'k' : (p.o === 0 ? 'M' : 'K'));

@@ -53,6 +53,7 @@ def export(net_path, out_prefix, quant="fp32", name="SahkkuNN 1.0"):
     rules = open(os.path.join(root, "vendor", "engine.js"), encoding="utf-8").read()
     fen = open(os.path.join(root, "vendor", "fen.js"), encoding="utf-8").read()
     src = src.replace("/*§RULES§*/", rules).replace("/*§FEN§*/", fen)
+    src = src.replace("__N_GLOBAL__", str(N_GLOBAL))
     src = src.replace("__WEIGHTS_FILE__", os.path.basename(wpath))
     src = src.replace("__ENGINE_NAME__", name)
     rpath = out_prefix + ".js"

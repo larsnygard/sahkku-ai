@@ -26,7 +26,7 @@ CLASSES = ["M", "K", "Q", "k"]
 CLASS_IDX = {c: i for i, c in enumerate(CLASSES)}
 
 N_PLANES = 16   # see encode_state
-N_GLOBAL = 10   # global scalar vector
+N_GLOBAL = 15   # global scalar vector (10 opphavlege + 5 frå doktrinen/terningane)
 
 
 def sq_to_hw(i: int):
@@ -97,7 +97,97 @@ def encode_state(st: E.State):
     g[8] = (st.dice.count("X") if st.dice else 0) / 3.0
     g[9] = (1.0 if st.winner is None else
             (1.0 if st.winner == st.turn else -1.0))
+
+    # ---- kongedoktrinen og terningane (Lars 2026-10-27) ------------------
+    # g[10..12] svarar på «kongen er bufferen»: han gjev alltid eit trekk, so
+    # utan konge kan ein verte sett i tvang. Målt i AIL0.6-parti: 8 tvungne
+    # pass med konge mot 46 utan. Ingenting av dette fanst i trekka før.
+    k = E.king(st)
+    mine = (k.o == me)
+    theirs = (k.o == foe)
+    g[10] = 1.0 if mine else 0.0
+    g[11] = 1.0 if theirs else 0.0
+    if mine:
+        # avstand til næraste fiende, snudd: 1.0 = langt borte (trygg),
+        # 0.0 = rett attmed. Direkte omsetjing av «hald kongen attende».
+        foes = [E.soldier_at(foe, s.at) for s in E.soldiers(st, foe) if not s.captured]
+        if foes:
+            d = min(_cheb(k.at, f) for f in foes)
+            g[12] = 1.0 - min(d, 14) / 14.0
+    # g[13] = dronninga mi er UTLØYST og kan takast av fienden NO.
+    # «Aktivering er risikobusiness»: dette er talet som gjer risikoen synleg.
+    if qm is not None and qm.released and not qm.captured:
+        g[13] = 1.0 if _capture_squares(st, foe, 3).get(qm.at) else 0.0
+
+    # g[14] = kor sannsynleg er det at MOTSTANDAREN får eit trekk dei kan
+    # nytte i neste kast? Fyrst kva terningar dei kan nytte i det heile
+    # (noko dei ikkje kan bruke, kan dei heller ikkje spelt), so ein
+    # 8-rads tabell over terningkasta (sjå DICE_USE_PROB).
+    mask = _usable_mask(st, foe)
+    g[14] = DICE_USE_PROB[mask]
     return pl, g
+
+
+def _cheb(a, b):
+    ca, ra = E.pt(a)
+    cb, rb = E.pt(b)
+    return max(abs(ca - cb), abs(ra - rb))
+
+
+# Sannsynet for at eit kast (tre terningar, fire fjes) inneheld minst éin
+# brukbar terning, gjeve kva fjes sida kan nytte i det heile. Bit 0 = X(1),
+# bit 1 = II(2), bit 2 = III(3). Rekna ut over alle 64 ordna kasta; tabellen
+# er liten nok til å leggjast inn som konstant.
+#   0 fjes brukbare -> 0.0 (kastet er daudt uansett)
+#   1 fjes           -> 1 - (3/4)^3 = 0.5781
+#   2 fjes           -> 1 - (2/4)^3 = 0.8750
+#   3 fjes           -> 1 - (1/4)^3 = 0.9844
+DICE_USE_PROB = (0.0,      # 0 fjes
+                 0.5781, 0.5781, 0.8750,     # 1 fjes (X / II / X+II)
+                 0.5781,                    # III åleine
+                 0.8750, 0.8750,             # X+III / II+III
+                 0.9844)                    # alle tre
+
+
+def _usable_mask(st, side):
+    """Kva terningverdiar kan `side` nytte i denne stillinga? (bitmask)"""
+    mask = 0
+    save = (list(st.dice), list(st.used), st.phase, st.turn)
+    try:
+        st.turn = side
+        st.phase = "move"
+        for v, face in ((1, "X"), (2, "II"), (3, "III")):
+            st.dice = [face, "_", "_"]
+            st.used = [False, True, True]
+            for mv in E.legal_moves(st, side):
+                if mv.get("v") == v:
+                    mask |= 1 << (v - 1)
+                    break
+    finally:
+        st.dice, st.used, st.phase, st.turn = save
+    return mask
+
+
+def _capture_squares(st, side, max_v=3):
+    """Kva felt kan `side` slå på no, med terningverdi 1..max_v? {felt: [v..]}"""
+    out = {}
+    save = (list(st.dice), list(st.used), st.phase, st.turn)
+    try:
+        st.turn = side
+        st.phase = "move"
+        for v, face in ((1, "X"), (2, "II"), (3, "III")):
+            if v > max_v:
+                continue
+            st.dice = [face, "_", "_"]
+            st.used = [False, True, True]
+            for mv in E.legal_moves(st, side):
+                land = E.move_dest(st, mv)
+                if any(q.o is not None and q.o != side and q.id != mv["pid"]
+                       for q in E.occ(st, land)):
+                    out.setdefault(land, []).append(v)
+    finally:
+        st.dice, st.used, st.phase, st.turn = save
+    return out
 
 
 _PASS1 = [{}, {}]
