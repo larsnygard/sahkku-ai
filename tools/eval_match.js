@@ -27,6 +27,10 @@ const ROOT = path.join(__dirname, '..');
 const vroot = path.join(ROOT, 'vendor');
 require(path.join(vroot, 'engine.js'));
 require(path.join(vroot, 'fen.js'));
+// SPG-skrivaren frå appen (kanonisk format), valfri: set EVAL_SPG=<fil>
+let SPG = null;
+try { require(path.join(vroot, '..', '..', 'SnartSahkku', 'js', 'spg.js')); SPG = global.SPG; }
+catch (e) { try { require('/home/lars/src/SnartSahkku/js/spg.js'); SPG = global.SPG; } catch (e2) { SPG = null; } }
 const SS = global.SS;
 
 const START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-.' +
@@ -186,6 +190,19 @@ async function playGame(A, B, aSide, maxTurns) {
       if (s.over || s.turnEnded) break;
       // s.moves / s.reroll: same spelar held fram (reroll vert svara på neste runde)
     }
+  }
+  // Valfritt: skriv partiet som SPG (EVAL_SPG=<fil>) so lange parti kan
+  // granskast — 404 halvtrekk er verdt å sjå på, ikkje berre å telje.
+  const spgPath = process.env.EVAL_SPG;
+  if (spgPath && SPG) {
+    try {
+      const fs = require('fs');
+      fs.appendFileSync(spgPath, SPG.toSPG(st, {
+        event: 'eval_match: ' + A.label + ' mot ' + B.label,
+        date: new Date().toISOString().slice(0, 10),
+        menn: 'Menn — ' + engines[0].label, koner: 'Koner — ' + engines[1].label
+      }) + '\n');
+    } catch (e) { console.error('SPG-skriving feila:', e.message); }
   }
   return {
     winner: st.winner, plies, reason: st.winReason || '',

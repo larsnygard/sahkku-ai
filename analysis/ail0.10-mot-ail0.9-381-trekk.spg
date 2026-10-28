@@ -1,0 +1,584 @@
+[Event "eval_match: A mot B"]
+[Date "2026-10-28"]
+[Time "00:12:38"]
+[UTC "2026-10-28T23:12:38Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(III III III) K(II X III) -> K
+1. M: II _ III
+2. K: _ X II
+   X->A2
+   II: KA2->C2
+3. M: II X X
+   X->O2
+   X->O1
+   II: MO2->M2
+4. K: II X _
+   X->A3
+   II: KA3->B2
+5. M: X II X
+   MO1->O2
+   MO2->N2
+   II: MM2->K2
+6. K: II III II
+   III: KC2->F2
+   II: KF2->H2§
+   II: kH2->F2
+7. M: _ X II
+   MN2->M2
+   II: MM2->K2
+8. K: _ _ II
+   II: KH2->J2
+9. M: II II _
+   II: MK2->I2
+   II: MI2->G2
+10. K: III III X
+   KJ2->K2x [K2M]
+   III: kF2->I2
+   III: kI2->F2
+11. M: III X _
+   X->N1
+   III: MN1->N2
+12. K: X III _
+   kF2->G2x [G2M]
+   III: KK2->N2x [N2M]
+13. M: III II X
+   X->M1
+   III: MM1->O2
+   II: MO2->M2
+14. K: III _ X
+   KN2->O2
+   III: KO2->M1
+15. M: II III _
+   III: MM2->J2
+   II: MJ2->H2
+16. K: II II III
+   III: kG2->J2
+   II: kJ2->H2x [H2M]
+   II: kH2->J2
+17. M: II _ X
+   X->L1
+   II: ML1->N1
+18. K: III III X
+   X->B3
+   III: KB2->E2
+   III: kJ2->G2
+19. M: X X X
+   MN1->O1
+   MO1->O2
+   MO2->N2
+20. K: II III X
+   kG2->H2
+   III: kH2->K2
+   II: KE2->G2
+21. M: III III X
+   MN2->M2
+   III: MM2->J2
+   III: MJ2->G2x [G2K]
+22. K: _ _ II
+   II: kK2->I2
+23. M: II III III
+24. K: III X _
+   KB3->A3
+   III: KA3->C2
+25. M: III III III
+26. K: II _ X
+   kI2->J2
+   II: kJ2->H2
+27. M: X X II
+   MG2->F2
+   MF2->E2
+   II: ME2->C2x [C2K]
+28. K: III II III
+   III: kH2->K2
+   III: kK2->N2
+   II: kN2->O1
+29. M: _ _ III
+   III: MC2->A3
+30. K: X III X
+   KM1->L1
+   kO1->O2
+   III: kO2->M1
+31. M: X III X
+   MA3->B3
+   MB3->C3
+32. K: III II III
+   III: kM1->O2
+   III: kO2->M1
+   II: kM1->O1
+33. M: _ III II
+34. K: X _ _
+   X->C3
+35. M: III II _
+36. K: II X X
+   kO1->O2
+   kO2->O1
+   II: kO1->M1
+37. M: _ II II
+38. K: _ II _
+   II: kM1->K1
+39. M: _ II III
+40. K: II _ II
+   II: kK1->M1
+   II: kM1->K1
+41. M: _ _ III
+42. K: X _ II
+   KC3->B3
+   II: KB3->A2
+43. M: III X III
+   X->K1
+   III: MK1->N1
+   III: MN1->N2
+44. K: III II III
+45. M: X II III
+   kK1->L1x [L1K]
+   III: kL1->O1
+   II: kO1->M1
+46. K: III _ II
+47. M: _ _ III
+   III: kM1->O2
+48. K: II III X
+   KA2->B2
+   III: KB2->E2
+   II: KE2->G2
+49. M: X _ III
+   kO2->O1
+   III: kO1->L1
+50. K: X II III
+   KG2->H2
+   III: KH2->K2
+   II: KK2->M2
+51. M: II II II
+   II: kL1->N1
+   II: kN1->O2
+   II: kO2->M2x [M2K]
+52. K: II _ III
+53. M: _ II _
+   II: kM2->O2
+54. K: II III III
+55. M: _ III _
+   III: MN2->K2
+56. K: _ III X
+   X->D3
+   III: KD3->A3
+57. M: II II III
+   III: MK2->H2
+   II: kO2->M2
+   II: MH2->F2
+58. K: III III II
+   III: KA3->C2
+   III: KC2->F2x [F2M]
+   II: KF2->H2
+59. M: X X _
+   kM2->N2
+   kN2->N1
+60. K: III III _
+   III: KH2->K2
+   III: KK2->N2
+61. M: _ II III
+   III: kN1->N2x [N2K]
+   II: kN2->O1
+62. K: II _ III
+63. M: III _ II
+   III: kO1->L1
+   II: kL1->J1
+64. K: X _ II
+   X->E3
+   II: KE3->C3
+65. M: X II II
+   kJ1->K1
+   II: kK1->M1
+   II: kM1->K1
+66. K: _ _ II
+   II: KC3->A3
+67. M: III III III
+   III: kK1->N1
+   III: kN1->K1
+   III: kK1->N1
+68. K: _ II X
+   KA3->A2
+   II: KA2->C2
+69. M: III X III
+   kN1->O1
+   III: kO1->L1
+   III: kL1->O1
+70. K: III X II
+   X->F3
+   III: KC2->F2
+   II: KF2->H2
+71. M: III X _
+   kO1->O2
+   III: kO2->M1
+72. K: X _ II
+   KH2->I2
+   II: KI2->K2
+73. M: II III III
+   III: kM1->O2
+   III: kO2->M1
+   II: kM1->K1
+74. K: II X II
+   KF3->E3
+   II: KE3->C3
+   II: KC3->A3
+75. M: _ III III
+   III: kK1->N1
+   III: kN1->K1
+76. K: II II X
+   X->G3
+   II: KA3->B2
+   II: KK2->M2
+77. M: X _ III
+   kK1->K2
+   III: kK2->N2
+78. K: III III _
+   III: KB2->E2
+   III: KM2->O1
+79. M: II _ III
+   III: kN2->K2
+   II: kK2->M2
+80. K: III II X
+   KG3->F3
+   III: KF3->C3
+   II: KO1->M1
+81. M: _ II _
+   II: kM2->K2
+82. K: _ _ II
+   II: KM1->K1
+83. M: III III _
+   III: kK2->H2
+   III: kH2->E2x [E2K]
+84. K: _ III _
+   III: KC3->A2
+85. M: III III X
+   kE2->F2
+   III: kF2->I2
+   III: kI2->F2
+86. K: _ II _
+   II: KA2->C2
+87. M: _ III III
+   III: kF2->I2
+   III: kI2->F2
+88. K: III _ _
+   III: KC2->F2§
+89. M: X II _
+   X->J1
+   II: MJ1->L1
+90. K: X III II
+   KK1->J1
+   III: KF2->I2
+   II: KI2->K2
+91. M: X II _
+   ML1->M1
+   II: MM1->O1
+92. K: II II III
+   III: kF2->I2
+   II: KK2->M2
+   II: kI2->K2
+93. M: X X X
+   MO1->O2
+   MO2->N2
+   MN2->M2x [M2K]
+94. K: _ X _
+   kK2->J2
+95. M: _ III _
+   III: MM2->J2§
+96. K: II X _
+   KJ1->I1
+97. M: X _ _
+   X->I1
+98. K: III _ II
+99. M: _ _ _
+100. K: _ II II
+101. M: II _ _
+   II: MJ2->H2
+102. K: _ II X
+   X->H3
+   II: KH3->F3
+103. M: _ X III
+   X->H1
+   III: MH2->E2
+104. K: II _ II
+   II: KF3->D3
+   II: KD3->B3
+105. M: X II III
+   X->G1
+   III: kJ2->M2
+   II: MG1->I1
+106. K: X X _
+   X->I3
+   KB3->A3
+107. M: II II III
+   III: MI1->L1
+   II: MI1->K1
+   II: MH1->J1
+108. K: _ II III
+   III: KI3->F3
+   II: KA3->B2
+109. M: X X X
+   ML1->M1
+   MJ1->K1
+   X->F1
+110. K: II _ II
+   II: KF3->D3
+   II: KD3->B3
+111. M: _ III II
+   III: ME2->B2x [B2K]
+   II: MB2->A3
+112. K: X III II
+   KB3->A3x [A3M]
+   III: KA3->C2
+   II: KC2->E2
+113. M: III II III
+   III: MF1->I1
+   III: MI1->L1
+   II: kM2->K2
+114. K: X X X
+   KE2->F2
+   KF2->G2
+   KG2->H2
+115. M: _ II _
+   II: MM1->O1
+116. K: X X III
+   KH2->I2
+   KI2->J2
+   III: KJ2->M2
+117. M: X II X
+   X->E1
+   ME1->F1
+   II: kK2->M2x [M2K]
+118. K: II II _
+119. M: III II X
+   MF1->G1
+   III: MG1->J1
+   II: kM2->K2
+120. K: _ II II
+121. M: X X X
+   MJ1->K1
+   MK1->L1
+   MK1->L1
+122. K: III II _
+123. M: II II III
+   III: ML1->O1
+   II: MK1->M1
+   II: MM1->O1
+124. K: II _ _
+125. M: II X _
+   X->D1
+   II: MD1->F1
+126. K: III II III
+127. M: II _ X
+   X->C1
+   II: MF1->H1
+128. K: II X _
+   X->J3
+   II: KJ3->H3
+129. M: _ _ X
+   kK2->J2
+130. K: _ _ II
+   II: KH3->F3
+131. M: _ II III
+   III: kJ2->G2
+   II: MO1->N2
+132. K: X II II
+   X->K3
+   II: KK3->I3
+   II: KF3->D3
+133. M: X II X
+   kG2->H2
+   kH2->I2
+   II: MH1->J1
+134. K: X III III
+   KI3->H3
+   III: KD3->A3
+   III: KH3->E3
+135. M: III III _
+   III: kI2->F2
+   III: MJ1->M1
+136. K: III II X
+   KA3->A2
+   III: KE3->B3
+   II: KA2->C2
+137. M: II II III
+   III: MN2->K2
+   II: ML1->N1
+   II: MK2->I2
+138. K: II III III
+   III: KC2->F2§
+   III: kF2->C2
+   II: KF2->H2
+139. M: III _ II
+   III: MC1->F1
+   II: MF1->H1
+140. K: X II X
+   KB3->A3
+   KH2->I2x [I2M]
+   II: KA3->B2
+141. M: II II X
+   ML1->M1
+   II: MM1->O1
+   II: MH1->J1
+142. K: X X II
+   X->L3
+   KI2->J2
+   II: KL3->J3
+143. M: III III III
+   III: MJ1->M1
+   III: MO1->M2
+   III: MM2->J2x [J2K]
+144. K: X II II
+   kC2->C3
+   II: KJ3->H3
+   II: KH3->F3
+145. M: III X III
+   MJ2->I2
+   III: MO1->M2
+   III: MO1->M2
+146. K: III III _
+   III: kC3->A2
+   III: KF3->C3
+147. M: II X X
+   MN1->O1
+   MI2->H2
+   II: MH2->F2
+148. K: III X III
+   KB2->C2
+   III: KC2->F2x [F2M]
+   III: KF2->I2
+149. M: X III III
+   X->B1
+   III: MM1->O2
+   III: MB1->E1
+150. K: X II II
+   kA2->B2
+   II: KC3->A3
+   II: KI2->K2
+151. M: II II III
+   III: MM1->O2
+   II: MM2->K2x [K2K]
+   II: MK2->I2
+152. K: III III X
+   kB2->A2
+   III: kA2->C3
+   III: kC3->F3
+153. M: II III X
+   ME1->F1
+   III: MF1->I1
+   II: MI1->K1
+154. K: X X III
+   kF3->G3
+   KA3->A2
+   III: kG3->J3
+155. M: III _ III
+   III: MI2->F2
+   III: MF2->C2
+156. K: _ II III
+   III: kJ3->G3
+   II: kG3->G1
+157. M: _ _ _
+158. K: II III II
+   III: kG1->J1
+   II: kJ1->L1
+   II: KA2->C2x [C2M]
+159. M: II _ X
+   MK1->L1§
+   II: kL1->J1
+160. K: III II X
+   X->M3
+   III: KC2->F2
+   II: KF2->H2
+161. M: III X _
+   kJ1->I1
+   III: MM2->J2
+162. K: III II III
+   III: KH2->K2
+   III: KK2->N2
+   II: KN2->O1x [O1M]
+163. M: III X _
+   MJ2->I2
+   III: ML1->O1x [O1K]
+164. K: X III _
+   KM3->L3
+   III: KL3->I3
+165. M: II _ X
+   kI1->J1
+   II: MI2->G2
+166. K: X _ _
+   X->N3
+167. M: _ III III
+   III: MO1->M2
+   III: kJ1->M1
+168. K: _ III III
+   III: KN3->K3
+   III: KK3->H3
+169. M: X III _
+   kM1->L1
+   III: kL1->O1
+170. K: II III _
+   III: KH3->E3
+   II: KI3->G3
+171. M: II II III
+   III: MM2->J2
+   II: MO2->M2
+   II: MG2->E2
+172. K: _ X III
+   KE3->D3
+   III: KD3->A3
+173. M: III II II
+   III: kO1->L1
+   II: kL1->J1
+   II: MO2->M2
+174. K: _ _ III
+   III: KG3->D3
+175. M: II X III
+   MJ2->I2
+   III: kJ1->M1
+   II: ME2->C2
+176. K: II II _
+   II: KD3->B3
+   II: KB3->A2
+177. M: _ X X
+   MI2->H2
+   MH2->G2
+178. K: _ III _
+   III: KA3->C2x [C2M]
+179. M: III _ II
+   III: MM2->J2
+   II: MG2->E2
+180. K: III II _
+   III: KC2->F2
+   II: KF2->H2
+181. M: _ X _
+   MJ2->I2
+182. K: _ III _
+   III: KH2->K2
+183. M: X _ III
+   MI2->H2
+   III: MH2->E2
+184. K: III _ III
+   III: KK2->N2
+   III: KN2->N1
+185. M: _ II III
+   III: ME2->B2
+   II: ME2->C2
+186. K: II II II
+   II: KA2->C2x [C2M]
+   II: KC2->E2
+   II: KE2->G2
+187. M: _ _ _
+188. K: III X X
+   KN1->M1§
+   kM1->M2x [M2M]
+   III: KM1->J1
+189. M: X X II
+   MB2->A2
+   X->M2
+   II: QM2->K2
+190. K: III _ X
+   KG2->H2
+   III: KH2->K2x [Q]
+0-1 {dronning}
+
