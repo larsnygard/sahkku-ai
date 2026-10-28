@@ -177,24 +177,39 @@ def _victims(st, mv):
             if q.o is not None and q.o != me and q.id != mv["pid"]]
 
 
+def _square_attackable(st, sq, side):
+    """Kan `side` slå ein brikke som står på `sq`, med terning 1-3?
+
+    Billig og eksakt: vi går gjennom brikkene og sjekkar kvar dei kan lande
+    (path_for for konge/dronning, soldatane berre framover i syklusen), i
+    staden for å byggje tre fulle trekk-mengder per kandidat. Det var denne
+    kostnaden som gjorde AIL0.8-sjølvspelet 2,4x tregare enn AIL0.7.
+    """
+    for p in st.pieces:
+        if p.captured or p.o != side:
+            continue
+        if p.t == "s":
+            if not p.released:
+                continue
+            for v in (1, 2, 3):
+                if E.soldier_at(side, p.at + v) == sq and E.can_land(st, p, sq):
+                    return True
+            continue
+        for v in (1, 2, 3):
+            for d in ("R", "L", "F", "B"):
+                ok, land, _ = E.path_for(p.at, d, v)
+                if ok and land == sq and E.can_land(st, p, sq):
+                    return True
+    return False
+
+
 def _can_take_back(st, mv):
     """Kan motstandaren slå den brikka vi netto flytta, med terning 1-3?"""
     p = E.piece(st, mv["pid"])
     if p is None or p.captured:
         return True
     sq = E.soldier_at(p.o, p.at) if p.t == "s" else p.at
-    save = (list(st.dice), list(st.used), st.phase, st.turn)
-    try:
-        st.phase = "move"
-        for v, face in ((1, "X"), (2, "II"), (3, "III")):
-            st.dice = [face, "_", "_"]
-            st.used = [False, True, True]
-            for m2 in E.legal_moves(st, 1 - p.o):
-                if E.move_dest(st, m2) == sq and m2["pid"] != mv["pid"]:
-                    return True
-    finally:
-        st.dice, st.used, st.phase, st.turn = save
-    return False
+    return _square_attackable(st, sq, 1 - p.o)
 
 
 def safe_capture(st, ids, pi):
