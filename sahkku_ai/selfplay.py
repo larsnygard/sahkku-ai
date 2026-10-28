@@ -313,7 +313,16 @@ def evaluate_root(net, device, st, cfg, rng):
 
 
 def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
-    st = E.State(first=rng.randint(0, 1))
+    # Regelmodus per parti: med --nesseby-fraction 0.5 vert halvparten av
+    # partia spela med Nesseby og halvparten utan, so EITT nett lærer båe
+    # variantane og flaget g[15] faktisk blir meiningsfullt. (Berre-Nesseby
+    # data gjer nettet dårleg i vanleg sáhkku og omvendt.)
+    _nb = bool(cfg.get("nesseby", False))
+    if _nb:
+        _frac = float(cfg.get("nesseby_fraction", 1.0))
+        if _frac < 1.0:
+            _nb = rng.random() < _frac
+    st = E.State(first=rng.randint(0, 1), nesseby=_nb)
     _op = E.opening_roll(st, rng.random)
     qd_side = qd_side_for_game(cfg, rng)
     qd_min = int(cfg.get("queen_delay_soldiers", 2))
@@ -523,7 +532,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  rollouts=6, temp=1.0, noise_alpha=0.3, noise_eps=0.25,
                  seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64,
                  sims=0, c_puct=1.6, leaf_batch=8, opponent="", opponent_level=3,
-                 queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES):
+                 queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES,
+                 nesseby=False, nesseby_fraction=1.0):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -535,7 +545,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "opponent": opponent, "opponent_level": opponent_level,
            "queen_delay": queen_delay,
            "queen_delay_soldiers": queen_delay_soldiers,
-           "max_plies": max_plies}
+           "max_plies": max_plies, "nesseby": bool(nesseby),
+           "nesseby_fraction": float(nesseby_fraction)}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker

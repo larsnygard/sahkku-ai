@@ -119,7 +119,9 @@ def run_loop(args):
                             opponent_level=args.train_opponent_level,
                             queen_delay=args.queen_delay,
                             queen_delay_soldiers=args.queen_delay_soldiers,
-                            max_plies=args.max_plies)
+                            max_plies=args.max_plies,
+                            nesseby=args.nesseby,
+                            nesseby_fraction=args.nesseby_fraction)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -204,6 +206,12 @@ def main():
     ap.add_argument("--queen-delay-soldiers", type=int, default=2)
     ap.add_argument("--max-plies", type=int, default=300,
                     help="tak på ply per parti i datagenereringa")
+    ap.add_argument("--nesseby", action="store_true",
+                    help="sjølvspel med Nesseby-regelen (kongen kan ikkje kaprast ved "
+                         "landing før ein soldat har nådd motstandarens heimrad)")
+    ap.add_argument("--nesseby-fraction", type=float, default=1.0,
+                    help="del av partia som spelast med Nesseby når --nesseby er på "
+                         "(0.5 = blanda; eitt nett lærer då båe regelsetta)")
     ap.add_argument("--max-seconds", type=int, default=0,
                     help="stopp etter N sekund (0 = berre --cycles). Sjekka mellom syklusar.")
     ap.add_argument("--steps", type=int, default=1500)

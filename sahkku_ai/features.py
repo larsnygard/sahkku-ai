@@ -26,7 +26,7 @@ CLASSES = ["M", "K", "Q", "k"]
 CLASS_IDX = {c: i for i, c in enumerate(CLASSES)}
 
 N_PLANES = 16   # see encode_state
-N_GLOBAL = 15   # global scalar vector (10 opphavlege + 5 frå doktrinen/terningane)
+N_GLOBAL = 16   # global scalar vector (10 opphavlege + 5 doktrine/terningar + regelmodus)
 
 
 def sq_to_hw(i: int):
@@ -126,6 +126,11 @@ def encode_state(st: E.State):
     # 8-rads tabell over terningkasta (sjå DICE_USE_PROB).
     mask = _usable_mask(st, foe)
     g[14] = DICE_USE_PROB[mask]
+
+    # g[15] = regelmodus: 1.0 når Nesseby er på. Utan dette trekket kan eitt
+    # nett ikkje vite kva reglar det spelar etter, og då måtte vi hatt eitt
+    # nett per regelvariant i staden for eitt som kan veljast i menyen.
+    g[15] = 1.0 if getattr(st, "nesseby", False) else 0.0
     return pl, g
 
 

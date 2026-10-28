@@ -169,7 +169,7 @@ class Piece:
 class State:
     """Full game state; field-for-field mirror of the JS state object."""
 
-    def __init__(self, first=0, queen_mode=True):
+    def __init__(self, first=0, queen_mode=True, nesseby=False):
         pieces = []
         pid = 0
         for pl in (0, 1):
@@ -187,6 +187,10 @@ class State:
         self.dice_by = None
         self.winner = None
         self.win_reason = ""
+        # Nesseby (valfri regel, spegl av js/engine.js): kongen kan ikkje
+        # kaprast ved landing før nokon har nådd motstandarens heimrad; den
+        # fyrste soldaten som når dit kaprar han.
+        self.nesseby = bool(nesseby)
         self.last_move = None
         self.kings = 0
         self.kills = [0, 0]
@@ -196,6 +200,11 @@ class State:
 
     def clone(self) -> "State":
         return deserialize(serialize(self))
+
+
+def E_row(i: int) -> int:
+    """Rad for eit felt (0 = menn heime, 2 = koner heime)."""
+    return pt(i)[1]
 
 
 def occ(st: State, i: int):
@@ -286,6 +295,8 @@ def can_land(st: State, p: Piece, land: int) -> bool:
             if q.t == "k":
                 if q.o == p.o:
                     return False
+                if st.nesseby and q.o is None:
+                    return False          # Nesseby: kongen er ikkje aktivert enno
                 continue
             if q.t == "q":
                 if q.o != p.o:
@@ -313,6 +324,8 @@ def can_land(st: State, p: Piece, land: int) -> bool:
             if q.t == "q" and q.o == p.o:
                 return False
             if q.t == "k":
+                if st.nesseby and q.o is None:
+                    return False          # Nesseby: kongen er ikkje aktivert enno
                 continue
             if is_home(q):
                 return False
@@ -611,7 +624,18 @@ def apply_move(st: State, mv: dict):
             ev.append({"type": "kill", "pid": q.id, "at": land, "by": me})
             st.winner = me
             st.win_reason = "dronning"
-    # win: annihilation (Lágesvuotna: only queen-take and annihilation)
+    # Nesseby: fyrste soldat som når MOTSTANDARENS heimrad kaprar kongen
+    # (kongen har då ingen eigar enno — landingskapring er stengd med regelen på).
+    if st.nesseby and p.t == "s":
+        kk = king(st)
+        if kk is not None and kk.o is None:
+            enemy_home = 2 if me == 0 else 0      # menn -> rad 3, koner -> rad 1
+            if E_row(land) == enemy_home:
+                kk.o = me
+                st.kings += 1
+                ev.append({"type": "king", "by": me, "at": land, "nesseby": True})
+
+    # win: annihilation (Lägesvuotna: only queen-take and annihilation)
     foe = 1 - me
     if st.winner is None:
         if not alive_soldiers(st, foe):
@@ -662,8 +686,8 @@ def serialize(st: State) -> str:
     return json.dumps({
         "turn": st.turn, "phase": st.phase, "dice": st.dice, "used": st.used,
         "diceBy": st.dice_by, "winner": st.winner, "winReason": st.win_reason,
-        "queenMode": st.queen_mode, "kings": st.kings, "kills": st.kills,
-        "moves": st.moves,
+        "queenMode": st.queen_mode, "nesseby": st.nesseby,
+        "kings": st.kings, "kills": st.kills, "moves": st.moves,
         "pieces": [{"id": p.id, "t": p.t, "o": p.o, "seq": p.seq, "at": p.at,
                     "released": bool(p.released), "captured": bool(p.captured)}
                    for p in st.pieces],
@@ -685,6 +709,7 @@ def deserialize(s) -> State:
     st.winner = o["winner"]
     st.win_reason = o["winReason"]
     st.queen_mode = o["queenMode"]
+    st.nesseby = bool(o.get("nesseby", False))
     st.last_move = None
     st.kings = o["kings"]
     st.kills = o["kills"]
