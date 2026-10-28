@@ -51,9 +51,16 @@ def newest_checkpoint():
     return max(cands, key=os.path.getmtime)
 
 
-def main(net_path=None, n=25):
+probe_path = None
+
+
+def main(net_path=None, n=25, js_path=None):
     net_path = net_path or exported_source() or newest_checkpoint()
     print(f"nett: {net_path}")
+    if js_path:
+        global probe_path
+        probe_path = js_path
+        print(f"js:   {js_path}")
     net = Net.load(net_path, map_location="cpu")
     torch.set_grad_enabled(True)
     rnd = random.Random(11)
@@ -90,7 +97,7 @@ def main(net_path=None, n=25):
                    "policy": pol[0].detach().numpy()[ids],
                    "value": val[0].item()})
 
-    probe = os.path.join(os.path.dirname(__file__), "..", "engines", "sahkku-nn.js")
+    probe = probe_path or os.path.join(os.path.dirname(__file__), "..", "engines", "sahkku-nn.js")
     payload = json.dumps([{"fen": f} for f in fens])
     r = subprocess.run(["node", probe, "features-test"], input=payload.encode(),
                        capture_output=True, timeout=120)
@@ -131,5 +138,7 @@ if __name__ == "__main__":
     ap.add_argument("net", nargs="?", default=None,
                     help="checkpoint .pt (standard: nyaste under checkpoints/)")
     ap.add_argument("-n", type=int, default=25, help="talet på posisjonar")
+    ap.add_argument("--js", default=None,
+                    help="den eksporterte .js-fila som høyrer til .pt-en (standard: engines/sahkku-nn.js)")
     a = ap.parse_args()
-    main(a.net, a.n)
+    main(a.net, a.n, a.js)
