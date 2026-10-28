@@ -98,6 +98,16 @@ def read_log(path):
     return st
 
 
+def started_at(pid, fallback):
+    """Når byrja prosessen? /proc/<pid> har oppstartstida si som mtime."""
+    if pid:
+        try:
+            return os.path.getmtime(f"/proc/{pid}")
+        except OSError:
+            pass
+    return fallback
+
+
 def samples_done(run):
     n = 0
     for p in glob.glob(os.path.join(ROOT, "runs", run, "cycle*", "*.npz")):
@@ -130,7 +140,7 @@ def report(name, cycles_total=None, watch=False):
     done_now = sum(g for g, _ in st["workers"].values())
     if st["cycles_done"] >= cur:            # mellom syklusar
         done_now = gpc
-    elapsed = time.time() - st["t_first"]
+    elapsed = time.time() - started_at(pid, st["t_first"])
     cycles_done = st["cycles_done"]
 
     if st["finished"]:
@@ -155,7 +165,7 @@ def report(name, cycles_total=None, watch=False):
           f" ({(100.0*done_now/gpc if gpc else 0):4.1f} %)"
           f" · parti totalt {cycles_done*gpc + done_now}/{cycles_total*gpc}")
     note = "" if st["workers"] else "  (ingen arbeidar har rapportert enno — fyrste linje kjem etter éin kamp)"
-    print(f"  køyrt {elapsed/3600:.2f} t{eta} · prøver på disk {samples_done(run)}"
+    print(f"  køyrt {elapsed/60:.0f} min{eta} · prøver på disk {samples_done(run)}"
           f" · arbeidarar {len(st['workers'])}{note}")
     return frac
 
