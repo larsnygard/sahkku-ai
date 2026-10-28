@@ -6,6 +6,8 @@
 #   ./badass-trainer.sh --games 600     # fleire parti per syklus
 #   ./badass-trainer.sh --run ail11 --init engines/ail10-nn.pt
 #   ./badass-trainer.sh --dry           # vis berre kva som ville køyrt
+#   ./badass-trainer.sh --nesseby       # blanda vanleg + Nesseby (0.5 av partia)
+#   ./badass-trainer.sh --nesseby --nesseby-fraction 0.3   # 30 % Nesseby
 #
 # Skriptet finn sjølv ut av:
 #   * fysiske kjernar (arbeidarar = kjernar, ikkje trådar)
@@ -30,6 +32,8 @@ WINDOW="2"
 SEED="81"
 MAXPLIES="2500"
 OUT=""
+NESSBY="0"
+NBFRAC=""
 DRY="0"
 
 die() { printf '\033[31mFEIL:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -48,6 +52,8 @@ while [ $# -gt 0 ]; do
     --leaf-batch) LEAFBATCH="$2"; shift 2 ;;
     --seed)       SEED="$2"; shift 2 ;;
     --out)        OUT="$2"; shift 2 ;;
+    --nesseby)    NESSBY="1"; shift ;;
+    --nesseby-fraction) NBFRAC="$2"; shift 2 ;;
     --dry)        DRY="1"; shift ;;
     -h|--help)    sed -n '2,20p' "$0"; exit 0 ;;
     *)            die "ukjent val «$1» (sjå --help)" ;;
@@ -62,6 +68,34 @@ done
 PY=".venv/bin/python3"
 $PY -c 'import torch, numpy' 2>/dev/null || die "torch/numpy manglar i .venv"
 [ -f "$INIT" ] || die "finn ikkje startvekta «$INIT» (--init)"
+
+# Startvekta må ha same tal globale trekk som features.py. Er ho smalare
+# (t.d. 15 då koden no vil ha 16), utvidar vi henne med nullkolonnar:
+# nettet reknar då nøyaktig som før, men kan lære dei nye trekka.
+WANT_G=$($PY -c 'from sahkku_ai.features import N_GLOBAL; print(N_GLOBAL)' 2>/dev/null || echo "?")
+HAVE_G=$($PY - <<EOF
+import torch
+ck = torch.load("$INIT", map_location="cpu", weights_only=False)
+print(ck["state"]["pol_fc.weight"].shape[1] - 360)
+EOF
+)
+if [ "$HAVE_G" != "$WANT_G" ]; then
+  if [ "$HAVE_G" -lt "$WANT_G" ] 2>/dev/null; then
+    # Legg den utvida vekta VED sida av kjelda (ikkje i checkpoints/ rot):
+    # elles kolliderer c3-g16.pt frå to ulike køyringar.
+    case "$INIT" in
+      checkpoints/*/*) WIDE="${INIT%.pt}-g${WANT_G}.pt" ;;
+      *)               WIDE="checkpoints/$(basename "${INIT%.pt}")-g${WANT_G}.pt" ;;
+    esac
+    if [ ! -f "$WIDE" ]; then
+      say "startvekta har ${HAVE_G} globale trekk, koden vil ha ${WANT_G} → utvidar til $WIDE"
+      $PY tools/expand_net.py "$INIT" "$WIDE" >/dev/null || die "utviding feila"
+    fi
+    INIT="$WIDE"
+  else
+    die "startvekta har ${HAVE_G} globale trekk, men koden vil ha ${WANT_G} (nyare sjekkpunkt? bruk --init)"
+  fi
+fi
 
 # ---- maskin -------------------------------------------------------------
 THREADS=$(nproc)
@@ -109,6 +143,12 @@ RAM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo)
 say "maskin:  $CORES fysiske kjernar / $THREADS trådar, ${RAM_GB} GB RAM"
 if [ "$DEVICE" = "cuda" ]; then say "gpu:     ${GPU}"; else say "gpu:     ingen (CPU)"; fi
 say "køyring: $RUN frå $INIT"
+if [ "$NESSBY" = "1" ]; then
+  [ -n "$NBFRAC" ] || NBFRAC="0.5"
+  say "reglar:   vanleg sáhkku + Nesseby (${NBFRAC} av partia) — eitt nett, flaget g[15] skil dei"
+else
+  say "reglar:   vanleg sáhkku (Nesseby av)"
+fi
 say "plan:    ${HOURS} t · ${GAMES} parti/syklus · ${WORKERS} arbeidarar · ${SIMS} sims · $DEVICE"
 
 # Maskinvaretilpassing: minne til 8 arbeidarar er ~1-2 GB; 64 GB er rikeleg.
@@ -156,6 +196,10 @@ CMD=(
   --log-every 300 --save-every 450 --eval-games 0
   --out "$OUT"
 )
+if [ "$NESSBY" = "1" ]; then
+  [ -n "$NBFRAC" ] || NBFRAC="0.5"
+  CMD+=(--nesseby --nesseby-fraction "$NBFRAC")
+fi
 
 if [ "$DRY" = "1" ]; then
   printf '\n%s\n' "${CMD[*]}"
