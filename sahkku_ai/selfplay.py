@@ -160,6 +160,68 @@ def filter_qd(st, ids, side, min_soldiers):
     return keep or ids                   # fallback: heller vekkje enn å stå fast
 
 
+# ---------- materialklausa i sjølvspel ---------------------------------
+# Verdhovudet undervurderer gratisslag (målt: eit gratis soldatkast vart
+# vurdert 0,08 dårlegare enn eit roleg dronningtrekk, på alle søkedjupner).
+# Policy-måla kjem frå søket, so når søket aldri tek slaget, lærer nettet
+# aldri at slaget er bra. Difor let vi sjølvspelet spele trygge slag når dei
+# er i nærleiken av det beste trekket — då inneheld måla slag, og verdihovudet
+# får sjå at slike game faktisk vinn.
+CAP_RATIO = 0.5          # trygt slag med minst denne delen av beste π vert spelt
+
+
+def _victims(st, mv):
+    land = E.move_dest(st, mv)
+    me = st.turn
+    return [q for q in E.occ(st, land)
+            if q.o is not None and q.o != me and q.id != mv["pid"]]
+
+
+def _can_take_back(st, mv):
+    """Kan motstandaren slå den brikka vi netto flytta, med terning 1-3?"""
+    p = E.piece(st, mv["pid"])
+    if p is None or p.captured:
+        return True
+    sq = E.soldier_at(p.o, p.at) if p.t == "s" else p.at
+    save = (list(st.dice), list(st.used), st.phase, st.turn)
+    try:
+        st.phase = "move"
+        for v, face in ((1, "X"), (2, "II"), (3, "III")):
+            st.dice = [face, "_", "_"]
+            st.used = [False, True, True]
+            for m2 in E.legal_moves(st, 1 - p.o):
+                if E.move_dest(st, m2) == sq and m2["pid"] != mv["pid"]:
+                    return True
+    finally:
+        st.dice, st.used, st.phase, st.turn = save
+    return False
+
+
+def safe_capture(st, ids, pi):
+    """Trygt slag med høgast π, om det er minst CAP_RATIO av beste π."""
+    if not ids:
+        return None
+    best_a = max(pi, key=pi.get)
+    best_p = pi.get(best_a, 0.0)
+    cand = None
+    for a, mv in ids:
+        if mv.get("kind") in ("pass", "reroll"):
+            continue
+        if not _victims(st, mv):
+            continue
+        probe = st.clone()
+        E.apply_move(probe, mv)
+        if _can_take_back(probe, mv):
+            continue
+        if a not in pi:
+            continue
+        if cand is None or pi[a] > pi[cand]:
+            cand = a
+    if cand is not None and pi.get(cand, 0.0) >= CAP_RATIO * best_p:
+        return cand
+    return None
+
+
 def dirichlet(rng, alpha, k):
     gs = [rng.gammavariate(alpha, 1.0) for _ in range(k)]
     s = sum(gs) + 1e-12
@@ -293,6 +355,11 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             outcome_idx.append((len(samples_out) - 1, st.turn))
         # Play the outcome-weighted best action (π), not the raw prior.
         best = max(legal, key=lambda a: pi[a])
+        # Materialklausa: eit trygt slag som er nær nok beste trekk vert spelt,
+        # so policy-måla inneheld slag (sjå safe_capture over).
+        _sc = safe_capture(st, ids, pi)
+        if _sc is not None:
+            best = _sc
         # Tel brot på handikapet: skal vere 0 utanom fallbacken (der ho må
         # vekkje for ikkje å stå fast). Eit tal i treningsloggen er betre
         # prov enn at filteret «ser rett ut».
@@ -419,7 +486,7 @@ def worker(args):
             w = play_selfplay_game(net, device, cfg, rng, samples, pred)
         if w is not None:
             wins[w] += 1
-        if (g + 1) % 5 == 0:
+        if (g + 1) % int(cfg.get("report_every", 1)) == 0:
             el = max(1e-9, time.time() - t0)
             print(f"[w{wid}] {g+1}/{cfg['games_per_worker']} parti, "
                   f"{len(samples)} prøver, {el:.0f}s "

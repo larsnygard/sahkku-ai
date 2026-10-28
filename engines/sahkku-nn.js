@@ -1083,6 +1083,7 @@ var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
 var DEEP = 0;            // 0 = av; m > 0 = 2-ply: motstandaren sine m beste svar vert rekna med
+var CAP_MARGIN = 0.12;   // trygt slag innanfor denne verdimarginen av beste trekk vert valt
 var DEC = { X: 'X', '2': 'II', '3': 'III', '_': '_' };  // wire-faces -> interne fjes (som i ref)
 
 function encode(st_, mv) {
@@ -1162,6 +1163,32 @@ function valueOf(st_) {
 // barnestillinga vert verdsett av verdinettet (med forteikn for kven som
 // trekker). Politikk-hovudet er trena på utfallsvekta mål, men er svakt åleine;
 // verdinettet ber informasjonen som ikkje hamnar i argument-maks.
+// Kan motstandaren slå den brikka vi netto flytta, med ein av terningverdiane
+// 1-3? (Bruka berre i materialsklausa; billig: éin trekk-generering per verdi.)
+function opponentCanTakeBack(ch, mv) {
+  var p = SS.piece(ch, mv.pid);
+  if (!p || p.captured) return true;
+  var sq = p.t === 's' ? SS.soldierAt(p.o, p.at) : p.at;
+  var save = { dice: ch.dice ? ch.dice.slice() : null,
+               used: ch.used ? ch.used.slice() : null, phase: ch.phase, turn: ch.turn };
+  var taken = false;
+  try {
+    ch.phase = 'move';
+    var faces = [['X', 1], ['II', 2], ['III', 3]];
+    for (var i = 0; i < 3 && !taken; i++) {
+      ch.dice = [faces[i][0], '_', '_'];
+      ch.used = [false, true, true];
+      var pool = SS.legalMoves(ch, 1 - p.o);        // p.o = sida som netto flytta
+      for (var j = 0; j < pool.length; j++) {
+        if (SS.moveDest(ch, pool[j]) === sq && pool[j].pid !== mv.pid) { taken = true; break; }
+      }
+    }
+  } finally {
+    ch.dice = save.dice; ch.used = save.used; ch.phase = save.phase; ch.turn = save.turn;
+  }
+  return taken;
+}
+
 function childValue(ch, rootTurn) {
   if (ch.winner !== null && ch.winner !== undefined) return ch.winner === rootTurn ? 1 : -1;
   var v = valueOf(ch);
@@ -1228,6 +1255,13 @@ function pick(st_) {
       if (kill && !inCand[real[ri][0]]) { cand.push(real[ri]); inCand[real[ri][0]] = 1; }
     }
     var bestV = -Infinity, bestC = cand[0][0];
+    // MATERIALSKLAUSE (quiescence-light). Verdhovudet er eit tilnærming: målt
+    // på eit verkeleg parti undervurderte det eit GRATIS slag med 0,08 (nettet
+    // meinte dronninga stod dårleg på E2, men ho overlevde 27 trekk i utspel
+    // og gav eit soldatkast). Materiale er konkret, verdiestimatet er ikkje:
+    // er eit trygt slag (ingen motslag) innanfor CAP_MARGIN av beste trekk,
+    // vel vi slaget.
+    var bestCapV = -Infinity, bestCapA = -1;
     for (var c = 0; c < cand.length; c++) {
       var tok = encode(st_, cand[c][1]);
       var ch = SS.deserialize(SS.serialize(st_));
@@ -1238,6 +1272,15 @@ function pick(st_) {
         ? deepScore(ch, st_.turn, DEEP)
         : childValue(ch, st_.turn);
       if (cv > bestV) { bestV = cv; bestC = cand[c][0]; }
+      // trygt slag?  tok noko, og kan motstandaren ikkje ta tilbake?
+      if (CAP_MARGIN > 0 && ch.winner == null &&
+          ch.kills[st_.turn] > st_.kills[st_.turn] &&
+          !opponentCanTakeBack(ch, mv2)) {
+        if (cv > bestCapV) { bestCapV = cv; bestCapA = cand[c][0]; }
+      }
+    }
+    if (bestCapA >= 0 && bestCapV >= bestV - CAP_MARGIN) {
+      return { aid: bestCapA, value: bestCapV };
     }
     if (bestV > -Infinity) return { aid: bestC, value: bestV };
   }
@@ -1277,6 +1320,7 @@ M.onLine = function (line) {
       out('option name Debug type check default false');
       out('option name Lookahead type spin default 4 min 0 max 12');
       out('option name Deep type spin default 0 min 0 max 4');
+      out('option name CapMargin type string default 0.12');
       out('uciok');
     } else if (cmd === 'isready') {
       out('readyok');
@@ -1291,6 +1335,10 @@ M.onLine = function (line) {
         else if (onm === 'lookahead') {
           var n = parseInt(oval, 10);
           LA = isNaN(n) ? 4 : Math.max(0, Math.min(12, n));
+        }
+        else if (onm === 'capmargin') {
+          var cm = parseFloat(oval);
+          CAP_MARGIN = isNaN(cm) ? 0.12 : Math.max(0, Math.min(1, cm));
         }
         else if (onm === 'deep') {
           var d = parseInt(oval, 10);
