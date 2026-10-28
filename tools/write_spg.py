@@ -1,19 +1,24 @@
-"""Skriv eit oppteke parti (selfplay-opptak) som SPG.
+"""Skriv eit oppteke parti (frå recorder) som SPG — og lat andre skript bruke han.
 
 Formatet er det same som js/spg.js lagar (SPG-V1): tags, opningslinje, så éi
 linje per kast med trekka under. Kapteiningar («x [..]», «§») er utelatne —
-dei er valfrie i notasjonen, og parsaaren i sahkku_ai/spg.py godtek linjer
-utan dei. Det som må stemme er (brikkebokstav, frå, til) + terningverdi.
+dei er valfrie i notasjonen, og parsaren i sahkku_ai/spg.py godtek linjer utan
+dei. Det som må stemme er (brikkebokstav, frå, til) + terningverdi.
 
-Køyr:  .venv/bin/python tools/write_spg.py <opptak.json> <ut.spg>
+Bruk som modul:
+    from tools.write_spg import write_spg
+    info = write_spg(rec, "parti.spg", {"event": "…", "menn": "…", "koner": "…"})
+
+Frå kommandolinja:
+    .venv/bin/python tools/write_spg.py <opptak.json> <ut.spg> [--event «…»]
 """
 import json
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, "/home/lars/src/sahkku-ai")
 from sahkku_ai import engine as E
-
-DICE = {"X": "X", "II": "II", "III": "III", "_": "_"}
+from sahkku_ai import fen as FEN
 
 
 def letter(p):
@@ -39,73 +44,94 @@ def move_line(st, mv):
     return "   " + pre + letter(p) + sq(frm) + "->" + sq(to)
 
 
-def main():
-    src, dst = sys.argv[1], sys.argv[2]
-    g = json.load(open(src))
-    rec = g["record"]
+def write_spg(rec, dst, meta=None):
+    """Skriv opptaket `rec` som SPG til `dst`. Returnerer eit samandrag.
 
-    # spel partiet opp att i Python for å ha ein state å lese brikker/felt frå
-    st = E.State(first=rec["first"])
+    Partiet vert spela opp att undervegs (trekka må tolkast mot stillinga),
+    so Resultatet kan først skrivast ETTER oppspelinga — den gamle utgåva
+    skreiv «*» i alle filer fordi ho las vinnaren før spelet var spela.
+    """
+    meta = meta or {}
+    now = datetime.now(timezone.utc)
+    first = rec["first"]
+
+    st = E.State(first=first)
     st.queen_mode = True
     st.phase = "roll"
-    st.turn = rec["first"]
+    st.turn = first
 
-    out = []
-    out.append('[Event "AIL0.6 — langt uavgjort parti (sein dronning, side %s)"]'
-               % ("Menn" if rec.get("qd_side") == 0 else "Koner"))
-    out.append('[Date "2026-10-27"]')
-    out.append('[Time "12:00:00"]')
-    out.append('[UTC "2026-10-27T12:00:00Z"]')
-    out.append('[Menn "%s"]' % ("AIL0.5 (sein dronning)" if rec.get("qd_side") == 0 else "AIL0.5"))
-    out.append('[Koner "%s"]' % ("AIL0.5 (sein dronning)" if rec.get("qd_side") == 1 else "AIL0.5"))
-    out.append('[Result "%s"]' % ("1-0" if st.winner == 0 else ("0-1" if st.winner == 1 else "*")))
-    out.append("SPG-V1")
-    out.append("")
-
+    body, ply_no, applied = [], 0, 0
     o = rec["opening"][0]
     x = lambda d: sum(1 for v in d if v == "X")
-    out.append("1. open: M(%s) K(%s) -> %s" % (
-        " ".join(o["p0"]), " ".join(o["p1"]),
-        "M" if x(o["p0"]) > x(o["p1"]) else "K"))
+    body.append("1. open: M(%s) K(%s) -> %s" % (
+        " ".join(o["p0"]), " ".join(o["p1"]), "M" if x(o["p0"]) > x(o["p1"]) else "K"))
 
-    # Sida i kvar ply er gjeven av vekslinga: kvart kast startar ein ny tur,
-    # so ply 0 er opningssida, ply 1 den andre, ply 2 den fyrste att, osb.
-    # (Verifisert mot opptaket: kvar ply sine trekk høyrer til nøyaktig éi side.)
-    first = rec["first"]
-    ply_no = 0
-    applied = 0
     for i, ply in enumerate(rec["plies"]):
         side_i = first if i % 2 == 0 else 1 - first
         side = "M" if side_i == 0 else "K"
         for ix, dice in enumerate(ply["dice"]):
             ply_no += 1
-            out.append("%d. %s%s: %s" % (ply_no, side, "" if ix == 0 else " (omkast #%d)" % ix,
-                                         " ".join(dice)))
+            body.append("%d. %s%s: %s" % (ply_no, side,
+                                          "" if ix == 0 else " (omkast #%d)" % ix,
+                                          " ".join(dice)))
             if ix > 0:
-                out.append("   X!")
-        # set terningane slik at trekka kan lesast ut
+                body.append("   X!")
         st.turn = side_i
         st.dice = list(ply["dice"][-1])
         st.used = [d == "_" for d in st.dice]
         st.phase = "move"
         for mv in ply["moves"]:
-            out.append(move_line(st, mv))
+            body.append(move_line(st, mv))
             E.apply_move(st, mv)
             applied += 1
-        # turen er avslutta av trekka sjølv (terningane brukte) — elles: pass.
-        # Berre ÉIN gong: før kalla vi pass_remaining på toppen av ein tur som
-        # alt var avslutta, og då vart turen snudd to gonger (og sidene bytte).
+        # Turen er avslutta av trekka sjølv (terningane brukte) — elles pass.
+        # Berre ÉIN gong: å leggje pass på toppen av ein avslutta tur snur
+        # turen to gonger og byter sidene.
         if st.phase == "move":
             E.pass_remaining(st)
         if st.phase == "over":
             break
 
-    out.append("")
-    text = "\n".join(out)
-    open(dst, "w").write(text)
-    print(json.dumps({"fil": dst, "ply_linjer": ply_no, "trekk": applied,
-                      "slutt_fen": __import__("sahkku_ai.fen", fromlist=["x"]).to_fen(st),
-                      "vinnar": st.winner}, ensure_ascii=False))
+    result = "1-0" if st.winner == 0 else ("0-1" if st.winner == 1 else "*")
+    head = [
+        '[Event "%s"]' % meta.get("event", "Sáhkku-parti"),
+        '[Date "%s"]' % meta.get("date", now.strftime("%Y-%m-%d")),
+        '[Time "%s"]' % meta.get("time", now.strftime("%H:%M:%S")),
+        '[UTC "%s"]' % meta.get("utc", now.strftime("%Y-%m-%dT%H:%M:%SZ")),
+        '[Menn "%s"]' % meta.get("menn", "Olbmát"),
+        '[Koner "%s"]' % meta.get("koner", "Gálgut"),
+        '[Result "%s"]' % meta.get("result", result),
+    ]
+    if st.win_reason:
+        head.append('[Termination "%s"]' % st.win_reason)
+    head.append("SPG-V1")
+    head.append("")
+    if meta.get("comment"):
+        head.append("{%s}" % meta["comment"])
+        head.append("")
+
+    # Sluttlinje på same form som js/spg.js: «0-1 {dronning}» — ho er det
+    # parsaren les resultatet og årsaka frå, so ho må med for at fila skal
+    # vere lesbar for båe skrivarane.
+    if st.winner is not None:
+        body.append("%s {%s}" % (result, st.win_reason or ""))
+
+    open(dst, "w").write("\n".join(head + body) + "\n")
+    return {"fil": dst, "ply_linjer": ply_no, "trekk": applied, "resultat": result,
+            "slutt_fen": FEN.to_fen(st), "vinnar": st.winner}
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if len(args) < 2:
+        raise SystemExit("bruk: write_spg.py <opptak.json> <ut.spg> [--event «…»]")
+    src, dst = args[0], args[1]
+    meta = {}
+    for flag, key in (("--event", "event"), ("--menn", "menn"), ("--koner", "koner")):
+        if flag in sys.argv and sys.argv.index(flag) + 1 < len(sys.argv):
+            meta[key] = sys.argv[sys.argv.index(flag) + 1]
+    rec = json.load(open(src))["record"]
+    print(json.dumps(write_spg(rec, dst, meta), ensure_ascii=False))
 
 
 if __name__ == "__main__":
