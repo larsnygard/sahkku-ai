@@ -20,6 +20,7 @@ import torch.multiprocessing as mp
 
 from . import engine as E
 from . import features as FT
+from .features import _square_attackable
 from .model import Net
 from .data import save_shard
 
@@ -177,7 +178,7 @@ def _victims(st, mv):
             if q.o is not None and q.o != me and q.id != mv["pid"]]
 
 
-def _square_attackable(st, sq, side):
+def _square_attackable_unused(st, sq, side):
     """Kan `side` slå ein brikke som står på `sq`, med terning 1-3?
 
     Billig og eksakt: vi går gjennom brikkene og sjekkar kvar dei kan lande

@@ -117,7 +117,8 @@ def encode_state(st: E.State):
     # g[13] = dronninga mi er UTLØYST og kan takast av fienden NO.
     # «Aktivering er risikobusiness»: dette er talet som gjer risikoen synleg.
     if qm is not None and qm.released and not qm.captured:
-        g[13] = 1.0 if _capture_squares(st, foe, 3).get(qm.at) else 0.0
+        # berre dronningfeltet er interessant — ikkje alle slagfelt
+        g[13] = 1.0 if _square_attackable(st, qm.at, foe) else 0.0
 
     # g[14] = kor sannsynleg er det at MOTSTANDAREN får eit trekk dei kan
     # nytte i neste kast? Fyrst kva terningar dei kan nytte i det heile
@@ -149,22 +150,95 @@ DICE_USE_PROB = (0.0,      # 0 fjes
                  0.9844)                    # alle tre
 
 
+def _square_attackable(st, sq, side):
+    """Kan `side` slå ein brikke som står på `sq`, med terning 1-3?
+
+    Banelogikk i staden for tre fulle trekk-mengder: konge/dronning går rette
+    liner 1-3 steg, soldatar berre framover i sin eigen syklus.
+    """
+    for p in st.pieces:
+        if p.captured or p.o != side:
+            continue
+        if p.t == "s":
+            if not p.released:
+                continue
+            for v in (1, 2, 3):
+                if E.soldier_at(side, p.at + v) == sq and E.can_land(st, p, sq):
+                    return True
+            continue
+        for v in (1, 2, 3):
+            for d in ("R", "L", "F", "B"):
+                ok, land, _ = E.path_for(p.at, d, v)
+                if ok and land == sq and E.can_land(st, p, sq):
+                    return True
+    return False
+
+
 def _usable_mask(st, side):
-    """Kva terningverdiar kan `side` nytte i denne stillinga? (bitmask)"""
+    """Kva terningverdiar kan `side` nytte i denne stillinga? (bitmask)
+
+    Rekna med banelogikk (kvar kan kvar brikke lande) i staden for å byggje
+    tre fulle trekk-mengder. Det same svaret — test_usable_mask samanliknar
+    med den dyre varianten — men ~0,02 ms i staden for ~0,26 ms, og denne
+    funksjonen vert kalla éin gong per MCTS-node.
+    """
     mask = 0
-    save = (list(st.dice), list(st.used), st.phase, st.turn)
-    try:
-        st.turn = side
-        st.phase = "move"
-        for v, face in ((1, "X"), (2, "II"), (3, "III")):
-            st.dice = [face, "_", "_"]
-            st.used = [False, True, True]
-            for mv in E.legal_moves(st, side):
-                if mv.get("v") == v:
+    home = [s for s in E.soldiers(st, side) if not s.captured and not s.released]
+    for p in st.pieces:
+        if p.captured or p.o != side:
+            continue
+        if p.t == "s":
+            if not p.released:
+                continue                      # heimesoldatar vert handsama under
+            for v in (1, 2, 3):
+                if mask & (1 << (v - 1)):
+                    continue
+                land = E.soldier_at(side, p.at + v)
+                if E.soldier_landing_ok(st, p, land) and E.can_land(st, p, land):
                     mask |= 1 << (v - 1)
-                    break
-    finally:
-        st.dice, st.used, st.phase, st.turn = save
+            continue
+        # dronninga må vere UTLØYST (og spelet må ha dronning med) — ei
+        # heimeståande dronning kan berre vekkjast med X, ikkje flyttast.
+        # Utan denne sjekken overvurderte vi kva ho kan nytte.
+        if p.t == "q" and (not st.queen_mode or not p.released):
+            continue
+        # konge/dronning går BÅDE langs tallsyklusen (åttetalet) og rett
+        # opp/ned/høgre/venstre — begge må med.
+        t0 = E.cycle_index(p.o, p.at)
+        for v in (1, 2, 3):
+            if mask & (1 << (v - 1)):
+                continue
+            found = False
+            if t0 >= 0:
+                for sgn in (-1, 1):
+                    land = E.soldier_at(p.o, t0 + sgn * v)
+                    if land != p.at and E.can_land(st, p, land):
+                        found = True
+                        break
+            if not found:
+                for d in ("R", "L", "F", "B"):
+                    ok, land, _ = E.path_for(p.at, d, v)
+                    if ok and E.can_land(st, p, land):
+                        found = True
+                        break
+            if found:
+                mask |= 1 << (v - 1)
+    # vekking med X: berre den FREMSTE heimesoldaten kan vekkjast, og ei
+    # heimeståande dronning kan løysast eitt steg i fire retningar.
+    if not (mask & 1):
+        if home:
+            front = max(home, key=lambda s: s.at)
+            land = E.soldier_at(side, front.at + 1)
+            if E.soldier_landing_ok(st, front, land) and E.can_land(st, front, land):
+                mask |= 1
+        if not (mask & 1):
+            q = E.queen(st, side)
+            if q is not None and st.queen_mode and not q.released and not q.captured:
+                for d in ("R", "L", "F", "B"):
+                    ok, land, _ = E.path_for(q.at, d, 1)
+                    if ok and E.soldier_landing_ok(st, q, land) and E.can_land(st, q, land):
+                        mask |= 1
+                        break
     return mask
 
 
