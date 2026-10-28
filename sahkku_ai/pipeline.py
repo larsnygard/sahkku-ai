@@ -121,7 +121,9 @@ def run_loop(args):
                             queen_delay_soldiers=args.queen_delay_soldiers,
                             max_plies=args.max_plies,
                             nesseby=args.nesseby,
-                            nesseby_fraction=args.nesseby_fraction)
+                            nesseby_fraction=args.nesseby_fraction,
+                            aggressive=args.aggressive,
+                            aggressive_fraction=args.aggressive_fraction)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -212,6 +214,11 @@ def main():
     ap.add_argument("--nesseby-fraction", type=float, default=1.0,
                     help="del av partia som spelast med Nesseby når --nesseby er på "
                          "(0.5 = blanda; eitt nett lærer då båe regelsetta)")
+    ap.add_argument("--aggressive", action="store_true",
+                    help="éi side i kvart parti spelar aggressivt (vekt på slag og "
+                         "framrykk); sida vekslar, so nettet lærer båe sider")
+    ap.add_argument("--aggressive-fraction", type=float, default=1.0,
+                    help="del av partia som har ei aggressiv side (1.0 = alle)")
     ap.add_argument("--max-seconds", type=int, default=0,
                     help="stopp etter N sekund (0 = berre --cycles). Sjekka mellom syklusar.")
     ap.add_argument("--steps", type=int, default=1500)

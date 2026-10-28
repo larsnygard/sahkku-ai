@@ -155,7 +155,15 @@ def report(name, cycles_total=None, watch=False):
 
     pct = 100.0 * frac
     eta = ""
-    if 0 < frac < 1 and elapsed > 60:
+    # Køyringar med tidsbudsjett (--max-seconds) stoppar der, ikkje etter
+    # --cycles (som ofte er sett til 999). Då er budsjettet den ærlege ETA-en.
+    budget = arg(parts, "--max-seconds", 0) if parts else 0
+    if budget:
+        left = max(0.0, budget - elapsed)
+        eta = f" · stoppar om {left/3600:.1f} t (budsjett {budget/3600:.1f} t)"
+        frac_budget = min(1.0, elapsed / budget)
+        pct = 100.0 * frac_budget
+    elif 0 < frac < 1 and elapsed > 60:
         eta_s = elapsed * (1 - frac) / frac
         eta = f" · ETA {eta_s/3600:.1f} t" if eta_s > 3600 else f" · ETA {eta_s/60:.0f} min"
 

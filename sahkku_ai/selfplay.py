@@ -213,6 +213,49 @@ def _can_take_back(st, mv):
     return _square_attackable(st, sq, 1 - p.o)
 
 
+# ---------- «aggressiv side» i sjølvspel --------------------------------
+# Lars 2026-10-29: ny treningsøkt der ÉI side spelar meir aggressivt. Vi gjer
+# det som ei vekting av policyen for den sida: slag får meir vekt, og trekk
+# som flyttar ein soldat inn på motstandarens halvdel får litt meir. Sida
+# vekslar frå parti til parti, so nettet lærer både å angripe og å straffe
+# angrep — elles vart det berre éin spelestil i data.
+AGR_CAP = 2.5        # vektfaktor på slag
+AGR_ADV = 1.4        # vektfaktor på framrykk mot fienden
+
+
+def aggressive_side_for_game(cfg, rng):
+    if not cfg.get("aggressive"):
+        return -1
+    if rng.random() >= float(cfg.get("aggressive_fraction", 1.0)):
+        return -1
+    return rng.randint(0, 1)
+
+
+def reweight_aggressive(st, ids, pi, cap=AGR_CAP, adv=AGR_ADV):
+    """Vekt π for den aggressive sida: slag og framrykk tel meir."""
+    out = dict(pi)
+    me = st.turn
+    for a, mv in ids:
+        if mv.get("kind") in ("pass", "reroll") or a not in out:
+            continue
+        land = E.move_dest(st, mv)
+        w = 1.0
+        if _victims(st, mv):
+            w *= cap
+        p = E.piece(st, mv["pid"])
+        if p.t == "s":
+            # soldat framover: kjem han nærare/inn på fienden si side?
+            row = E.pt(land)[1]
+            home_row = 0 if me == 0 else 2
+            if row != home_row:
+                w *= adv
+        out[a] = out[a] * w
+    tot = sum(out.values())
+    if tot > 0:
+        out = {a: v / tot for a, v in out.items()}
+    return out
+
+
 def safe_capture(st, ids, pi):
     """Trygt slag med høgast π, om det er minst CAP_RATIO av beste π."""
     if not ids:
@@ -322,6 +365,8 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
         _frac = float(cfg.get("nesseby_fraction", 1.0))
         if _frac < 1.0:
             _nb = rng.random() < _frac
+    agg_side = aggressive_side_for_game(cfg, rng)
+    cfg["_agg_side"] = agg_side          # so køyringa kan dokumentere effekten
     st = E.State(first=rng.randint(0, 1), nesseby=_nb)
     _op = E.opening_roll(st, rng.random)
     qd_side = qd_side_for_game(cfg, rng)
@@ -380,11 +425,19 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             outcome_idx.append((len(samples_out) - 1, st.turn))
         # Play the outcome-weighted best action (π), not the raw prior.
         best = max(legal, key=lambda a: pi[a])
-        # Materialklausa: eit trygt slag som er nær nok beste trekk vert spelt,
-        # so policy-måla inneheld slag (sjå safe_capture over).
-        _sc = safe_capture(st, ids, pi)
-        if _sc is not None:
-            best = _sc
+        # Aggressiv side: vekt policyen hennar mot slag og framrykk, og vel
+        # det trekket som då veg tyngst. (Policy-målet under er det SAME
+        # vekta, so nettet lærer stilen — ikkje berre spelet.)
+        if agg_side >= 0 and st.turn == agg_side:
+            pi = reweight_aggressive(st, ids, pi)
+            legal = list(pi.keys())
+            best = max(legal, key=lambda a: pi[a])
+        else:
+            # Materialklausa: eit trygt slag som er nær nok beste trekk vert
+            # spelt, so policy-måla inneheld slag (sjå safe_capture over).
+            _sc = safe_capture(st, ids, pi)
+            if _sc is not None:
+                best = _sc
         # Tel brot på handikapet: skal vere 0 utanom fallbacken (der ho må
         # vekkje for ikkje å stå fast). Eit tal i treningsloggen er betre
         # prov enn at filteret «ser rett ut».
@@ -533,7 +586,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  seed=1, prior_eps=0.2, tau_q=1.0, k_games=1, batch=64,
                  sims=0, c_puct=1.6, leaf_batch=8, opponent="", opponent_level=3,
                  queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES,
-                 nesseby=False, nesseby_fraction=1.0):
+                 nesseby=False, nesseby_fraction=1.0,
+                 aggressive=False, aggressive_fraction=1.0):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -546,7 +600,9 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "queen_delay": queen_delay,
            "queen_delay_soldiers": queen_delay_soldiers,
            "max_plies": max_plies, "nesseby": bool(nesseby),
-           "nesseby_fraction": float(nesseby_fraction)}
+           "nesseby_fraction": float(nesseby_fraction),
+           "aggressive": bool(aggressive),
+           "aggressive_fraction": float(aggressive_fraction)}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker
