@@ -269,7 +269,17 @@ def can_land(st: State, p: Piece, land: int) -> bool:
     - queen: never shares with own pieces; takes enemy pieces; seizes king;
       never enemy home rank.
     """
-    for q in occ(st, land):
+    on = occ(st, land)
+    # Kongen fyrst, uavhengig av rekkjefølgja: kapslar ein kongen, står kongen
+    # og soldaten saman på feltet — den einaste gongen. Ingen eigne brikker
+    # (soldat eller dronning) kan difor lande på eigen konge. Utan denne
+    # førehandssjekken slapp eit tredje stykke inn når ein eigen soldat låg
+    # fyrst i occ og løkka under returnerte True før ho nådde kongen.
+    if p.t != "k":
+        for q in on:
+            if q is not p and q.t == "k" and q.o is not None and q.o == p.o:
+                return False
+    for q in on:
         if q is p:
             continue
         if p.t == "s":

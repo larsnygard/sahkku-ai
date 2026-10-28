@@ -115,6 +115,18 @@
   // bare landing er regulated, gjennomfart fri.
   function canLand(st, p, land) {
     var on = occ(st, land), i, q;
+    // KONGEN FYRST, UAVHENGIG AV REKKJEFØLGJA I occ (Lars 2026-10-28):
+    // kapslar ein kongen, står kongen og soldaten saman på feltet — og det er
+    // den einaste gongen. Difor kan ingen egne brikker (soldat eller dronning)
+    // lande på EIGEN konge. Utan denne førehandssjekken kunne eit tredje
+    // stykke kome inn berre fordi ein eigen soldat låg fyrst i occ og løkka
+    // under returnerte true før ho nådde kongen.
+    if (p.t !== 'k') {
+      for (i = 0; i < on.length; i++) {
+        q = on[i];
+        if (q !== p && q.t === 'k' && q.o != null && q.o === p.o) return false;
+      }
+    }
     for (i = 0; i < on.length; i++) {
       q = on[i];
       if (q === p) continue;
