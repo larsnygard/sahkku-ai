@@ -252,6 +252,31 @@ k beste etter policy, so eit vinnande slag kunne hamne utanfor. No vert alle
 lovlege slag alltid vurderte (målt 32,5 % → 42,5 % slag tekne på 40
 stillingar frå det uavgjorte partiet).
 
+### AIL0.7: doktrinen som inndata — kva som virka og kva som ikkje gjorde det
+
+Fem nye globale trekk (N_GLOBAL 10 → 15): `king_mine`, `king_theirs`,
+`king_exposure` (1 − avstand/14 til næraste fiende), `queen_risk` (dronninga
+kan takast no) og `opp_usable` (P(motstandaren får nytte noko i neste kast),
+frå ein tabell over dei 64 kasta: 1 fjes 57.8 %, 2 fjes 87.5 %, 3 fjes 98.4 %).
+
+Sidan dei globale tala ligg SIST i inngangsvektoren, vart AIL0.6-vektene
+*utvida* med nullkolonnar (`tools/expand_net.py`) — det nye nettet er
+matematisk identisk med AIL0.6 ved steg 0, so alt som endrar seg er lært.
+
+Målt, 6–8 sjølvspelparti før og etter:
+
+| mål | AIL0.6 | AIL0.7 | dom |
+|---|---|---|---|
+| styrke mot AIL0.6 | — | **77.5 %** (31–9) | klart sterkare |
+| styrke mot klassisk L3 | 85.0 % | 82.5 % (33–7) | innanfor feilmarginen (±11 pp ved n=40) |
+| tvungne pass UTAN konge, per parti | 7.7 | **5.0** | betra: bufferen vert halden |
+| kongens avstand til næraste fiende | 1.9 | **1.6** | **ikkje nådd** — han går framleis fram |
+| dronningar utløyste ved slutt | 2 | 2 | uendra (alt konservativt) |
+
+Så: nettet lærte *følgja* av doktrinen (ikkje verte sett i tvang), men ikkje
+*sjølve regelen* (hald kongen attende). Det er ein ærleg delvis siger, og
+kongetala er små (6–8 parti) — sjå `docs/AIL07-PLAN.md` for akseptansekriteria.
+
 ### Loddrett gang er nytt — eldre nett kann ikkje bruke det
 
 Konge og dronning fekk rett opp/ned-gang 2026-10-27. AIL0.5 og eldre er
@@ -333,6 +358,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.5 blokk 1** (`ail05/c6.pt`, held fram mot L3) | 6 sykl. til | 0.842 | **42.5 % mot L3** (17–23, n=40) · 30 % Menn / **55 % Giera** | — |
 | **AIL0.5** (`ail05/c12.pt`, 12 sykl. mot L3, lr 4e-4 + vindauge 3) | 12 sykl. / 219 312 prøver | **0.7705** | **50.0 % mot L3** (20–20, n=40) · 11–9 Menn / 9–11 Giera | — |
 | **AIL0.6** (`ail06/c6.pt`, sjølvspel med «sein dronning»-handikap, 2 t, retta søk) | 6 sykl. / 255 735 prøver | 1.221 | **85.0 % mot L3** (34–6, n=40) · **80.0 % mot AIL0.5** (32–8) | 17–3 / 17–3 mot L3 |
+| **AIL0.7** (`ail07/c6.pt`, kongedoktrine + terningtrekk som inndata, 4 t, 45 sims) | 6 sykl. / 228 024 prøver | 1.195 | **77.5 % mot AIL0.6** (31–9) · 82.5 % mot L3 (33–7) | 17–3 / 16–4 mot L3 |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
