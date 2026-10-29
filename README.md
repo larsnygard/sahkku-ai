@@ -277,6 +277,29 @@ Så: nettet lærte *følgja* av doktrinen (ikkje verte sett i tvang), men ikkje
 *sjølve regelen* (hald kongen attende). Det er ein ærleg delvis siger, og
 kongetala er små (6–8 parti) — sjå `docs/AIL07-PLAN.md` for akseptansekriteria.
 
+### NAIS.1: Nesseby kan trenast, og kva det kosta/kjøpte
+
+Nesseby fanst berre i JS-dommaren; Python-motoren hadde ingen regel. No er han
+portert (State.nesseby, can_land nektar landing på uaktivert konge, fyrste
+soldat på motstandarens heimrad kaprar han), og `g[15]` i trekka seier kva
+regelmodus stillinga er i — so EITT nett kan spele båe variantane.
+
+Målt på NAIS.1 (50 % Nesseby-parti, éi side aggressiv, 4 timar):
+
+| | |
+|---|---|
+| mot AIL0.10, vanlege reglar (n=40) | **62.5 %** |
+| mot klassisk nivå 3 (n=40) | 92.5 % (AIL0.10: 96.7 % — innanfor feilmarginen) |
+| mot AIL0.10, **Nesseby** (n=30) | 50.0 % — ingen målt vinst av varianttreninga |
+
+**Sideasymmetri under Nesseby:** Giera-setet vann 22 av 30 parti, medan
+tilfeldig spel under same regel gjev Menn 57 %. Regelen er altso ikkje skeiv
+(båe sider treng 16–30 steg til motstandarens heimrad, median 23), men netta
+spelar Menn-sida dårleg i varianten. Det er neste konkrete lekk.
+
+Nesseby endrar òg sluttspela: i 5 sjølvspelparti enda **3 av 5 på utryddelse**
+(mot nesten alltid dronningkapsel i vanleg spel), og kongen vart kapra i alle 5.
+
 ### Loddrett gang er nytt — eldre nett kann ikkje bruke det
 
 Konge og dronning fekk rett opp/ned-gang 2026-10-27. AIL0.5 og eldre er
@@ -362,6 +385,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.8** (`ail08/c1.pt`, materialklausa i sjølvspelet, 1 syklus) | 1 sykl. / 47 878 prøver | 1.157 | **70.0 % mot AIL0.7** (21–9) · 90.0 % mot L3 (27–3, n=30) | 14–1 / 13–2 mot L3 |
 | **AIL0.9** (`ail09/c3.pt`, 3 syklusar oppå AIL0.8) | 3 sykl. / 147 963 prøver | **1.085** | **55.0 % mot AIL0.8** (22–18, n=40) · **97.5 % mot L3** (39–1) | 20–0 / 19–1 mot L3 |
 | **AIL0.10** (`ail10/latest.pt`, 1 syklus på RTX 3070) | 1 sykl. / 200 parti | — | **60.0 % mot AIL0.9** (18–12, n=30) · 96.7 % mot L3 (29–1, n=30) | 15–0 / 14–1 mot L3 |
+| **NAIS.1** (`nais1/c4.pt`, ny serie: 50 % Nesseby + aggressiv side, 4 t) | 4 sykl. / 247 409 prøver | **0.992** | **62.5 % mot AIL0.10** (25–15, n=40) · 92.5 % mot L3 (37–3) · 50 % mot AIL0.10 under Nesseby (15–15) | 13–7 / 12–8 mot AIL0.10 |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
