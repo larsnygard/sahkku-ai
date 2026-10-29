@@ -529,7 +529,40 @@ Motoren lastes lazy — klassisk CPU er standard, og en NN-modell hentes først
 når spilleren velger den. Flere NN-modeller kan ligge side om side; hver modul
 holder vektene sine for seg selv, så de kan være lastet samtidig.
 
-## 7. Koble motoren på et GUI
+## 7. Kjøre motoren som HTTP-tenar (fjernmotor med API-nøklar)
+
+`python -m sahkku_ai.server` legg ein S-UCI-motor bak HTTP, so appen kan bruke
+ein motor som køyrer på ei anna maskin — utan at vektene vert delte.
+
+```bash
+# nøkkel: lag ein, eller fleire i ei fil («nøkkel # namn» per linje)
+python -m sahkku_ai.server --engine engines/nais2-nn.js --port 8734 \
+    --key "$(openssl rand -hex 24)" --allow-origin https://snart.com \
+    --rate 120
+```
+
+| endepunkt | auth | svar |
+|---|---|---|
+| `GET /health` | nei | `{"ok":true}` (til uptime-sjekk) |
+| `GET /v1/info` | ja | `{"name":"NAIS.2","protocol":1}` |
+| `POST /v1/move` | ja | `{"move":"O1-O2","ms":412}` — kropp `{"fen":"<S-UCI-FEN>"}` |
+
+- **Auth:** `Authorization: Bearer <nøkkel>` eller `X-API-Key: <nøkkel>`, samanlikna
+  i konstant tid. Nøkkelen vert aldri logga — berre merkelappen hans.
+  Utan nøklar startar tenaren OPEN og seier frå om det på stderr.
+- **Rasjoneering:** `--rate N` førespurnader per minutt per nøkkel (429 + `Retry-After`).
+- **CORS:** `--allow-origin` (standard `*`); preflight tillèt `Authorization`.
+- **TLS:** tenaren talar rein HTTP — set han bak Caddy/nginx for https.
+- **Tryggleik:** appen er dommar. Trekket som kjem tilbake vert matcha mot appen
+  sin eigen lovlege pool, so ein tenar (eller ein mann i midten) kan ikkje dytte
+  inn eit ulovleg trekk.
+- Motoren vert brukt éin førespurnad om gongen (ein S-UCI-prosess), so
+  samtidige spelarar står i kø — køyr fleire tenarar på ulike portar om det trengst.
+
+Test: `python -m tests.test_engine_server` (26 sjekkar: auth, 401/429, CORS,
+protokoll, at svaret er lovleg i appen, og at nøkkelen ikkje hamnar i loggen).
+
+## 7b. Koble motoren på et GUI
 
 Motoren er en vanlig S-UCI 1.0-motor (nivå A + `info movepool` + `debug` +
 `setoption`):
