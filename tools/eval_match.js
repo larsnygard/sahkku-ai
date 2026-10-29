@@ -128,8 +128,14 @@ function poolStrings(st) {
 
 // ------------------------------------------------------------------- eitt parti
 // aSide: 0 = A spelar Menn, 1 = A spelar Giera
+// Regelmodus for HEILE benken: EVAL_NESSBY=1 set både dommaren sin eigen
+// stilling og motorane sine options. Utan dette spelar dommaren vanleg sáhkku
+// medan motorane spelar Nesseby, og kvar kapsel rundt kongen vert «ulovleg».
+const NESSBY = process.env.EVAL_NESSBY === '1';
+
 async function playGame(A, B, aSide, maxTurns) {
   const st = SS.fromFEN(START_FEN);
+  if (NESSBY) st.nesseby = true;
   SS.openingRoll(st, Math.random);
   const hist = [];
   const engines = { 0: aSide === 0 ? A : B, 1: aSide === 1 ? A : B };
@@ -240,6 +246,7 @@ async function playGame(A, B, aSide, maxTurns) {
   };
   const optAll = process.env.EVAL_SETOPT || '';
   if (optAll) { setopt(A, optAll); setopt(B, optAll); }
+  if (NESSBY) { setopt(A, 'Nesseby=1'); setopt(B, 'Nesseby=1'); }
   if (process.env.EVAL_SETOPT_A) setopt(A, process.env.EVAL_SETOPT_A);
   if (process.env.EVAL_SETOPT_B) setopt(B, process.env.EVAL_SETOPT_B);
 

@@ -833,7 +833,7 @@ var M = {};
 var SS = (typeof globalThis !== 'undefined' ? globalThis : this).SS;
 
 // ==================== FEATURES + ACTIONS (mirrors features.py) ============
-var N_PLANES = 16, N_GLOBAL = 15;   // fylt inn av export.py
+var N_PLANES = 16, N_GLOBAL = 16;   // fylt inn av export.py
 var REL_BASE = 0, MOVE_BASE = 180, SPEC_BASE = 180 + 8100;
 var CLASSES = ['M', 'K', 'Q', 'k'];
 var FIRST_PASS = [[], []];
@@ -915,6 +915,7 @@ function encodeState(st) {
     g[13] = us.caps[qm.at] ? 1 : 0;              // dronninga er takeleg NO
   }
   g[14] = DICE_USE_PROB[us.mask];                 // friheit i neste kast
+  g[15] = st.nesseby ? 1 : 0;                     // regelmodus (Nesseby av/på)
   return { planes: pl, glob: g };
 }
 
@@ -1090,12 +1091,13 @@ function netForward(planes, glob) {
 
 // ==================== S-UCI LOOP (referee-checked, spec §4-5) =============
 var START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-./m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';
-var ENGINE_NAME = 'AIL0.9';   // settast ved eksport (--name)
+var ENGINE_NAME = 'NAIS.1';   // settast ved eksport (--name)
 var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
 var DEEP = 0;            // 0 = av; m > 0 = 2-ply: motstandaren sine m beste svar vert rekna med
 var CAP_MARGIN = 0.12;   // trygt slag innanfor denne verdimarginen av beste trekk vert valt
+var NESSBY = false;      // regelmodus når stillinga kjem frå FEN (S-UCI/eval)
 var DEC = { X: 'X', '2': 'II', '3': 'III', '_': '_' };  // wire-faces -> interne fjes (som i ref)
 
 function encode(st_, mv) {
@@ -1160,6 +1162,9 @@ function parsePosition(words) {
     s2 = SS.fromFEN(fen);
     i = mIx >= 0 ? i + 1 + mIx + 1 : words.length;
   } else throw new Error('position: startpos|fen');
+  // Regelmodus: FEN-en ber ikkje Nesseby-flaget, so det kjem frå setoption.
+  // (I appen vert motoren kalla med stillinga direkte, og då er st.nesseby alt sett.)
+  if (NESSBY) s2.nesseby = true;
   if (words[i] === 'moves') i++;
   while (i < words.length) i += applyToken(s2, words[i], words, i);
   return s2;
@@ -1333,6 +1338,7 @@ M.onLine = function (line) {
       out('option name Lookahead type spin default 4 min 0 max 12');
       out('option name Deep type spin default 0 min 0 max 4');
       out('option name CapMargin type string default 0.12');
+      out('option name Nesseby type check default false');
       out('uciok');
     } else if (cmd === 'isready') {
       out('readyok');
@@ -1347,6 +1353,9 @@ M.onLine = function (line) {
         else if (onm === 'lookahead') {
           var n = parseInt(oval, 10);
           LA = isNaN(n) ? 4 : Math.max(0, Math.min(12, n));
+        }
+        else if (onm === 'nesseby') {
+          NESSBY = (oval === 'true' || oval === '1');
         }
         else if (onm === 'capmargin') {
           var cm = parseFloat(oval);
