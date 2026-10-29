@@ -104,6 +104,9 @@ def write_spg(rec, dst, meta=None):
     ]
     if st.win_reason:
         head.append('[Termination "%s"]' % st.win_reason)
+    # Regelvarianten må med — utan han kan fila ikkje spelast opp rett att
+    if getattr(st, "nesseby", False):
+        head.append('[Variant "Nesseby"]')
     head.append("SPG-V1")
     head.append("")
     if meta.get("comment"):

@@ -12,7 +12,10 @@ from . import engine as E
 from .fen import sq_of_name
 
 TAG_RE = re.compile(r'^\[(\w+)\s+"(.*)"\]\s*$')
-ROLL_RE = re.compile(r"^(\d+)\.\s+([MK]):\s+(X|II|III|_)\s+(X|II|III|_)\s+(X|II|III|_)(?:\s*\(omkast\s*#(\d+)\))?\s*$")
+# §4.2: omkast-merket står etter sida og før kolon — «10. M (omkast #1): II _ X».
+# Vi tek òg hale-forma, so eldre filer ikkje brest.
+ROLL_RE = re.compile(r"^(\d+)\.\s+([MK])(?:\s*\(omkast\s*#(\d+)\))?:\s+(X|II|III|_)\s+(X|II|III|_)"
+                     r"\s+(X|II|III|_)(?:\s*\(omkast\s*#(\d+)\))?\s*$")
 OPEN_RE = re.compile(r"^1\.\s+open(?:#(\d+))?:\s*M\((X|II|III|_)\s+(X|II|III|_)\s+(X|II|III|_)\)\s+K\((X|II|III|_)\s+(X|II|III|_)\s+(X|II|III|_)\)\s*(?:->\s*([MK]))?\s*$")
 MV_RE = re.compile(r"^(?:(II|III):\s*)?([MkKQ])([A-O][123])->([A-O][123])(\u00a7|x \[[^\]]*\])?\s*$")
 REL_RE = re.compile(r"^X->([A-O][123])\s*$")
@@ -86,8 +89,8 @@ def parse_spg(text: str):
             continue
         m = ROLL_RE.match(line)
         if m:
-            ev = ("reroll" if m.group(6) else "roll",
-                  (m.group(3), m.group(4), m.group(5)),
+            ev = ("reroll" if (m.group(3) or m.group(7)) else "roll",
+                  (m.group(4), m.group(5), m.group(6)),
                   0 if m.group(2) == "M" else 1)
             events.append(ev)
             continue
@@ -107,7 +110,10 @@ def parse_spg(text: str):
             result, reason = m.group(1), (m.group(2) or "")
             continue
         bad = line
+    # [Variant "Nesseby"] — regelmodusen høyrer til partiet, ikkje til kallet
+    tags.setdefault("nesseby", "1" if "nesseby" in str(tags.get("Variant", "")).lower() else "0")
     return {"tags": tags, "events": events, "result": result,
+            "nesseby": "nesseby" in str(tags.get("Variant", "")).lower(),
             "reason": reason, "bad": bad, "comments": comments}
 
 
