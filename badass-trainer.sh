@@ -3,6 +3,8 @@
 #
 #   ./badass-trainer.sh                 # 2 timar, held fram frå AIL0.9 → ail10
 #   ./badass-trainer.sh --hours 6       # lengre økt
+#   ./badass-trainer.sh --cycles 2      # NØYAKTIG to syklusar, so stoppar han
+#   ./badass-trainer.sh --cycles 3 --hours 0   # berre syklusar, ingen tidsgrense
 #   ./badass-trainer.sh --games 600     # fleire parti per syklus
 #   ./badass-trainer.sh --run ail11 --init engines/ail10-nn.pt
 #   ./badass-trainer.sh --dry           # vis berre kva som ville køyrt
@@ -27,6 +29,7 @@ cd "$(dirname "$0")"
 RUN="ail10"
 INIT="engines/ail09-nn.pt"
 HOURS="2"
+CYCLES=""              # sett med --cycles: nøyaktig så mange syklusar
 GAMES="400"
 SIMS="45"
 WORKERS=""
@@ -60,6 +63,7 @@ while [ $# -gt 0 ]; do
     --run)        RUN="$2"; shift 2 ;;
     --init)       INIT="$2"; shift 2 ;;
     --hours)      HOURS="$2"; shift 2 ;;
+    --cycles)     CYCLES="$2"; shift 2 ;;
     --games)      GAMES="$2"; shift 2 ;;
     --sims)       SIMS="$2"; shift 2 ;;
     --threads|--workers) THREADS_OVERRIDE="$2"; shift 2 ;;
@@ -200,11 +204,32 @@ fi
 # Kor lang tid éin syklus tek, og passar han i tidsbudsjettet?
 # Målt på P100 med 6 arbeidarar: 3,6-4,3 parti/min ved 45 sims, dvs. ~0,6
 # parti/min per arbeidar. Tida skalerer om lag lineært med sims.
+# --hours 0 = inga tidsgrense (berre --cycles styrer). SECS må reknast her,
+# for plan-linja og åtvaringa nedanfor treng å vite om det finst ei grense.
+SECS=""
+if $PY -c "import sys; sys.exit(0 if float('$HOURS') > 0 else 1)"; then
+  SECS=$($PY -c "print(int(float('$HOURS')*3600))")
+fi
 RATE_PW=$($PY -c "print(round(27.0 / max(1, $SIMS), 3))")          # parti/min/arbeidar
 CYCLE_MIN=$($PY -c "print(int(round($GAMES / (max(1,$WORKERS) * float('$RATE_PW')))))")
 BUDGET_MIN=$($PY -c "print(int(round(float('$HOURS') * 60)))")
-say "plan:    ${HOURS} t · ${GAMES} parti/syklus (~${CYCLE_MIN} min) · ${WSORCE} · ${SIMS} sims · $DEVICE"
-if [ "$CYCLE_MIN" -gt "$BUDGET_MIN" ]; then
+if [ -n "$CYCLES" ]; then
+  TOTAL_MIN=$($PY -c "print(int($CYCLES * $CYCLE_MIN))")
+  WORDSYK=$([ "$CYCLES" -eq 1 ] && echo syklus || echo syklusar)
+  say "plan:    ${CYCLES} ${WORDSYK} (~${TOTAL_MIN} min) · ${GAMES} parti/syklus (~${CYCLE_MIN} min) · ${WSORCE} · ${SIMS} sims · $DEVICE"
+else
+  say "plan:    ${HOURS} t · ${GAMES} parti/syklus (~${CYCLE_MIN} min) · ${WSORCE} · ${SIMS} sims · $DEVICE"
+fi
+# Tidsgrense OG syklustal samstundes: sei kven som kjem til å vinne
+if [ -n "$CYCLES" ] && [ -n "$SECS" ] && [ "$TOTAL_MIN" -gt "$BUDGET_MIN" ]; then
+  printf '\033[33m'
+  say "ÅTVARING: ${CYCLES} ${WORDSYK} tek ~${TOTAL_MIN} min, men tidsgrensa er ${BUDGET_MIN} min."
+  REACH=$(($BUDGET_MIN / $CYCLE_MIN))
+  say "          Tidsgrensa vinn — køyringa stoppar etter ~${REACH} $([ "$REACH" -eq 1 ] && echo syklus || echo syklusar)."
+  say "          Vil du ha alle ${CYCLES}: bruk --hours 0 (eller --hours $(($TOTAL_MIN / 60 + 1)))."
+  printf '\033[0m'
+fi
+if [ -n "$SECS" ] && [ "$CYCLE_MIN" -gt "$BUDGET_MIN" ]; then
   FIT=$($PY -c "print(max(20, int($BUDGET_MIN * max(1,$WORKERS) * float('$RATE_PW') * 0.9)))")
   printf '\033[33m'
   say "ÅTVARING: éin syklus tek ~${CYCLE_MIN} min, men budsjettet er ${BUDGET_MIN} min."
@@ -246,19 +271,21 @@ for d in runs/"$RUN"/cycle*; do
 done
 
 [ -n "$OUT" ] || OUT="engines/${RUN}-nn"
-SECS=$($PY -c "print(int(float('$HOURS')*3600))")
 
 CMD=(
   "$PY" -m sahkku_ai.pipeline
-  --run "$RUN" --start-cycle "$NEXT" --cycles 999
+  --run "$RUN" --start-cycle "$NEXT" --cycles "${CYCLES:-999}"
   --init "$INIT"
   --games "$GAMES" --workers "$WORKERS" --sims "$SIMS" --leaf-batch "$LEAFBATCH"
   --steps "$STEPS" --batch "$BATCH" --lr "$LR" --warmup 100
   --ch 64 --blocks 6 --fc 128 --device "$DEVICE" --window "$WINDOW"
-  --seed "$SEED" --max-plies "$MAXPLIES" --max-seconds "$SECS"
+  --seed "$SEED" --max-plies "$MAXPLIES"
   --log-every 300 --save-every 450 --eval-games 0
   --out "$OUT"
 )
+if [ -n "$SECS" ]; then
+  CMD+=(--max-seconds "$SECS")
+fi
 if [ "$NESSBY" = "1" ]; then
   [ -n "$NBFRAC" ] || NBFRAC="0.5"
   CMD+=(--nesseby --nesseby-fraction "$NBFRAC")
@@ -363,7 +390,8 @@ fi
 
 # ---- summary -------------------------------------------------------------
 echo
-say "done. Latest checkpoint:"
+DONE_N=$(grep -c "\[c[0-9]*\] done in" "$LOG" 2>/dev/null || echo 0)
+say "done — ${DONE_N} syklus(ar) ferdige. Latest checkpoint:"
 # `|| true`: utan ckpt. feilar ls med 2, og med set -e attende ville skriptet
 # dødd her — nettopp i det høvet vi vil seie «skreiv ingenting»
 CK=$(ls -1t checkpoints/"$RUN"/c*.pt 2>/dev/null | head -1 || true)

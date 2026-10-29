@@ -114,7 +114,18 @@ def main():
     p = dry("--workers", "2")
     ok("--workers still works as an alias", "--workers 2" in p.stdout, p.stdout[-160:])
 
-    # 7. a cycle that cannot fit the time budget must be called out BEFORE the run
+    # 7. --cycles: exact cycle count, and no time limit when --hours 0
+    p = dry("--cycles", "2")
+    ok("--cycles reaches the pipeline", "--cycles 2" in p.stdout, p.stdout[-200:])
+    ok("--cycles still keeps the time limit", "--max-seconds" in p.stdout, p.stdout[-200:])
+    p = dry("--cycles", "3", "--hours", "0")
+    ok("--hours 0 drops the time limit", "--max-seconds" not in p.stdout, p.stdout[-200:])
+    ok("--hours 0 still passes the cycle count", "--cycles 3" in p.stdout, p.stdout[-200:])
+    p = dry("--cycles", "5", "--hours", "1")
+    ok("a cycle count that will not fit the budget warns first",
+       "ÅTVARING" in p.stdout and "tidsgrensa" in p.stdout, p.stdout[-300:])
+
+    # 8. a cycle that cannot fit the time budget must be called out BEFORE the run
     p = dry("--hours", "1", "--games", "400", "--sims", "45", "--threads", "6")
     ok("one cycle longer than the budget is warned about",
        "ÅTVARING" in p.stdout and "--games" in p.stdout, p.stdout[-300:])

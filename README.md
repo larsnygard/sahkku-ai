@@ -529,6 +529,30 @@ Motoren lastes lazy — klassisk CPU er standard, og en NN-modell hentes først
 når spilleren velger den. Flere NN-modeller kan ligge side om side; hver modul
 holder vektene sine for seg selv, så de kan være lastet samtidig.
 
+## 6b. Køyre ei treningsøkt: syklusar eller timar
+
+`./badass-trainer.sh` finn sjølv ut av kjernar, GPU og sykluslengd. To knappar
+styrer kor lenge ho varer, og begge er no eksplisitte:
+
+```bash
+./badass-trainer.sh --cycles 2                    # nøyaktig to syklusar
+./badass-trainer.sh --cycles 3 --hours 0          # berre syklusar, inga tidsgrense
+./badass-trainer.sh --hours 1 --games 200 --sims 40   # éin time, éin syklus
+./badass-trainer.sh --threads 8 --cycles 1        # tving arbeidartalet
+```
+
+- **`--cycles N`** er talet på syklusar. **`--hours H`** er eit tak som vert
+  sjekka *mellom* syklusar; `--hours 0` slår taket av, so berre `--cycles`
+  gjeld. Er begge sette, vinn den som slår inn fyrst — og skriptet seier kven
+  det er på førehand.
+- Skriptet reknar ut syklustida på førehand (målt ~0,6 parti/min per arbeidar
+  ved 45 sims) og åtvarar om syklusen ikkje passar i budsjettet, eller om
+  syklustalet ikkje gjer det. Det er billigare enn å oppdage det to timar
+  seinare.
+- Avbroten syklus: **slett** `runs/<run>/cycleN` før du held fram. Drivaren
+  reknar «det finst shard-filer» som «syklusen er ferdig», so delvise shardar
+  elles vert trena på i staden for å verte genererte på nytt.
+
 ## 7. Kjøre motoren som HTTP-tenar (fjernmotor med API-nøklar)
 
 `python -m sahkku_ai.server` legg ein S-UCI-motor bak HTTP, so appen kan bruke
