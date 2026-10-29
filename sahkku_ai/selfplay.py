@@ -367,6 +367,11 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             _nb = rng.random() < _frac
     agg_side = aggressive_side_for_game(cfg, rng)
     cfg["_agg_side"] = agg_side          # so køyringa kan dokumentere effekten
+    # Diagnostikk for Nesseby: kven kaprar kongen, og når? (Asymmetrien vi
+    # fann: Giera-setet vann 22 av 30 i benken medan tilfeldig spel gjev Menn
+    # 57 % — då må vi måle kven som faktisk tek kongen, ikkje gjette.)
+    _nb_caps = cfg.get("_nb_caps") if _nb else None
+    _ply_no = 0
     st = E.State(first=rng.randint(0, 1), nesseby=_nb)
     _op = E.opening_roll(st, rng.random)
     qd_side = qd_side_for_game(cfg, rng)
@@ -451,7 +456,13 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
                 if isinstance(stats, dict):
                     stats.setdefault("fallback_soldiers", []).append(stats_soldiers)
         _before = list(st.dice)
+        _k_before = E.king(st).o
         apply_choice(st, ids, best, rng)
+        if _nb_caps is not None:
+            _ply_no += 1
+            _k_now = E.king(st).o
+            if _k_before is None and _k_now is not None:
+                _nb_caps.append((_k_now, _ply_no))
         if isinstance(rec, dict) and rec_ply is not None:
             _mv = dict(next((m for a, m in ids if a == best), {}))
             _kind = _mv.get("kind")
@@ -556,6 +567,8 @@ def worker(args):
     wins = [0, 0]
     if cfg.get("queen_delay", -1) >= 0:
         cfg["_qd_stats"] = {"viol": 0}
+    if cfg.get("nesseby"):
+        cfg["_nb_caps"] = []          # [(side, ply)] — kven kapra kongen
     t0 = time.time()
     for g in range(cfg["games_per_worker"]):
         if cfg.get("opponent", "").startswith("classic"):
@@ -571,13 +584,20 @@ def worker(args):
                   f"({(g+1)/el*60:.1f} parti/min)", flush=True)
     out = os.path.join(cfg["outdir"], f"shard_{wid:03d}.npz")
     save_shard(samples, out)
+    nbc = cfg.get("_nb_caps")
+    nbtxt = ""
+    if nbc is not None:
+        m = sum(1 for s, _ in nbc if s == 0)
+        g = sum(1 for s, _ in nbc if s == 1)
+        avg = (sum(p for _, p in nbc) / len(nbc)) if nbc else 0
+        nbtxt = f", Nesseby: konge kapra av Menn {m} / Giera {g} (snitt trekk {avg:.0f})"
     qds = cfg.get("_qd_stats")
     qdtxt = ""
     if qds is not None:
         qdtxt = (f", dronning-handikap: {qds.get('viol', 0)} fallback-vekkingar"
                  f" (av {len(qds.get('fallback_soldiers', []))})")
     print(f"[w{wid}] ferdig: {cfg['games_per_worker']} parti, {len(samples)} prøver -> {out} "
-          f"(Menn-vinn {wins[0]}, Giera-vinn {wins[1]}{qdtxt})", flush=True)
+          f"(Menn-vinn {wins[0]}, Giera-vinn {wins[1]}{qdtxt}{nbtxt})", flush=True)
     return len(samples)
 
 
@@ -652,6 +672,13 @@ if __name__ == "__main__":
     ap.add_argument("--queen-delay-soldiers", type=int, default=2)
     ap.add_argument("--max-plies", type=int, default=MAX_PLIES,
                     help="tak på ply per parti i datagenereringa (handikappa parti blir lange)")
+    ap.add_argument("--nesseby", action="store_true",
+                    help="spel med Nesseby-regelen (kongen kan ikkje kaprast ved landing)")
+    ap.add_argument("--nesseby-fraction", type=float, default=1.0,
+                    help="del av partia med Nesseby når --nesseby er sett")
+    ap.add_argument("--aggressive", action="store_true",
+                    help="éi side spelar aggressivt (vekt på slag og framrykk)")
+    ap.add_argument("--aggressive-fraction", type=float, default=1.0)
     ap.add_argument("--opponent", default="",
                     help="tren mot denne i staden for sjølvspel (t.d. «classic3»)")
     ap.add_argument("--opponent-level", type=int, default=3)
@@ -660,4 +687,6 @@ if __name__ == "__main__":
                  a.rollouts, a.temp, a.noise_alpha, a.noise_eps, a.seed,
                  a.prior_eps, a.tau_q, a.k_games, a.batch,
                  a.sims, a.c_puct, a.leaf_batch, a.opponent, a.opponent_level,
-                 a.queen_delay, a.queen_delay_soldiers, a.max_plies)
+                 a.queen_delay, a.queen_delay_soldiers, a.max_plies,
+                 a.nesseby, a.nesseby_fraction,
+                 a.aggressive, a.aggressive_fraction)
