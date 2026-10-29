@@ -359,6 +359,9 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.5** (`ail05/c12.pt`, 12 sykl. mot L3, lr 4e-4 + vindauge 3) | 12 sykl. / 219 312 prøver | **0.7705** | **50.0 % mot L3** (20–20, n=40) · 11–9 Menn / 9–11 Giera | — |
 | **AIL0.6** (`ail06/c6.pt`, sjølvspel med «sein dronning»-handikap, 2 t, retta søk) | 6 sykl. / 255 735 prøver | 1.221 | **85.0 % mot L3** (34–6, n=40) · **80.0 % mot AIL0.5** (32–8) | 17–3 / 17–3 mot L3 |
 | **AIL0.7** (`ail07/c6.pt`, kongedoktrine + terningtrekk som inndata, 4 t, 45 sims) | 6 sykl. / 228 024 prøver | 1.195 | **77.5 % mot AIL0.6** (31–9) · 82.5 % mot L3 (33–7) | 17–3 / 16–4 mot L3 |
+| **AIL0.8** (`ail08/c1.pt`, materialklausa i sjølvspelet, 1 syklus) | 1 sykl. / 47 878 prøver | 1.157 | **70.0 % mot AIL0.7** (21–9) · 90.0 % mot L3 (27–3, n=30) | 14–1 / 13–2 mot L3 |
+| **AIL0.9** (`ail09/c3.pt`, 3 syklusar oppå AIL0.8) | 3 sykl. / 147 963 prøver | **1.085** | **55.0 % mot AIL0.8** (22–18, n=40) · **97.5 % mot L3** (39–1) | 20–0 / 19–1 mot L3 |
+| **AIL0.10** (`ail10/latest.pt`, 1 syklus på RTX 3070) | 1 sykl. / 200 parti | — | **60.0 % mot AIL0.9** (18–12, n=30) · 96.7 % mot L3 (29–1, n=30) | 15–0 / 14–1 mot L3 |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
