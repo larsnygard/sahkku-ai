@@ -307,6 +307,27 @@ på utryddelse, 21 på dronning.
 Nesseby endrar òg sluttspela: i 5 sjølvspelparti enda **3 av 5 på utryddelse**
 (mot nesten alltid dronningkapsel i vanleg spel), og kongen vart kapra i alle 5.
 
+### NAIS.3: kva to menneskeparti lærte — og kva dei kosta
+
+Dei to partia der Lars slo NAIS.2 vart blanda inn som treningsgrunnlag:
+`--human-games … --human-weight 0.12`. Policy-målet kom berre frå vinnaren
+sine trekk; taparsida sine stillingar fekk jamn fordeling og verdi −1, so
+nettet skulle lære kvar det var tapt utan å lære dei tapande trekka.
+
+**Det konkrete stupet vart lært.** På stillinga der NAIS.2 hengde dronninga
+(parti 1, trekk 196) gjekk sannsynet for det tapande trekket frå **0,648 til
+0,325**, og verdien nettet gav stillinga frå −0,62 til **−0,96**. Målt med
+`tools/human_probe.py`, som er tre sekundars arbeid mot benken sine to timar.
+
+**Men nettet vart svakare.** 26,7 % mot NAIS.2 i Nesseby (8–22, n=30) og
+90,0 % mot klassisk nivå 3 (NAIS.2: 95,0 %). Doseringa var feil, ikkje idéen:
+339 stillingar frå to tapte parti, halvparten med verdi −1, i 12 % av KVAR
+minibatch i 1400 steg lærte nettet «Koner i midtspelet er tapt» som ein
+generell prior. Signatur å kjenne att: proben viser at leksa sit, medan
+benken fell. Difor står NAIS.3 i menyen som «NAIS.3 (eksperiment)» med tala
+sine, og NAIS.2 er framleis standard. Neste forsøk skal ha vekt ≤0,05 og
+anten berre verdimål eller spegla parti so verdihovudet ikkje får skakke.
+
 ### Loddrett gang er nytt — eldre nett kann ikkje bruke det
 
 Konge og dronning fekk rett opp/ned-gang 2026-10-27. AIL0.5 og eldre er
@@ -394,6 +415,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.10** (`ail10/latest.pt`, 1 syklus på RTX 3070) | 1 sykl. / 200 parti | — | **60.0 % mot AIL0.9** (18–12, n=30) · 96.7 % mot L3 (29–1, n=30) | 15–0 / 14–1 mot L3 |
 | **NAIS.1** (`nais1/c4.pt`, ny serie: 50 % Nesseby + aggressiv side, 4 t) | 4 sykl. / 247 409 prøver | **0.992** | **62.5 % mot AIL0.10** (25–15, n=40) · 92.5 % mot L3 (37–3) · 50 % mot AIL0.10 under Nesseby (15–15) | 13–7 / 12–8 mot AIL0.10 |
 | **NAIS.2** (`nais2/c4.pt`, Nesseby 100 %, 4 t) | 4 sykl. / 253 737 prøver | **0.9705** | **63.3 % mot NAIS.1 under Nesseby** (19–11, n=30) · 95.0 % mot L3 (38–2) | 10–5 / 9–6 mot NAIS.1 (Nesseby) |
+| **NAIS.3** (`nais3/c2.pt`, 1 t: NAIS.2 + 2 menneskeparti, 12 % av kvar batch) | 2 sykl. / 102 697 prøver | 0.9802 | **26.7 % mot NAIS.2 under Nesseby** (8–22, n=30) · 90.0 % mot L3 | ikkje tilrådd — sjå nedanfor |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
