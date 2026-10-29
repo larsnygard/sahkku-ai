@@ -131,12 +131,23 @@ def run_loop(args):
             print(f"[init] ny nett {net.cfg} -> {p}", flush=True)
 
     t_run = time.time()
+    last_cycle_s = 0.0            # kor lang den FØRRE syklusen vart
     for cycle in range(args.start_cycle, args.cycles + 1):
-        # tidsbudsjett: ein syklus tek 8-15 min, so vi stoppar mellom syklusar
-        # heller enn midt i datagenereringa (ein halv shard er verdilaus)
-        if args.max_seconds and (time.time() - t_run) >= args.max_seconds:
+        # Tidsbudsjett: vi stoppar mellom syklusar (ein halv shard er verdilaus),
+        # aldri midt i ei datagenerering.
+        elapsed = time.time() - t_run
+        if args.max_seconds and elapsed >= args.max_seconds:
             print(f"[stop] time budget ({args.max_seconds}s) used up "
                   f"after cycle {cycle - 1}", flush=True)
+            break
+        # …og vi startar ikkje ein syklus som ikkje REKK å bli ferdig: ein syklus
+        # som byrjar 60 s før fristen gjer at køyringa gjekk 57 minutt over
+        # budsjettet i staden for å stoppe nesten på slaget.
+        if args.max_seconds and last_cycle_s and \
+                elapsed + last_cycle_s > args.max_seconds:
+            print(f"[stop] the next cycle needs ~{last_cycle_s:.0f}s but only "
+                  f"{args.max_seconds - elapsed:.0f}s remain — stopping so the "
+                  f"budget is honoured", flush=True)
             break
         cyc_dir = os.path.join(rundir, f"cycle{cycle}")
         t0 = time.time()
@@ -215,6 +226,7 @@ def run_loop(args):
                "checkpoint": ck, "engine": rpath, "eval": ev,
                "elapsed_s": round(time.time() - t0, 1)}
         p = logline(run, rec)
+        last_cycle_s = float(rec["elapsed_s"])
         print(f"[c{cycle}] done in {rec['elapsed_s']}s -> {p}", flush=True)
     print(f"all done: {args.out}.js (+ .weights.json) and {ckdir}/", flush=True)
 
