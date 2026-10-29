@@ -8,6 +8,9 @@
 #   ./badass-trainer.sh --dry           # vis berre kva som ville køyrt
 #   ./badass-trainer.sh --nesseby       # blanda vanleg + Nesseby (0.5 av partia)
 #   ./badass-trainer.sh --nesseby --nesseby-fraction 0.3   # 30 % Nesseby
+#   ./badass-trainer.sh --aggressive                     # éi side spelar aggressivt
+#   ./badass-trainer.sh --human-games runs/human/*.spg   # blanda inn menneskeparti
+#       (standardvekt 0,05; høgare gav klårt svakare nett i NAIS.3-forsøket)
 #
 # Skriptet finn sjølv ut av:
 #   * fysiske kjernar (arbeidarar = kjernar, ikkje trådar)
@@ -34,6 +37,10 @@ MAXPLIES="2500"
 OUT=""
 NESSBY="0"
 NBFRAC=""
+AGGR="0"
+AGGRFRAC=""
+HUMANGAMES=""
+HUMANWEIGHT="0.05"
 DRY="0"
 
 die() { printf '\033[31mFEIL:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -54,6 +61,11 @@ while [ $# -gt 0 ]; do
     --out)        OUT="$2"; shift 2 ;;
     --nesseby)    NESSBY="1"; shift ;;
     --nesseby-fraction) NBFRAC="$2"; shift 2 ;;
+    --aggressive) AGGR="1"; shift ;;
+    --aggressive-fraction) AGGRFRAC="$2"; shift 2 ;;
+    --human-games)  shift; while [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; do
+                      HUMANGAMES="$HUMANGAMES $1"; shift; done ;;
+    --human-weight) HUMANWEIGHT="$2"; shift 2 ;;
     --dry)        DRY="1"; shift ;;
     -h|--help)    sed -n '2,20p' "$0"; exit 0 ;;
     *)            die "ukjent val «$1» (sjå --help)" ;;
@@ -149,6 +161,14 @@ if [ "$NESSBY" = "1" ]; then
 else
   say "reglar:   vanleg sáhkku (Nesseby av)"
 fi
+if [ "$AGGR" = "1" ]; then
+  [ -n "$AGGRFRAC" ] || AGGRFRAC="1.0"
+  say "stil:     éi side aggressiv i ${AGGRFRAC} av partia (slag ×2,5, framrykk ×1,4)"
+fi
+if [ -n "$HUMANGAMES" ]; then
+  NHUM=$(ls -1 $HUMANGAMES 2>/dev/null | wc -l)
+  say "menneske: ${NHUM} filer blanda inn, vekt ${HUMANWEIGHT} av kvar batch"
+fi
 say "plan:    ${HOURS} t · ${GAMES} parti/syklus · ${WORKERS} arbeidarar · ${SIMS} sims · $DEVICE"
 
 # Maskinvaretilpassing: minne til 8 arbeidarar er ~1-2 GB; 64 GB er rikeleg.
@@ -199,6 +219,16 @@ CMD=(
 if [ "$NESSBY" = "1" ]; then
   [ -n "$NBFRAC" ] || NBFRAC="0.5"
   CMD+=(--nesseby --nesseby-fraction "$NBFRAC")
+fi
+if [ "$AGGR" = "1" ]; then
+  [ -n "$AGGRFRAC" ] || AGGRFRAC="1.0"
+  CMD+=(--aggressive --aggressive-fraction "$AGGRFRAC")
+fi
+# Menneskeparti: eit lite, kuratert shard som vert blanda inn per minibatch.
+# Vekta er med vilje låg — 12 % gjorde nettet klårt svakare (NAIS.3), sjå README.
+if [ -n "$HUMANGAMES" ]; then
+  # shellcheck disable=SC2206
+  CMD+=(--human-games $HUMANGAMES --human-weight "$HUMANWEIGHT")
 fi
 
 if [ "$DRY" = "1" ]; then
