@@ -295,7 +295,14 @@ Målt på NAIS.1 (50 % Nesseby-parti, éi side aggressiv, 4 timar):
 **Sideasymmetri under Nesseby:** Giera-setet vann 22 av 30 parti, medan
 tilfeldig spel under same regel gjev Menn 57 %. Regelen er altso ikkje skeiv
 (båe sider treng 16–30 steg til motstandarens heimrad, median 23), men netta
-spelar Menn-sida dårleg i varianten. Det er neste konkrete lekk.
+spelar Menn-sida dårleg i varianten.
+
+**NAIS.2 (100 % Nesseby) svara på det:** asymmetrien forsvann (10–5 / 9–6 mot
+NAIS.1, og kongen vart kapra av Menn i 47,1 % av 983 treningsparti mot 0 av 4
+før), og vinsten kom: **63,3 % mot NAIS.1** i varianten — mot 50 % då berre
+halve dietten var Nesseby. Standardstyrken steig òg (95,0 % mot L3 mot 92,5 %),
+so specialisering kosta ingenting her. Sluttspela skil seg: 9 av 30 parti enda
+på utryddelse, 21 på dronning.
 
 Nesseby endrar òg sluttspela: i 5 sjølvspelparti enda **3 av 5 på utryddelse**
 (mot nesten alltid dronningkapsel i vanleg spel), og kongen vart kapra i alle 5.
@@ -386,6 +393,7 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **AIL0.9** (`ail09/c3.pt`, 3 syklusar oppå AIL0.8) | 3 sykl. / 147 963 prøver | **1.085** | **55.0 % mot AIL0.8** (22–18, n=40) · **97.5 % mot L3** (39–1) | 20–0 / 19–1 mot L3 |
 | **AIL0.10** (`ail10/latest.pt`, 1 syklus på RTX 3070) | 1 sykl. / 200 parti | — | **60.0 % mot AIL0.9** (18–12, n=30) · 96.7 % mot L3 (29–1, n=30) | 15–0 / 14–1 mot L3 |
 | **NAIS.1** (`nais1/c4.pt`, ny serie: 50 % Nesseby + aggressiv side, 4 t) | 4 sykl. / 247 409 prøver | **0.992** | **62.5 % mot AIL0.10** (25–15, n=40) · 92.5 % mot L3 (37–3) · 50 % mot AIL0.10 under Nesseby (15–15) | 13–7 / 12–8 mot AIL0.10 |
+| **NAIS.2** (`nais2/c4.pt`, Nesseby 100 %, 4 t) | 4 sykl. / 253 737 prøver | **0.9705** | **63.3 % mot NAIS.1 under Nesseby** (19–11, n=30) · 95.0 % mot L3 (38–2) | 10–5 / 9–6 mot NAIS.1 (Nesseby) |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
