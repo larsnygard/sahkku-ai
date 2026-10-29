@@ -102,6 +102,11 @@ def load_spg_dir(path: str, verbose=True):
     return out
 
 
+def count_games(text: str) -> int:
+    """Kor mange parti ligg i ein SPG-tekst? (For kontroll av innlesinga.)"""
+    return sum(1 for line in text.splitlines() if line.startswith("[Event "))
+
+
 def save_shard(samples, path: str):
     planes = np.stack([s[0] for s in samples])
     glob_ = np.stack([s[1] for s in samples])
@@ -152,8 +157,9 @@ def main():
                 samples.extend(got)
         else:
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                got = list(spg_samples(f.read(), winner_policy=a.winner_policy))
-            print(f"  {path}: {len(got)} prøver")
+                txt = f.read()
+            got = list(spg_samples(txt, winner_policy=a.winner_policy))
+            print(f"  {path}: {count_games(txt)} parti -> {len(got)} prøver")
             samples.extend(got)
     if not samples:
         raise SystemExit("INGA PRØVE — alle partia skilde frå motoren")

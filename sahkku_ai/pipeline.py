@@ -65,14 +65,26 @@ def run_loop(args):
     if args.human_games:
         human_shard = os.path.join(rundir, "human_shard.npz")
         samples = []
+        # kvar sti kan vere ei fil (med eitt eller fleire parti) eller ein katalog
+        paths = []
         for fp in args.human_games:
+            if os.path.isdir(fp):
+                paths.extend(sorted(globmod.glob(os.path.join(fp, "*.spg"))))
+            else:
+                paths.append(fp)
+        for fp in paths:
             try:
                 with open(fp, "r", encoding="utf-8", errors="replace") as f:
-                    got = list(D.spg_samples(f.read(), winner_policy=True))
+                    txt = f.read()
+                got = list(D.spg_samples(txt, winner_policy=True))
             except OSError as e:
                 print(f"[human] kan ikkje lese {fp}: {e}", flush=True)
                 continue
-            print(f"[human] {os.path.basename(fp)}: {len(got)} prøver", flush=True)
+            ng = D.count_games(txt)
+            print(f"[human] {os.path.basename(fp)}: {ng} parti -> {len(got)} prøver", flush=True)
+            if ng and not got:
+                print(f"[human] ÅTVARING: {fp} har {ng} parti, men ingen lét seg spele "
+                      f"opp att med motoren — ho vert IKKJE brukt", flush=True)
             samples.extend(got)
         if samples:
             D.save_shard(samples, human_shard)
