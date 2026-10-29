@@ -197,7 +197,22 @@ if [ -n "$THREADS_OVERRIDE" ]; then
 else
   WSORCE="${WORKERS} arbeidarar (auto: fysiske kjernar)"
 fi
-say "plan:    ${HOURS} t · ${GAMES} parti/syklus · ${WSORCE} · ${SIMS} sims · $DEVICE"
+# Kor lang tid éin syklus tek, og passar han i tidsbudsjettet?
+# Målt på P100 med 6 arbeidarar: 3,6-4,3 parti/min ved 45 sims, dvs. ~0,6
+# parti/min per arbeidar. Tida skalerer om lag lineært med sims.
+RATE_PW=$($PY -c "print(round(27.0 / max(1, $SIMS), 3))")          # parti/min/arbeidar
+CYCLE_MIN=$($PY -c "print(int(round($GAMES / (max(1,$WORKERS) * float('$RATE_PW')))))")
+BUDGET_MIN=$($PY -c "print(int(round(float('$HOURS') * 60)))")
+say "plan:    ${HOURS} t · ${GAMES} parti/syklus (~${CYCLE_MIN} min) · ${WSORCE} · ${SIMS} sims · $DEVICE"
+if [ "$CYCLE_MIN" -gt "$BUDGET_MIN" ]; then
+  FIT=$($PY -c "print(max(20, int($BUDGET_MIN * max(1,$WORKERS) * float('$RATE_PW') * 0.9)))")
+  printf '\033[33m'
+  say "ÅTVARING: éin syklus tek ~${CYCLE_MIN} min, men budsjettet er ${BUDGET_MIN} min."
+  say "          Tidsbudsjettet vert sjekka MELLOM syklusar — syklus 1 går ferdig uansett,"
+  say "          so køyringa endar ~${CYCLE_MIN} min etter start, ikkje etter ${HOURS} t."
+  say "          Vil du halde deg innanfor: --games ${FIT} (då stoppar han etter éin syklus)."
+  printf '\033[0m'
+fi
 
 # Maskinvaretilpassing: minne til 8 arbeidarar er ~1-2 GB; 64 GB er rikeleg.
 if [ "$RAM_GB" -lt 16 ] && [ -z "$THREADS_OVERRIDE" ]; then

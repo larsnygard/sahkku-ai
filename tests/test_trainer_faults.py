@@ -114,6 +114,13 @@ def main():
     p = dry("--workers", "2")
     ok("--workers still works as an alias", "--workers 2" in p.stdout, p.stdout[-160:])
 
+    # 7. a cycle that cannot fit the time budget must be called out BEFORE the run
+    p = dry("--hours", "1", "--games", "400", "--sims", "45", "--threads", "6")
+    ok("one cycle longer than the budget is warned about",
+       "ÅTVARING" in p.stdout and "--games" in p.stdout, p.stdout[-300:])
+    p = dry("--hours", "3", "--games", "400", "--sims", "45", "--threads", "6")
+    ok("no warning when the cycle fits", "ÅTVARING" not in p.stdout, p.stdout[-200:])
+
     print(f"test_trainer_faults: {PASS} pass, {FAIL} fail")
     return 1 if FAIL else 0
 
