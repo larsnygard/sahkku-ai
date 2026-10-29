@@ -88,6 +88,32 @@ def main():
     ok("a run without a checkpoint warns instead of claiming success",
        "wrote nothing" in out or "no c*.pt" in out, out[-300:])
 
+    # 6. --threads overrides the auto-detected worker count
+    def dry(*args):
+        return subprocess.run([str(SCRIPT), "--dry", "--run", "tt",
+                               "--init", "checkpoints/nais2/c4.pt", *args],
+                              capture_output=True, text=True, cwd=str(ROOT), timeout=180)
+
+    p = dry("--threads", "3")
+    ok("--threads reaches the pipeline", "--workers 3" in p.stdout, p.stdout[-160:])
+    ok("the summary says the count was overridden", "(--threads)" in p.stdout, p.stdout[-200:])
+    ok("--threads exits 0 on a dry run", p.returncode == 0, p.returncode)
+
+    p = dry("--threads", "40")
+    ok("a count above the VRAM advice still passes", "--workers 40" in p.stdout, p.stdout[-160:])
+    # NB: badass-trainer sine eigne meldingar er nynorske (berre Python-CLI-ane
+    # skal vere engelske), so åtvaringa er «ÅTVARING».
+    ok("...and warns about it",
+       "VRAM" in p.stdout and ("ÅTVARING" in p.stdout or "warning" in p.stdout.lower()),
+       p.stdout[-200:])
+
+    p = dry("--threads", "abc")
+    ok("a non-numeric count is refused", p.returncode != 0 and "whole number" in (p.stdout + p.stderr),
+       (p.stdout + p.stderr)[-160:])
+
+    p = dry("--workers", "2")
+    ok("--workers still works as an alias", "--workers 2" in p.stdout, p.stdout[-160:])
+
     print(f"test_trainer_faults: {PASS} pass, {FAIL} fail")
     return 1 if FAIL else 0
 

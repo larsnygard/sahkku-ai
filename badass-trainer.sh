@@ -8,6 +8,9 @@
 #   ./badass-trainer.sh --dry           # vis berre kva som ville køyrt
 #   ./badass-trainer.sh --nesseby       # blanda vanleg + Nesseby (0.5 av partia)
 #   ./badass-trainer.sh --nesseby --nesseby-fraction 0.3   # 30 % Nesseby
+#   ./badass-trainer.sh --threads 12                     # tving 12 arbeidarar
+#       (auto = fysiske kjernar; ei eksplisitt vekt vinn over VRAM-/minnetaka,
+#        men du får ei åtvaring om ho ligg over det maskina tilrår)
 #   ./badass-trainer.sh --aggressive                     # éi side spelar aggressivt
 #   ./badass-trainer.sh --human-games runs/human/*.spg   # blanda inn menneskeparti
 #       (standardvekt 0,05; høgare gav klårt svakare nett i NAIS.3-forsøket)
@@ -27,6 +30,7 @@ HOURS="2"
 GAMES="400"
 SIMS="45"
 WORKERS=""
+THREADS_OVERRIDE=""      # sett med --threads/--workers; vinn over alle automatiske tak
 STEPS="900"
 BATCH="256"
 LR="3.0e-4"
@@ -58,7 +62,7 @@ while [ $# -gt 0 ]; do
     --hours)      HOURS="$2"; shift 2 ;;
     --games)      GAMES="$2"; shift 2 ;;
     --sims)       SIMS="$2"; shift 2 ;;
-    --workers)    WORKERS="$2"; shift 2 ;;
+    --threads|--workers) THREADS_OVERRIDE="$2"; shift 2 ;;
     --steps)      STEPS="$2"; shift 2 ;;
     --lr)         LR="$2"; shift 2 ;;
     --leaf-batch) LEAFBATCH="$2"; shift 2 ;;
@@ -118,7 +122,15 @@ fi
 THREADS=$(nproc)
 CORES=$(lscpu -p=Core,Socket 2>/dev/null | grep -v '^#' | sort -u | wc -l)
 [ "${CORES:-0}" -gt 0 ] || CORES=$(( THREADS / 2 > 0 ? THREADS / 2 : 1 ))
-[ -n "$WORKERS" ] || WORKERS="$CORES"       # éin arbeidar per fysisk kjerne
+if [ -n "$THREADS_OVERRIDE" ]; then
+  case "$THREADS_OVERRIDE" in
+    ''|*[!0-9]*) die "--threads must be a whole number >= 1 (got «$THREADS_OVERRIDE»)" ;;
+  esac
+  [ "$THREADS_OVERRIDE" -ge 1 ] || die "--threads must be >= 1"
+  WORKERS="$THREADS_OVERRIDE"
+else
+  WORKERS="$CORES"                          # éin arbeidar per fysisk kjerne
+fi
 
 GPU=$($PY - <<'EOF'
 import torch
@@ -135,8 +147,12 @@ if [ "$GPU" != "none" ]; then
   VRAM_GB=$(echo "$GPU" | cut -d'|' -f2 | tr -d 'GB')
   MAXW=$($PY -c "print(max(2, int((float('$VRAM_GB')*0.8 - 1.0) / 0.45)))")
   if [ "$WORKERS" -gt "$MAXW" ]; then
-    say "VRAM ${VRAM_GB} GB → arbeidarar skorne frå $WORKERS til $MAXW (kvar prosess held ein CUDA-kontekst)"
-    WORKERS="$MAXW"
+    if [ -n "$THREADS_OVERRIDE" ]; then
+      say "ÅTVARING: $WORKERS arbeidarar er over det VRAM tilrår (${VRAM_GB} GB → ~$MAXW); held fram med $WORKERS fordi --threads vart gjeve"
+    else
+      say "VRAM ${VRAM_GB} GB → arbeidarar skorne frå $WORKERS til $MAXW (kvar prosess held ein CUDA-kontekst)"
+      WORKERS="$MAXW"
+    fi
   fi
   # Ampere+ (cc ≥ 8): TF32 gjev raskare konvolusjonar utan å røre eksporten.
   CC=$(echo "$GPU" | cut -d'|' -f3)
@@ -150,7 +166,9 @@ if [ "$GPU" = "none" ]; then
   DEVICE="cpu"
   say "Ingen CUDA-GPU: køyrer på CPU. Skruar ned sims ($SIMS→20) og arbeidarar."
   SIMS=20
-  [ "$WORKERS" -gt "$CORES" ] && WORKERS="$CORES"
+  if [ "$WORKERS" -gt "$CORES" ] && [ -z "$THREADS_OVERRIDE" ]; then
+    WORKERS="$CORES"
+  fi
 fi
 
 # CPU utan GPU er ~10x tregare per avgjerd: fleire arbeidarar gjev meir data
@@ -174,10 +192,15 @@ if [ -n "$HUMANGAMES" ]; then
   NHUM=$(ls -1 $HUMANGAMES 2>/dev/null | wc -l || true)
   say "menneske: ${NHUM} filer blanda inn, vekt ${HUMANWEIGHT} av kvar batch"
 fi
-say "plan:    ${HOURS} t · ${GAMES} parti/syklus · ${WORKERS} arbeidarar · ${SIMS} sims · $DEVICE"
+if [ -n "$THREADS_OVERRIDE" ]; then
+  WSORCE="${WORKERS} arbeidarar (--threads)"
+else
+  WSORCE="${WORKERS} arbeidarar (auto: fysiske kjernar)"
+fi
+say "plan:    ${HOURS} t · ${GAMES} parti/syklus · ${WSORCE} · ${SIMS} sims · $DEVICE"
 
 # Maskinvaretilpassing: minne til 8 arbeidarar er ~1-2 GB; 64 GB er rikeleg.
-if [ "$RAM_GB" -lt 16 ]; then
+if [ "$RAM_GB" -lt 16 ] && [ -z "$THREADS_OVERRIDE" ]; then
   WORKERS=$(( WORKERS < 4 ? WORKERS : 4 ))
   say "lite minne → ${WORKERS} arbeidarar"
 fi
