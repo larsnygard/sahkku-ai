@@ -80,7 +80,7 @@ def main():
         }],
     }
     json.dump(bundle, open(dst, "w"), ensure_ascii=False)
-    print(json.dumps({"fil": dst, "trekk": applied, "steg": len(steps), "fens": len(fens),
+    print(json.dumps({"file": dst, "moves": applied, "steps": len(steps), "fens": len(fens),
                       "slutt_fen": fens[-1], "vinnar": st.winner}, ensure_ascii=False))
 
 

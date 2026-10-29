@@ -42,7 +42,7 @@ def main():
             name = k.split(".")[0]
             base = dict(WIDE).get(name)
             if base is None:
-                raise SystemExit(f"ukjend utviding på {k}: {tuple(src_t.shape)} -> {tuple(v.shape)}")
+                raise SystemExit(f"unknown expansion on {k}: {tuple(src_t.shape)} -> {tuple(v.shape)}")
             n_old = src_t.shape[1] - (src_t.shape[1] - base - (src_t.shape[1] - base))
             # gamle kolonnar = base conv-kolonnar + (N_GLOBAL - nye) globale
             keep = base + (src_t.shape[1] - base)
@@ -53,7 +53,7 @@ def main():
         elif k.endswith(".bias") or "bias" in k or "running_" in k or "num_batches" in k:
             v.copy_(src_t)
         else:
-            raise SystemExit(f"kan ikkje utvide {k}: {tuple(src_t.shape)} -> {tuple(v.shape)}")
+            raise SystemExit(f"cannot expand {k}: {tuple(src_t.shape)} -> {tuple(v.shape)}")
 
     net.load_state_dict(new)
     meta = ck.get("meta", {})
@@ -61,7 +61,7 @@ def main():
     meta["globals_added"] = N_GLOBAL - (old["pol_fc.weight"].shape[1] - 8 * 45)
     net.save(dst, meta)
 
-    print(f"skrive {dst}")
+    print(f"wrote {dst}")
     print(f"  globale tal: {old['pol_fc.weight'].shape[1] - 8 * 45} -> {N_GLOBAL}")
     for k, a, b, n in widened:
         print(f"  {k}: {a} -> {b} ({n} nye kolonnar sett til 0)")

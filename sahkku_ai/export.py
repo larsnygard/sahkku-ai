@@ -59,8 +59,8 @@ def export(net_path, out_prefix, quant="fp32", name="SahkkuNN 1.0"):
     rpath = out_prefix + ".js"
     with open(rpath, "w", encoding="utf-8") as f:
         f.write(src)
-    print(f"eksport: {rpath} + {wpath} + {cp_path}")
-    print(f"prøv:  node {rpath}  (S-UCI: uci → uciok, posisjonar + go)")
+    print(f"export: {rpath} + {wpath} + {cp_path}")
+    print(f"try:   node {rpath}  (S-UCI: uci -> uciok, position + go)")
     return rpath, wpath
 
 

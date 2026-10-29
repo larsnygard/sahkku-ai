@@ -89,7 +89,7 @@ def main():
                             "tok_slag": bool(hit)})
     print(json.dumps({"stillingar": len(sample), "tok_slag": took,
                       "prosent": round(100.0 * took / max(1, len(sample)), 1),
-                      "døme": details}, ensure_ascii=False, indent=1))
+                      "examples": details}, ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":

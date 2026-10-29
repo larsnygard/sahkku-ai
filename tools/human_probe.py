@@ -69,7 +69,7 @@ def main(files):
         n = Net.load(ck, map_location="cpu")
         n.eval()
         nets[name] = n
-        print(f"lasta {name} frå {ck}")
+        print(f"loaded {name} from {ck}")
 
     for path in files:
         print(f"\n=== {path.split('/')[-1]} ===")
@@ -78,9 +78,9 @@ def main(files):
             for name, net in nets.items():
                 probs, val = policy_of(net, st)
                 row.append((name, probs.get(aid, 0.0), val))
-            print(f"  tapar-trekk {ply} ({E.sq_name(E.move_dest(st, mv))}):")
+            print(f"  loser move {ply} ({E.sq_name(E.move_dest(st, mv))}):")
             for name, pr, val in row:
-                print(f"    {name}: p(trekk) {pr:.3f} · verdi {val:+.3f}")
+                print(f"    {name}: p(move) {pr:.3f} · value {val:+.3f}")
             if len(row) == 2:
                 d_p = row[1][1] - row[0][1]
                 d_v = row[1][2] - row[0][2]

@@ -92,11 +92,11 @@ def _parse_token(tok: str, st: State, sq: int, assigned: set):
         if rel:
             t = (_SQ2T2[pl].get(sq) if prime else _SQ2T[pl].get(sq))
             if t is None:
-                raise ValueError(f"fen: open soldat «{tok}» på {name_of(sq)} står utanfor syklus")
+                raise ValueError(f"fen: open soldier «{tok}» at {name_of(sq)} is outside the cycle")
         else:
             c = _HOME2SEQ[pl].get(sq)
             if c is None:
-                raise ValueError(f"fen: heimemann «{tok}» står ikje på heimrekka ({name_of(sq)})")
+                raise ValueError(f"fen: «{tok}» is not on the home row ({name_of(sq)})")
             t = start_t(pl, c)
         for p in st.pieces:
             if p.t == "s" and p.o == pl and p.id not in assigned:
@@ -116,18 +116,18 @@ def _parse_token(tok: str, st: State, sq: int, assigned: set):
                 if rel:
                     p.at = sq
                 return
-        raise ValueError("fen: ukjend dronning-token")
-    raise ValueError(f"fen: ukjend brikke «{tok}» på {name_of(sq)}")
+        raise ValueError("fen: unknown queen token")
+    raise ValueError(f"fen: unknown piece «{tok}» at {name_of(sq)}")
 
 
 def from_fen(fen: str) -> State:
     w = str(fen).strip().split()
     if len(w) < 9:
-        raise ValueError(f"fen: for få felt ({len(w)}/9)")
+        raise ValueError(f"fen: too few fields ({len(w)}/9)")
     st = State()
     rows = w[0].split("/")
     if len(rows) != 3:
-        raise ValueError("fen: board må ha 3 rekker")
+        raise ValueError("fen: board must have 3 rows")
     assigned = set()
     row_names = [2, 1, 0]
     for r in range(3):

@@ -214,7 +214,7 @@ def _apply_token(st, piece_letter, from_name, to_name, samples, strict, want_v=N
     if not matches:
         if strict:
             raise ValueError(
-                "SPG: ingen lovleg trekk mot «"
+                "SPG: no legal move for «"
                 + (f"{piece_letter}{from_name}->{to_name}" if from_name else f"X->{to_name}")
                 + "» (pool: " + ",".join(f"{a}->{b}" for a, b, _ in map(enc, pool)) + ")")
         return

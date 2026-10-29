@@ -27,7 +27,7 @@ def find_run(name=None):
         if os.path.exists(cand):
             return name, cand
     if not logs:
-        raise SystemExit("fann ingen runs/*_run.log")
+        raise SystemExit("found no runs/*_run.log")
     return os.path.basename(logs[0])[:-8], logs[0]
 
 
@@ -160,21 +160,21 @@ def report(name, cycles_total=None, watch=False):
     budget = arg(parts, "--max-seconds", 0) if parts else 0
     if budget:
         left = max(0.0, budget - elapsed)
-        eta = f" · stoppar om {left/3600:.1f} t (budsjett {budget/3600:.1f} t)"
+        eta = f" · stops in {left/3600:.1f} h (budget {budget/3600:.1f} h)"
         frac_budget = min(1.0, elapsed / budget)
         pct = 100.0 * frac_budget
     elif 0 < frac < 1 and elapsed > 60:
         eta_s = elapsed * (1 - frac) / frac
         eta = f" · ETA {eta_s/3600:.1f} t" if eta_s > 3600 else f" · ETA {eta_s/60:.0f} min"
 
-    live = f" · pid {pid}" if pid else " · (ingen levande prosess)"
+    live = f" · pid {pid}" if pid else " · (no live process)"
     print(f"{run}  {bar(frac)} {pct:5.1f} %  {status}{live}")
-    print(f"  syklus {cur}/{cycles_total} · parti i syklusen {done_now}/{gpc}"
+    print(f"  cycle {cur}/{cycles_total} · games this cycle {done_now}/{gpc}"
           f" ({(100.0*done_now/gpc if gpc else 0):4.1f} %)"
-          f" · parti totalt {cycles_done*gpc + done_now}/{cycles_total*gpc}")
-    note = "" if st["workers"] else "  (ingen arbeidar har rapportert enno — fyrste linje kjem etter éin kamp)"
-    print(f"  køyrt {elapsed/60:.0f} min{eta} · prøver på disk {samples_done(run)}"
-          f" · arbeidarar {len(st['workers'])}{note}")
+          f" · games total {cycles_done*gpc + done_now}/{cycles_total*gpc}")
+    note = "" if st["workers"] else "  (no worker has reported yet — first line appears after one game)"
+    print(f"  elapsed {elapsed/60:.0f} min{eta} · samples on disk {samples_done(run)}"
+          f" · workers {len(st['workers'])}{note}")
     return frac
 
 
@@ -194,7 +194,7 @@ def main():
             frac = report(name, cycles)
             if frac >= 1.0:
                 break
-            print("\n(oppdaterer kvart 5. sekund — Ctrl+C for å stoppe)")
+            print("\n(refreshing every 5 s — Ctrl+C to stop)")
             time.sleep(5)
     except KeyboardInterrupt:
         pass

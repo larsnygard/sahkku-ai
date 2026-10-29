@@ -39,7 +39,7 @@ def scan(path, quiet=False):
     p = p[0] if isinstance(p, list) else p
     result = p.get("result")
     if result not in ("1-0", "0-1"):
-        print(f"{path}: uavgjort — hoppar over")
+        print(f"{path}: drawn — skipping")
         return None
     winner = 0 if result == "1-0" else 1
     loser = 1 - winner
@@ -70,14 +70,14 @@ def scan(path, quiet=False):
     name = path.split("/")[-1]
     if hung_at is None:
         if not quiet:
-            print(f"{name}: fann ingen augneblink der dronninga stod fritt etter taparen sitt trekk")
+            print(f"{name}: no moment found where the queen stood capturable after the loser's move")
         return {"file": name, "hung": None, "taken": taken_at}
     i, mv, after, qsq = hung_at
     gap = (taken_at - i) if taken_at is not None else None
-    print(f"{name}: dronninga (kone) vart hengd etter trekk {i + 1} av taparen — ho stod på "
-          f"{E.sq_name(qsq)} og kunne takast med éin manøver")
-    print(f"   trekk som hengde ho: {mv}")
-    print(f"   teken {gap} halvtrekk seinare" if gap is not None else "   (vart ikkje teken)")
+    print(f"{name}: the queen was hung after move {i + 1} by the loser — it stood on "
+          f"{E.sq_name(qsq)} and could be taken with one manoeuvre")
+    print(f"   move that hung it: {mv}")
+    print(f"   taken {gap} half-moves later" if gap is not None else "   (never taken)")
     return {"file": name, "hung": i + 1, "square": E.sq_name(qsq), "taken": taken_at, "gap": gap}
 
 

@@ -20,10 +20,10 @@ def main():
     text = open(path).read()
     p = SPG.parse_spg(text)
     print(f"tags: {p['tags']}")
-    print(f"resultat: {p['result']}  årsak: {p['reason']}  hendingar: {len(p['events'])}")
+    print(f"result: {p['result']}  reason: {p['reason']}  events: {len(p['events'])}")
     st, samples = SPG.game_from_spg(text, strict=True)
     got = FEN.to_fen(st)
-    print(f"trekk spela opp att: {len(samples)}")
+    print(f"moves replayed: {len(samples)}")
     print(f"slutt-FEN: {got}")
     if want not in ("-", ""):
         print("SAMANLIKN MED FASIT:", "LIK" if got.strip() == want.strip() else "ULIK")

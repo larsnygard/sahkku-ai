@@ -96,9 +96,9 @@ def load_spg_dir(path: str, verbose=True):
         out.extend(spg_samples(txt))
         if len(out) == n0 and verbose:
             skipped += 1
-            print(f"  hoppa over (skilde/ugyldig): {fp}")
+            print(f"  skipped (diverged/invalid): {fp}")
     if verbose:
-        print(f"SPG-filer: {len(files)} fila, {skipped} hoppa over, {len(out)} prøver")
+        print(f"SPG files: {len(files)} file(s), {skipped} skipped, {len(out)} samples")
     return out
 
 
@@ -132,20 +132,20 @@ def load_shards(paths, limit=0):
 def dataset_from_spg(path: str, out: str):
     s = load_spg_dir(path)
     if not s:
-        print("INGA PRØVE — tomt SPG-utgangsmateriell")
+        print("NO SAMPLES — empty SPG input")
         return 0
     save_shard(s, out)
-    print(f"SPG -> {out}: {len(s)} prøver")
+    print(f"SPG -> {out}: {len(s)} samples")
     return len(s)
 
 
 def main():
     import argparse
     ap = argparse.ArgumentParser(description="SPG-filer -> treningsshard")
-    ap.add_argument("--spg", nargs="+", required=True, help="filer eller katalogar")
+    ap.add_argument("--spg", nargs="+", required=True, help="files or directories")
     ap.add_argument("--out", required=True)
     ap.add_argument("--winner-policy", action="store_true",
-                    help="berre vinnaren sine trekk vert policy-mål")
+                    help="only the winner's moves become policy targets")
     a = ap.parse_args()
     samples = []
     for path in a.spg:
@@ -153,18 +153,18 @@ def main():
             for fp in sorted(set(globmod.glob(path + "/*.spg") + globmod.glob(path + "/**/*.spg", recursive=True))):
                 with open(fp, "r", encoding="utf-8", errors="replace") as f:
                     got = list(spg_samples(f.read(), winner_policy=a.winner_policy))
-                print(f"  {fp}: {len(got)} prøver")
+                print(f"  {fp}: {len(got)} samples")
                 samples.extend(got)
         else:
             with open(path, "r", encoding="utf-8", errors="replace") as f:
                 txt = f.read()
             got = list(spg_samples(txt, winner_policy=a.winner_policy))
-            print(f"  {path}: {count_games(txt)} parti -> {len(got)} prøver")
+            print(f"  {path}: {count_games(txt)} games -> {len(got)} samples")
             samples.extend(got)
     if not samples:
-        raise SystemExit("INGA PRØVE — alle partia skilde frå motoren")
+        raise SystemExit("NO SAMPLES — every game diverged from the engine")
     save_shard(samples, a.out)
-    print(f"skreiv {a.out}: {len(samples)} prøver")
+    print(f"wrote {a.out}: {len(samples)} samples")
 
 
 if __name__ == "__main__":

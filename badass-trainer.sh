@@ -44,6 +44,11 @@ HUMANWEIGHT="0.05"
 DRY="0"
 
 die() { printf '\033[31mFEIL:\033[0m %s\n' "$*" >&2; exit 1; }
+# Set -e kan stoppe skriptet kvar som helst UTAN eit ord. Denne fella gjer kvar
+# slik stopp til ein feilmelding med kommandoen og linja, so ein veit kva som
+# braut i staden for å gjette ut frå fire linjer vanleg utskrift.
+trap 'rc=$?; printf "\033[31m──── ABORTED (exit %s) at line %s\033[0m\n  command: %s\n" \
+        "$rc" "$LINENO" "$BASH_COMMAND" >&2' ERR
 say() { printf '\033[36m▸\033[0m %s\n' "$*"; }
 
 while [ $# -gt 0 ]; do
@@ -166,7 +171,7 @@ if [ "$AGGR" = "1" ]; then
   say "stil:     éi side aggressiv i ${AGGRFRAC} av partia (slag ×2,5, framrykk ×1,4)"
 fi
 if [ -n "$HUMANGAMES" ]; then
-  NHUM=$(ls -1 $HUMANGAMES 2>/dev/null | wc -l)
+  NHUM=$(ls -1 $HUMANGAMES 2>/dev/null | wc -l || true)
   say "menneske: ${NHUM} filer blanda inn, vekt ${HUMANWEIGHT} av kvar batch"
 fi
 say "plan:    ${HOURS} t · ${GAMES} parti/syklus · ${WORKERS} arbeidarar · ${SIMS} sims · $DEVICE"
@@ -227,7 +232,10 @@ fi
 # Menneskeparti: eit lite, kuratert shard som vert blanda inn per minibatch.
 # Vekta er med vilje låg — 12 % gjorde nettet klårt svakare (NAIS.3), sjå README.
 if [ -n "$HUMANGAMES" ]; then
-  # shellcheck disable=SC2206
+  # vekt >= 1 gjer batch - n_ex <= 0 og numpy krasjar midt i treninga
+  $PY -c "import sys; w=float('$HUMANWEIGHT'); sys.exit(0 if 0 < w < 1 else 1)" \
+    || die "--human-weight must be between 0 and 1 (got $HUMANWEIGHT); 0.05 is the measured default"
+  # shellcheck disable=SC2086
   CMD+=(--human-games $HUMANGAMES --human-weight "$HUMANWEIGHT")
 fi
 
@@ -236,18 +244,100 @@ if [ "$DRY" = "1" ]; then
   exit 0
 fi
 
-mkdir -p runs
-say "startar (Ctrl-C stoppar etter inneverande syklus; framdrift: tools/train_status.py $RUN -w)"
-printf '\n' > "runs/${RUN}_run.log"
-"${CMD[@]}" 2>&1 | tee -a "runs/${RUN}_run.log"
+# ---- pre-flight: a failure here costs seconds, not a wasted run ----------
+if [ "$DEVICE" = "cuda" ] && ! $PY -c 'import sys,torch; sys.exit(0 if torch.cuda.is_available() else 1)' 2>/dev/null; then
+  die "CUDA was requested but torch sees no GPU. Check: nvidia-smi · driver · that the venv has a CUDA build of torch (not the CPU wheel). Use --device cpu to train on CPU."
+fi
+if [ -n "$HUMANGAMES" ]; then
+  # shellcheck disable=SC2086
+  MISSING=""
+  for f in $HUMANGAMES; do
+    [ -e "$f" ] || MISSING="$MISSING $f"
+  done
+  [ -z "$MISSING" ] || die "human game file(s) not found:$MISSING"
+  # count the samples NOW instead of discovering an empty shard an hour in
+  # shellcheck disable=SC2086
+  set +e
+  HG=$($PY -m sahkku_ai.data --spg $HUMANGAMES --out /tmp/_human_preflight.npz --winner-policy 2>&1 | tail -1)
+  HGRC=$?
+  set -e
+  [ "$HGRC" -eq 0 ] || die "kunne ikkje lese menneskefilene (data-CLI exit $HGRC): $HG"
+  say "pre-flight human games: $HG"
+  case "$HG" in
+    *" 0 samples")
+      die "the human game files produced 0 usable samples — the run would be plain self-play. Check that the games replay on the engine: python -m sahkku_ai.data --spg <file> --out /tmp/x.npz --winner-policy" ;;
+  esac
+fi
+mkdir -p "$(dirname "$OUT")" 2>/dev/null || die "cannot create the output directory for $OUT"
 
-# ---- oppsummering --------------------------------------------------------
+mkdir -p runs
+LOG="runs/${RUN}_run.log"
+say "starting (Ctrl-C stops after the current cycle; progress: tools/train_status.py $RUN -w)"
+printf '\n' > "$LOG"
+START=$(date +%s)
+set -o pipefail
+set +e                       # vi les exit-koden sjølve og skriv feilmeldinga
+"${CMD[@]}" 2>&1 | tee -a "$LOG"
+RC=$?
+set -e
+ELAPSED=$(( $(date +%s) - START ))
+
+# ---- did it start at all? ------------------------------------------------
+if [ "$RC" -ne 0 ]; then
+  echo
+  printf '\033[31m──── RUN FAILED ────────────────────────────────────────────\033[0m\n'
+  printf 'exit code %s after %ss\n\n' "$RC" "$ELAPSED"
+  CAUSE=""
+  if grep -qi "CUDA out of memory\|out of memory" "$LOG"; then
+    CAUSE="GPU out of memory. Each worker holds its own CUDA context (~0.4 GB), so lower --workers before touching the model; --games also helps."
+  elif grep -qi "ModuleNotFoundError\|No module named" "$LOG"; then
+    CAUSE="a Python module is missing from .venv. The exact install lines are in the header of this script."
+  elif grep -qi "unrecognized arguments\|error: argument\|conflicting option" "$LOG"; then
+    CAUSE="the pipeline rejected a flag: this wrapper and sahkku_ai/pipeline.py are out of step. Compare the wrapper's CMD with the pipeline's add_argument list."
+  elif grep -qi "size mismatch\|load_state_dict\|Missing key" "$LOG"; then
+    CAUSE="the start weights do not match the current feature vector. The widening step covers narrower nets; a WIDER checkpoint cannot be shrunk — start from a matching one."
+  elif grep -qi "Address already in use\|Errno 98" "$LOG"; then
+    CAUSE="a port is taken — another run or eval is probably still alive."
+  elif grep -qi "No such file or directory" "$LOG"; then
+    CAUSE="a path does not exist (checkpoint, shard directory or human game file)."
+  elif grep -qi "Killed\|SIGKILL" "$LOG"; then
+    CAUSE="the process was killed — usually the kernel OOM killer. Lower --workers."
+  elif [ "$ELAPSED" -lt 30 ]; then
+    CAUSE="it died within 30 s, before any training work — read the last lines below; the first exception is the real cause."
+  fi
+  if [ -n "$CAUSE" ]; then printf 'likely cause: %s\n\n' "$CAUSE"; fi
+  printf 'last 25 lines of %s:\n' "$LOG"
+  tail -25 "$LOG" | sed 's/^/  | /'
+  echo
+  printf '\033[31mNothing was published. Progress so far is kept in checkpoints/%s/ and runs/%s/.\033[0m\n' "$RUN" "$RUN"
+  exit "$RC"
+fi
+
+# ---- exit 0 but no cycle finished (usually the budget ran out) -----------
+if ! grep -q "\[c[0-9]*\] done in" "$LOG"; then
+  echo
+  printf '\033[33m──── STOPPED WITHOUT A FINISHED CYCLE ──────────────────────\033[0m\n'
+  printf 'exit code 0, but no cycle completed in %ss — no new checkpoint was written.\n' "$ELAPSED"
+  echo "If that was the time budget, raise --hours; if it stopped early, the tail says why:"
+  tail -12 "$LOG" | sed 's/^/  | /'
+  exit 1
+fi
+
+# ---- summary -------------------------------------------------------------
 echo
-say "ferdig. Siste sjekkpunkt:"
-ls -1t checkpoints/"$RUN"/c*.pt 2>/dev/null | head -1 || say "  (ingen c*.pt — sjå loggen)"
-say "neste steg (eksport + motorvalidering):"
-cat <<EOF
-  $PY -m sahkku_ai.export --net \$(ls -1t checkpoints/$RUN/c*.pt | head -1) \\
-      --out $OUT --name "AIL${RUN#ail}"
-  node ../SnartSahkku/tests/suci.test.js   # krev S-UCI-testen (set SAHKKU_ENGINE)
+say "done. Latest checkpoint:"
+# `|| true`: utan ckpt. feilar ls med 2, og med set -e attende ville skriptet
+# dødd her — nettopp i det høvet vi vil seie «skreiv ingenting»
+CK=$(ls -1t checkpoints/"$RUN"/c*.pt 2>/dev/null | head -1 || true)
+if [ -n "$CK" ]; then
+  ls -1sh "$CK"
+  say "next steps (export + engine validation):"
+  cat <<EOF
+  $PY -m sahkku_ai.export --net $CK --out $OUT --name "NAIS.x"
+  SAHKKU_ENGINE="node $OUT.js" node ../SnartSahkku/tests/suci.test.js
+  EVAL_NESSBY=1 node tools/eval_match.js "node $OUT.js" "node ../SnartSahkku/engines/nais2.js" 30 <seed>
 EOF
+else
+  printf '\033[33mno c*.pt under checkpoints/%s — the run finished but wrote nothing; see %s\033[0m\n' "$RUN" "$LOG"
+  exit 1
+fi

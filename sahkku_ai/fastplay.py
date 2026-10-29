@@ -250,11 +250,11 @@ def worker_batch(args):
         done += kk
         if done % 10 == 0 or done == per:
             el = max(1e-9, time.time() - t0)
-            print(f"[w{wid}] {done}/{per} parti, {len(samples)} prøver, {el:.0f}s "
-                  f"({done / el * 60:.1f} parti/min, graph={'ja' if pred.graph else 'nei'})",
+            print(f"[w{wid}] {done}/{per} games, {len(samples)} samples, {el:.0f}s "
+                  f"({done / el * 60:.1f} games/min, graph={'yes' if pred.graph else 'no'})",
                   flush=True)
     out = os.path.join(cfg["outdir"], f"shard_{wid:03d}.npz")
     save_shard(samples, out)
-    print(f"[w{wid}] ferdig: {per} parti, {len(samples)} prøver -> {out} "
-          f"(Menn-vinn {wins[0]}, Giera-vinn {wins[1]})", flush=True)
+    print(f"[w{wid}] done: {per} games, {len(samples)} samples -> {out} "
+          f"(Menn wins {wins[0]}, Giera wins {wins[1]})", flush=True)
     return len(samples)

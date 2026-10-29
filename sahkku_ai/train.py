@@ -41,14 +41,14 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
     np.random.seed(seed)
     paths = sorted(set(sum([globmod.glob(g) for g in shards_glob.split()], [])))
     if not paths:
-        raise SystemExit(f"ingen shard-filer i {shards_glob!r}")
+        raise SystemExit(f"no shard files in {shards_glob!r}")
     P, G, PI, V = load_shards(paths)
     n = len(V)
     idx = np.random.RandomState(seed).permutation(n)
     n_val = int(n * val_holdout)
     tr, va = idx[n_val:], idx[:n_val]
-    print(f"treningsdata: {n} prøver frå {len(paths)} shards "
-          f"({len(tr)} tren / {len(va)} val)")
+    print(f"training data: {n} samples from {len(paths)} shards "
+          f"({len(tr)} train / {len(va)} val)")
 
     # Eit ekstra shard (t.d. menneskeparti) vert trekt inn i kvar minibatch med
     # fast vekt, so det tel sjølv om det er bittelite mot sjølvspelsdataen.
@@ -59,13 +59,13 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
         P = np.concatenate([P, P2]); G = np.concatenate([G, G2])
         PI = np.concatenate([PI, PI2]); V = np.concatenate([V, V2])
         ex_idx = np.arange(n0, n0 + len(V2))
-        print(f"ekstra shard: {len(V2)} prøver frå {extra} "
-              f"(vekt {extra_weight:.2f} av kvar batch)")
+        print(f"extra shard: {len(V2)} samples from {extra} "
+              f"(weight {extra_weight:.2f} of each batch)")
 
     legal_rows = (PI > 0)
     if init:
         net = Net.load(init, map_location="cpu")
-        print(f"init frå {init} (cfg {net.cfg}, meta {net.meta.get('steps','?')} steg)")
+        print(f"init from {init} (cfg {net.cfg}, meta {net.meta.get('steps','?')} steps)")
     else:
         net = Net(**{k: v for k, v in dict(ch=ch, blocks=blocks, fc=fc).items()
                      if v is not None})
@@ -133,7 +133,7 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
             if vp < best_val:
                 best_val = vp
                 net.save(os.path.join(ckdir, "best.pt"), net.meta)
-    print(f"trening ferdig på {time.time()-t0:.0f}s → checkpoints/{run}/latest.pt")
+    print(f"training done in {time.time()-t0:.0f}s -> checkpoints/{run}/latest.pt")
     return os.path.join(ckdir, "latest.pt")
 
 

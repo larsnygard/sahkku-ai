@@ -62,6 +62,9 @@ def run_loop(args):
     # fordeling og verdi -1. So lærer nettet idéane til vinnaren utan å lære
     # dei trekkja som tapte.
     human_shard = None
+    if args.human_games and not (0 < args.human_weight < 1):
+        raise SystemExit(f"--human-weight must be between 0 and 1 (got {args.human_weight}); "
+                         f"a weight >= 1 leaves no room for self-play in a batch")
     if args.human_games:
         human_shard = os.path.join(rundir, "human_shard.npz")
         samples = []
@@ -78,20 +81,20 @@ def run_loop(args):
                     txt = f.read()
                 got = list(D.spg_samples(txt, winner_policy=True))
             except OSError as e:
-                print(f"[human] kan ikkje lese {fp}: {e}", flush=True)
+                print(f"[human] cannot read {fp}: {e}", flush=True)
                 continue
             ng = D.count_games(txt)
-            print(f"[human] {os.path.basename(fp)}: {ng} parti -> {len(got)} prøver", flush=True)
+            print(f"[human] {os.path.basename(fp)}: {ng} games -> {len(got)} samples", flush=True)
             if ng and not got:
-                print(f"[human] ÅTVARING: {fp} har {ng} parti, men ingen lét seg spele "
-                      f"opp att med motoren — ho vert IKKJE brukt", flush=True)
+                print(f"[human] WARNING: {fp} holds {ng} game(s) but none replays on the "
+                      f"engine — the file is NOT used", flush=True)
             samples.extend(got)
         if samples:
             D.save_shard(samples, human_shard)
-            print(f"[human] {len(samples)} prøver -> {human_shard} "
-                  f"(vekt {args.human_weight:.2f} av kvar batch)", flush=True)
+            print(f"[human] {len(samples)} samples -> {human_shard} "
+                  f"(weight {args.human_weight:.2f} of each batch)", flush=True)
         else:
-            print("[human] INGA brukande prøver — køyrer utan", flush=True)
+            print("[human] no usable samples — running without", flush=True)
             human_shard = None
 
     # ---- optional supervised shard from SPG collections -------------------
@@ -107,7 +110,7 @@ def run_loop(args):
     # init.pt (elles trenar ein på nytt frå tilfeldig nett).
     if args.init:
         net_path = args.init
-        print(f"[init] held fram frå {net_path}", flush=True)
+        print(f"[init] continuing from {net_path}", flush=True)
     else:
         p = os.path.join(ckdir, "init.pt")
         done = sorted(globmod.glob(os.path.join(ckdir, "c*.pt")),
@@ -116,10 +119,10 @@ def run_loop(args):
                   if int(re.sub(r"\D", "", os.path.basename(q)) or 0) < args.start_cycle]
         if latest and not args.force_init:
             net_path = latest[-1]
-            print(f"[init] held fram frå {net_path} (siste fullførte syklus)", flush=True)
+            print(f"[init] continuing from {net_path} (last completed cycle)", flush=True)
         elif os.path.exists(p) and not args.force_init:
             net_path = p
-            print(f"[init] attbrukar {p}", flush=True)
+            print(f"[init] reusing {p}", flush=True)
         else:
             net = Net(ch=args.ch, blocks=args.blocks, fc=args.fc)
             net.meta = {"run": run, "cycle": 0, "steps": 0, "history": []}
@@ -132,8 +135,8 @@ def run_loop(args):
         # tidsbudsjett: ein syklus tek 8-15 min, so vi stoppar mellom syklusar
         # heller enn midt i datagenereringa (ein halv shard er verdilaus)
         if args.max_seconds and (time.time() - t_run) >= args.max_seconds:
-            print(f"[stopp] tidsbudsjettet ({args.max_seconds}s) er brukt opp "
-                  f"etter syklus {cycle - 1}", flush=True)
+            print(f"[stop] time budget ({args.max_seconds}s) used up "
+                  f"after cycle {cycle - 1}", flush=True)
             break
         cyc_dir = os.path.join(rundir, f"cycle{cycle}")
         t0 = time.time()
@@ -141,9 +144,9 @@ def run_loop(args):
         # -- 1. self-play -----------------------------------------------
         shards = sorted(globmod.glob(os.path.join(cyc_dir, "shard_*.npz")))
         if shards and not args.force_selfplay:
-            print(f"[c{cycle}] self-play finst alt: {len(shards)} shards", flush=True)
+            print(f"[c{cycle}] self-play already present: {len(shards)} shards", flush=True)
         else:
-            print(f"[c{cycle}] self-play: {games} parti, {args.workers} arbeidarar, "
+            print(f"[c{cycle}] self-play: {games} games, {args.workers} workers, "
                   f"device={args.device}", flush=True)
             SP.run_selfplay(net_path, cyc_dir, device=args.device, games=games,
                             workers=args.workers, rollouts=args.rollouts,
@@ -212,8 +215,8 @@ def run_loop(args):
                "checkpoint": ck, "engine": rpath, "eval": ev,
                "elapsed_s": round(time.time() - t0, 1)}
         p = logline(run, rec)
-        print(f"[c{cycle}] ferdig på {rec['elapsed_s']}s → {p}", flush=True)
-    print(f"alt ferdig: {args.out}.js (+ .weights.json) og {ckdir}/", flush=True)
+        print(f"[c{cycle}] done in {rec['elapsed_s']}s -> {p}", flush=True)
+    print(f"all done: {args.out}.js (+ .weights.json) and {ckdir}/", flush=True)
 
 
 def main():
@@ -221,14 +224,14 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", default="r1")
     ap.add_argument("--human-games", nargs="+", default=None,
-                    help="SPG-filer med menneskeparti som skal blandast inn")
+                    help="SPG files with human games to mix in")
     ap.add_argument("--human-weight", type=float, default=0.10,
-                    help="del av kvar minibatch som kjem frå --human-games")
+                    help="share of each minibatch drawn from --human-games")
     ap.add_argument("--cycles", type=int, default=3)
     ap.add_argument("--start-cycle", type=int, default=1)
-    ap.add_argument("--games", type=int, default=200, help="parti per syklus")
+    ap.add_argument("--games", type=int, default=200, help="games per cycle")
     ap.add_argument("--games-first", type=int, default=0,
-                    help="parti i fyrste syklus (standard: --games)")
+                    help="games in the first cycle (default: --games)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--rollouts", type=int, default=8)
     ap.add_argument("--temp", type=float, default=1.0)
@@ -237,45 +240,45 @@ def main():
     ap.add_argument("--prior-eps", type=float, default=0.2)
     ap.add_argument("--tau-q", type=float, default=1.0)
     ap.add_argument("--sims", type=int, default=0,
-                    help="MCTS-simuleringar per avgjerd i sjølvspel (0 = utspelingar)")
+                    help="MCTS simulations per decision in self-play (0 = playouts)")
     ap.add_argument("--c-puct", type=float, default=1.6)
     ap.add_argument("--leaf-batch", type=int, default=8)
     ap.add_argument("--train-opponent", dest="train_opponent", default="",
-                    help="tren mot klassisk CPU i staden for sjølvspel (t.d. «classic3»)")
+                    help="train against the classic CPU instead of self-play (e.g. \"classic3\")")
     ap.add_argument("--train-opponent-level", dest="train_opponent_level", type=int, default=3)
     ap.add_argument("--queen-delay", type=int, default=-1,
-                    help="sjølvspel-handikap: -1 av, 0/1 fast side, 2 = tilfeldig side "
-                         "per parti. Sida får ikkje vekkje dronninga før ho har "
+                    help="self-play handicap: -1 off, 0/1 fixed side, 2 = random side "
+                         "per game. That side may not activate its queen until it has "
                          "--queen-delay-soldiers soldatar att (AIL0.6-eksperimentet)")
     ap.add_argument("--queen-delay-soldiers", type=int, default=2)
     ap.add_argument("--max-plies", type=int, default=300,
-                    help="tak på ply per parti i datagenereringa")
+                    help="ply cap per game during data generation")
     ap.add_argument("--nesseby", action="store_true",
-                    help="sjølvspel med Nesseby-regelen (kongen kan ikkje kaprast ved "
-                         "landing før ein soldat har nådd motstandarens heimrad)")
+                    help="self-play with the Nesseby rule (the king cannot be captured by "
+                         "landing until a soldier has reached the opponent's home row)")
     ap.add_argument("--nesseby-fraction", type=float, default=1.0,
-                    help="del av partia som spelast med Nesseby når --nesseby er på "
-                         "(0.5 = blanda; eitt nett lærer då båe regelsetta)")
+                    help="share of games played with Nesseby when --nesseby is on "
+                         "(0.5 = mixed; one net then learns both rule sets)")
     ap.add_argument("--aggressive", action="store_true",
-                    help="éi side i kvart parti spelar aggressivt (vekt på slag og "
-                         "framrykk); sida vekslar, so nettet lærer båe sider")
+                    help="one side per game plays aggressively (weight on captures and "
+                         "advances); the side alternates so the net learns both")
     ap.add_argument("--aggressive-fraction", type=float, default=1.0,
-                    help="del av partia som har ei aggressiv side (1.0 = alle)")
+                    help="share of games with an aggressive side (1.0 = all)")
     ap.add_argument("--max-seconds", type=int, default=0,
-                    help="stopp etter N sekund (0 = berre --cycles). Sjekka mellom syklusar.")
+                    help="stop after N seconds (0 = only --cycles). Checked between cycles.")
     ap.add_argument("--steps", type=int, default=1500)
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--wd", type=float, default=1e-4)
     ap.add_argument("--warmup", type=int, default=50)
     ap.add_argument("--window", type=int, default=2,
-                    help="kor mange syklusar med shards treninga ser (replay-buffer)")
+                    help="how many cycles of shards the trainer sees (replay buffer)")
     ap.add_argument("--ch", type=int, default=64)
     ap.add_argument("--blocks", type=int, default=6)
     ap.add_argument("--fc", type=int, default=128)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=13)
-    ap.add_argument("--init", default=None, help="checkpoint å starte frå")
+    ap.add_argument("--init", default=None, help="checkpoint to start from")
     ap.add_argument("--spg", default=None, help="mappe med .spg-samlingar (valfri)")
     ap.add_argument("--spg-out", default=None)
     ap.add_argument("--out", default="engines/sahkku-nn")

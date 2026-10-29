@@ -579,9 +579,9 @@ def worker(args):
             wins[w] += 1
         if (g + 1) % int(cfg.get("report_every", 1)) == 0:
             el = max(1e-9, time.time() - t0)
-            print(f"[w{wid}] {g+1}/{cfg['games_per_worker']} parti, "
-                  f"{len(samples)} prøver, {el:.0f}s "
-                  f"({(g+1)/el*60:.1f} parti/min)", flush=True)
+            print(f"[w{wid}] {g+1}/{cfg['games_per_worker']} games, "
+                  f"{len(samples)} samples, {el:.0f}s "
+                  f"({(g+1)/el*60:.1f} games/min)", flush=True)
     out = os.path.join(cfg["outdir"], f"shard_{wid:03d}.npz")
     save_shard(samples, out)
     nbc = cfg.get("_nb_caps")
@@ -590,14 +590,14 @@ def worker(args):
         m = sum(1 for s, _ in nbc if s == 0)
         g = sum(1 for s, _ in nbc if s == 1)
         avg = (sum(p for _, p in nbc) / len(nbc)) if nbc else 0
-        nbtxt = f", Nesseby: konge kapra av Menn {m} / Giera {g} (snitt trekk {avg:.0f})"
+        nbtxt = f", Nesseby: king captured by Menn {m} / Giera {g} (mean ply {avg:.0f})"
     qds = cfg.get("_qd_stats")
     qdtxt = ""
     if qds is not None:
-        qdtxt = (f", dronning-handikap: {qds.get('viol', 0)} fallback-vekkingar"
-                 f" (av {len(qds.get('fallback_soldiers', []))})")
-    print(f"[w{wid}] ferdig: {cfg['games_per_worker']} parti, {len(samples)} prøver -> {out} "
-          f"(Menn-vinn {wins[0]}, Giera-vinn {wins[1]}{qdtxt}{nbtxt})", flush=True)
+        qdtxt = (f", queen handicap: {qds.get('viol', 0)} fallback activations"
+                 f" (of {len(qds.get('fallback_soldiers', []))})")
+    print(f"[w{wid}] done: {cfg['games_per_worker']} games, {len(samples)} samples -> {out} "
+          f"(Menn wins {wins[0]}, Giera wins {wins[1]}{qdtxt}{nbtxt})", flush=True)
     return len(samples)
 
 
@@ -638,7 +638,7 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
         # etter fork. spawn gjev kvar arbeidar sin eigen kontekst.
         with mp.get_context("spawn").Pool(workers) as pool:
             tot = sum(pool.map(fn, jobs))
-    print(f"selfplay: ~{games} parti, {tot} prøver på {time.time()-t0:.0f}s -> {outdir}")
+    print(f"selfplay: ~{games} games, {tot} samples in {time.time()-t0:.0f}s -> {outdir}")
     return tot
 
 
@@ -655,32 +655,32 @@ if __name__ == "__main__":
     ap.add_argument("--noise-eps", type=float, default=0.25)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--prior-eps", type=float, default=0.2,
-                    help="vekt på nett-prioren i policy-målet (0 = berre utfall)")
+                    help="weight on the net prior in the policy target (0 = outcome only)")
     ap.add_argument("--tau-q", type=float, default=1.0,
-                    help="temperatur på utfallsvektinga, π ∝ n·exp(q/tau)")
+                    help="temperature on the outcome weighting, pi ~ n*exp(q/tau)")
     ap.add_argument("--k-games", type=int, default=1,
-                    help="vektorisert løype: K parti i lufta per arbeidar (1 = klassisk)")
+                    help="vectorised path: K games in flight per worker (1 = classic)")
     ap.add_argument("--batch", type=int, default=64,
                     help="fast batch for CUDA-graph-inferens")
     ap.add_argument("--sims", type=int, default=0,
-                    help="MCTS-simuleringar per avgjerd (0 = dagens utspelingar)")
+                    help="MCTS simulations per decision (0 = plain playouts)")
     ap.add_argument("--c-puct", type=float, default=1.6)
     ap.add_argument("--leaf-batch", type=int, default=8)
     ap.add_argument("--queen-delay", type=int, default=-1,
-                    help="handikap: -1 av, 0/1 fast side, 2 = tilfeldig side per parti "
-                         "(sida får ikkje vekkje dronninga før --queen-delay-soldiers soldatar att)")
+                    help="handicap: -1 off, 0/1 fixed side, 2 = random side per game "
+                         "(that side may not activate its queen until --queen-delay-soldiers soldiers remain)")
     ap.add_argument("--queen-delay-soldiers", type=int, default=2)
     ap.add_argument("--max-plies", type=int, default=MAX_PLIES,
-                    help="tak på ply per parti i datagenereringa (handikappa parti blir lange)")
+                    help="ply cap per game in data generation (handicapped games run long)")
     ap.add_argument("--nesseby", action="store_true",
-                    help="spel med Nesseby-regelen (kongen kan ikkje kaprast ved landing)")
+                    help="play with the Nesseby rule (king cannot be captured by landing)")
     ap.add_argument("--nesseby-fraction", type=float, default=1.0,
-                    help="del av partia med Nesseby når --nesseby er sett")
+                    help="share of games with Nesseby when --nesseby is set")
     ap.add_argument("--aggressive", action="store_true",
-                    help="éi side spelar aggressivt (vekt på slag og framrykk)")
+                    help="one side plays aggressively (weight on captures and advances)")
     ap.add_argument("--aggressive-fraction", type=float, default=1.0)
     ap.add_argument("--opponent", default="",
-                    help="tren mot denne i staden for sjølvspel (t.d. «classic3»)")
+                    help="train against this instead of self-play (e.g. \"classic3\")")
     ap.add_argument("--opponent-level", type=int, default=3)
     a = ap.parse_args()
     run_selfplay(a.net, a.outdir, a.device, a.games, a.workers,
