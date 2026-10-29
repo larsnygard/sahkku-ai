@@ -117,7 +117,7 @@ def parse_spg(text: str):
             "reason": reason, "bad": bad, "comments": comments}
 
 
-def game_from_spg(text: str, strict: bool = True):
+def game_from_spg(text: str, strict: bool = True, _force_nesseby: bool = False):
     """Replay an SPG game on the engine.
 
     Returns (state_final, samples). samples = list of
@@ -126,13 +126,16 @@ def game_from_spg(text: str, strict: bool = True):
     Raises ValueError on irreconcilable notation when strict.
     """
     p = parse_spg(text)
-    st = E.State()
+    # Regelmodusen høyrer til partiet: eit Nesseby-parti som vert spela opp med
+    # vanlege reglar hamnar i feil stilling (kongen byter eigar) og brest.
+    NB = bool(_force_nesseby or p.get("nesseby"))
+    st = E.State(nesseby=NB)
     samples = []
     pending = None  # current roll (faces, side)
     for ev in p["events"]:
         kind = ev[0]
         if kind == "open":
-            st = E.State(first=ev[1])
+            st = E.State(first=ev[1], nesseby=NB)
             st.phase = "roll"
         elif kind in ("roll", "reroll"):
             faces, side = ev[1], ev[2]
@@ -150,6 +153,21 @@ def game_from_spg(text: str, strict: bool = True):
                          want_v=2 if len(ev) > 5 and ev[5] == "II" else
                                   (3 if len(ev) > 5 and ev[5] == "III" else None))
     return st, samples
+
+
+def game_from_spg_any(text: str, strict: bool = True):
+    """Som game_from_spg, men prøver Nesseby om vanlege reglar ikkje går opp.
+
+    Eldre filer manglar [Variant]-tag. Å spele eit Nesseby-parti med vanlege
+    reglar bryt på eit tidspunkt (kongen har bytt eigar), so då prøver vi same
+    partiet med Nesseby på — går det heilt opp, var det det.
+    """
+    try:
+        return game_from_spg(text, strict=strict)
+    except ValueError:
+        if "nesseby" in str(parse_spg(text).get("nesseby", "")).lower() or parse_spg(text).get("nesseby"):
+            raise
+        return game_from_spg(text, strict=strict, _force_nesseby=True)
 
 
 def _apply_token(st, piece_letter, from_name, to_name, samples, strict, want_v=None):

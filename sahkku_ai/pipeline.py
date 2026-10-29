@@ -57,6 +57,31 @@ def run_loop(args):
     os.makedirs(rundir, exist_ok=True)
     os.makedirs(ckdir, exist_ok=True)
 
+    # ---- menneskeparti: eit lite shard som vert blanda inn i kvar minibatch ---
+    # Policy-målet er berre vinnaren sine trekk; taparsida kjem med jamn
+    # fordeling og verdi -1. So lærer nettet idéane til vinnaren utan å lære
+    # dei trekkja som tapte.
+    human_shard = None
+    if args.human_games:
+        human_shard = os.path.join(rundir, "human_shard.npz")
+        samples = []
+        for fp in args.human_games:
+            try:
+                with open(fp, "r", encoding="utf-8", errors="replace") as f:
+                    got = list(D.spg_samples(f.read(), winner_policy=True))
+            except OSError as e:
+                print(f"[human] kan ikkje lese {fp}: {e}", flush=True)
+                continue
+            print(f"[human] {os.path.basename(fp)}: {len(got)} prøver", flush=True)
+            samples.extend(got)
+        if samples:
+            D.save_shard(samples, human_shard)
+            print(f"[human] {len(samples)} prøver -> {human_shard} "
+                  f"(vekt {args.human_weight:.2f} av kvar batch)", flush=True)
+        else:
+            print("[human] INGA brukande prøver — køyrer utan", flush=True)
+            human_shard = None
+
     # ---- optional supervised shard from SPG collections -------------------
     spg_shard = None
     if args.spg:
@@ -139,7 +164,8 @@ def run_loop(args):
                       steps=args.steps, batch=args.batch, lr=args.lr,
                       wd=args.wd, warmup=args.warmup, device=args.device,
                       seed=args.seed, log_every=args.log_every,
-                      save_every=args.save_every)
+                      save_every=args.save_every,
+                      extra=human_shard, extra_weight=args.human_weight)
             src = os.path.join("checkpoints", f"{run}_c{cycle}", "latest.pt")
             shutil.copyfile(src, ck)
         net_path = ck
@@ -182,6 +208,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", default="r1")
+    ap.add_argument("--human-games", nargs="+", default=None,
+                    help="SPG-filer med menneskeparti som skal blandast inn")
+    ap.add_argument("--human-weight", type=float, default=0.10,
+                    help="del av kvar minibatch som kjem frå --human-games")
     ap.add_argument("--cycles", type=int, default=3)
     ap.add_argument("--start-cycle", type=int, default=1)
     ap.add_argument("--games", type=int, default=200, help="parti per syklus")

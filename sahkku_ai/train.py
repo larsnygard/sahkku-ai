@@ -35,7 +35,8 @@ def masked_policy_loss(logits, target, mask=None):
 
 def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
           wd=1e-4, warmup=50, device="cuda", seed=13, val_holdout=0.05,
-          ch=None, blocks=None, fc=None, log_every=20, save_every=200):
+          ch=None, blocks=None, fc=None, log_every=20, save_every=200,
+          extra=None, extra_weight=0.0):
     torch.manual_seed(seed)
     np.random.seed(seed)
     paths = sorted(set(sum([globmod.glob(g) for g in shards_glob.split()], [])))
@@ -48,6 +49,18 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
     tr, va = idx[n_val:], idx[:n_val]
     print(f"treningsdata: {n} prøver frå {len(paths)} shards "
           f"({len(tr)} tren / {len(va)} val)")
+
+    # Eit ekstra shard (t.d. menneskeparti) vert trekt inn i kvar minibatch med
+    # fast vekt, so det tel sjølv om det er bittelite mot sjølvspelsdataen.
+    ex_idx = None
+    if extra and extra_weight > 0:
+        n0 = len(V)
+        P2, G2, PI2, V2 = load_shards([extra])
+        P = np.concatenate([P, P2]); G = np.concatenate([G, G2])
+        PI = np.concatenate([PI, PI2]); V = np.concatenate([V, V2])
+        ex_idx = np.arange(n0, n0 + len(V2))
+        print(f"ekstra shard: {len(V2)} prøver frå {extra} "
+              f"(vekt {extra_weight:.2f} av kvar batch)")
 
     legal_rows = (PI > 0)
     if init:
@@ -88,7 +101,11 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
     for step in range(1, steps + 1):
         for g in opt.param_groups:
             g["lr"] = lr_at(step)
-        b = np.random.RandomState(seed + step).choice(tr, batch)
+        n_ex = int(round(batch * extra_weight)) if ex_idx is not None else 0
+        rs = np.random.RandomState(seed + step)
+        b = rs.choice(tr, batch - n_ex)
+        if n_ex:
+            b = np.concatenate([b, rs.choice(ex_idx, n_ex)])
         x = P[b].to(dev); gvec = G[b].to(dev)
         tgt = PI[b].to(dev); lm = LM[b].to(dev); v = V[b].to(dev)
         pol, val = net(x, gvec)

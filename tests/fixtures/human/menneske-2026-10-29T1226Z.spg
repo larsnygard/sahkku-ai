@@ -1,0 +1,250 @@
+[Event "Parti mot CPU — Nesseby"]
+[Date "2026-10-29"]
+[Time "13:26:10"]
+[UTC "2026-10-29T12:26:10Z"]
+[Menn "Olbmát"]
+[Koner "Gálgut (c) NAIS.2"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+{SnartSáhkku v1.18.1, mot NAIS.2. Terningar og trekk er registrerte; kommentarar er frie.}
+
+1. open#1: M(III X II) K(X II III)
+1. open#2: M(_ X II) K(X X II) -> K
+1. K: _ X X
+   X->A2
+   KA2->B2
+2. M: II II II
+3. K: _ X II
+   KB2->C2
+   II: KC2->E2
+4. M: II III _
+5. K: III X II
+   KE2->F2
+   III: KF2->I2
+   II: KI2->K2
+6. M: X III _
+   X->O2
+7. K: X X X
+   X->A3
+   KA3->A2
+   KA2->B2
+8. M: X II III
+   X->O1
+   III: MO1->M2
+   II: MM2->K2x [K2K]
+9. K: II II III
+   III: KB2->E2
+   II: KE2->G2
+   II: KG2->I2
+10. M: II X X
+   X->N1
+   X->M1
+   II: MK2->I2x [I2K]
+11. K: II III _
+12. M: II X II
+   X->L1
+   II: MM1->O1
+   II: MO2->M2
+13. K: III II II
+14. M: III _ II
+   III: MN1->N2
+   II: ML1->N1
+15. K: II III III
+16. M: II II _
+   II: MM2->K2
+   II: MN1->O2
+17. K: II III X
+   X->B3
+   III: KB3->B2
+18. M: III X II
+   X->K1
+   III: MK1->N1
+   II: MO2->M2
+19. K: _ III II
+   III: KB2->E2
+   II: KE2->G2
+20. M: _ II II
+   II: MI2->G2x [G2K]
+   II: MK2->I2
+21. K: III X III
+   X->C3
+   III: KC3->A2
+22. M: X II X
+23. M (omkast #1): III II X
+   X!
+24. M (omkast #2): III II X
+   X!
+25. M (omkast #3): III II _
+   X!
+   III: MO1->M2
+   II: MM2->K2
+26. K: II II X
+   KA2->B2
+27. M: III _ III
+   III: MN1->N2
+   III: MM2->J2
+28. K: X III X
+   KB2->C2
+   X->D3
+   III: KD3->A3
+29. M: III _ _
+   III: MI2->F2
+30. K: II III _
+   III: KC2->F2x [F2M]
+   II: KA3->B2
+31. M: III _ III
+   III: MN2->K2
+   III: MN2->K2
+32. K: X _ X
+   KF2->G2x [G2M]
+   KB2->C2
+33. M: III _ III
+   III: MJ2->G2x [G2K]
+34. K: II III II
+   III: KC2->F2
+35. M: II X II
+   X->J1
+   II: MK2->I2
+   II: MG2->E2
+36. K: X X III
+   KF2->G2
+   X->E3
+   III: KG2->J2
+37. M: III II _
+   III: MJ1->M1
+   II: MK2->I2
+38. K: II II X
+   KE3->D3
+   II: KD3->B3
+   II: KB3->A2
+39. M: III III X
+   MK2->J2x [J2K]
+   III: ME2->B2
+   III: MB2->B3
+40. K: X _ III
+   X->F3
+   III: KF3->C3
+41. M: X II II
+   MB3->C3x [C3K]
+   II: MI2->G2
+   II: MM1->O1
+42. K: III III III
+43. M: II _ II
+   II: MO1->N2
+   II: MG2->E2
+44. K: X II _
+   X->G3
+   II: KG3->E3
+45. M: _ _ X
+46. M (omkast #1): _ _ II
+   X!
+   II: MC3->E3x [E3K]
+47. K: III X X
+   KA2->B2
+   KB2->C2
+   III: KC2->F2
+48. M: _ II III
+   III: MI2->F2x [F2K]
+   II: ME2->C2
+49. K: II X _
+   X->H3
+   II: KH3->F3
+50. M: _ II X
+   ME3->F3x [F3K]
+   II: MC2->A2
+51. K: II X _
+   X->I3
+   II: KI3->G3
+52. M: III X X
+   MF3->G3x [G3K]
+   X->I1
+   III: kH2->K2
+53. K: X _ III
+   X->J3
+   III: KJ3->G3x [G3M]
+54. M: X _ III
+   kK2->K1
+   III: MJ2->G2
+55. K: II _ _
+   II: KG3->E3
+56. M: X III II
+   MF2->E2
+   III: MA2->C3
+   II: MC3->E3x [E3K]
+57. K: _ X _
+   X->K3
+58. M: X II X
+59. M (omkast #1): X II X
+   X!
+60. M (omkast #2): II II X
+   X!
+61. M (omkast #3): II II II
+   X!
+   II: ME3->G3
+   II: MG3->I3
+   II: MI3->K3x [K3K]
+62. K: II X II
+   X->L3
+   II: KL3->J3
+   II: KJ3->H3
+63. M: II II _
+   II: ME2->C2
+   II: MC2->A2
+64. K: II II X
+   X->M3
+   II: KM3->K3x [K3M]
+   II: KH3->F3
+65. M: III II III
+   III: MA2->C3
+   III: MC3->F3x [F3K]
+   II: MG2->E2
+66. K: III _ X
+   X->E2
+   III: QE2->B2
+67. M: X X III
+68. M (omkast #1): II X III
+   X!
+69. M (omkast #2): II _ III
+   X!
+   III: kK1->N1
+   II: MI1->K1
+70. K: II II X
+   X->N3
+   II: KK3->I3
+   II: KI3->G3
+71. M: X II III
+72. M (omkast #1): _ II III
+   X!
+   III: MF3->I3
+   II: kN1->N3x [N3K]
+73. K: X _ II
+   KG3->F3
+   II: KF3->D3
+74. M: _ III _
+   III: kN3->K3
+75. K: _ X X
+   QB2->A2
+   KD3->C3
+76. M: II _ II
+   II: MK1->M1
+   II: MM1->O1
+77. K: III III II
+   III: QA2->D2
+   III: QD2->G2
+   II: KC3->A3
+78. M: X _ III
+79. M (omkast #1): X _ III
+   X!
+80. M (omkast #2): II _ III
+   X!
+   III: MI3->L3
+   II: ML3->N3
+81. K: III _ II
+   III: KA3->C2
+   II: QG2->I2
+82. M: X _ II
+   kK3->K2
+   II: kK2->I2x [Q]
+1-0 {dronning}
