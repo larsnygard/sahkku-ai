@@ -176,7 +176,8 @@ def run_loop(args):
                             aggressive=args.aggressive,
                             aggressive_fraction=args.aggressive_fraction,
                             styles=args.styles,
-                            style_fraction=args.style_fraction)
+                            style_fraction=args.style_fraction,
+                            style_both=args.style_both)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -276,6 +277,10 @@ def main():
     ap.add_argument("--styles", action="store_true",
                     help="tactic duels: one side plays 'few' or 'kingfwd' "
                          "against 'many' or 'kingguard' (see selfplay.PAIRS)")
+    ap.add_argument("--style-both", default=None,
+                    choices=["few", "many", "kingfwd", "kingguard"],
+                    help="apply this style to BOTH sides (train a doctrine) "
+                         "instead of duelling two styles")
     ap.add_argument("--style-fraction", type=float, default=1.0,
                     help="share of games played as tactic duels")
     ap.add_argument("--aggressive", action="store_true",

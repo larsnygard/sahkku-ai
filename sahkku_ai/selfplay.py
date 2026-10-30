@@ -276,9 +276,18 @@ SOLDIER_SEND = 1.6    # soldatframrykk når kongen skal vernast
 
 
 def style_pair_for_game(cfg, rng):
-    """Kva stil kvar side spelar i dette partiet (None = vanleg)."""
+    """Kva stil kvar side spelar i dette partiet (None = vanleg).
+
+    `style_both` set éin stil på BÅE sider. Det er måten å TRENE ein doktrine
+    på etter at duellane har avgjort kva som vinn: i ein duell lærer halvparten
+    av partia den tapande sida (NAIS.6: 2-6 mot modellen han kom frå, medan
+    standardreglane stod på 100 %).
+    """
     if not cfg.get("styles"):
         return (None, None)
+    both = cfg.get("style_both")
+    if both:
+        return (both, both)
     if rng.random() >= float(cfg.get("style_fraction", 1.0)):
         return (None, None)
     pair = PAIRS[rng.randint(0, len(PAIRS) - 1)]
@@ -756,7 +765,7 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES,
                  nesseby=False, nesseby_fraction=1.0,
                  aggressive=False, aggressive_fraction=1.0,
-                 styles=False, style_fraction=1.0):
+                 styles=False, style_fraction=1.0, style_both=None):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -773,7 +782,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "aggressive": bool(aggressive),
            "aggressive_fraction": float(aggressive_fraction),
            "styles": bool(styles),
-           "style_fraction": float(style_fraction)}
+           "style_fraction": float(style_fraction),
+           "style_both": style_both}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker

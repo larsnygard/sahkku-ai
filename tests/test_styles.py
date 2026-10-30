@@ -109,6 +109,9 @@ def main():
     ok("para kjem frå PAIRS", all(frozenset(p) in gyldige for p in pairs), pairs[:3])
     few_as_p0 = sum(1 for p in pairs if p[0] in ("few", "many"))
     ok("sidene er bytte om lag halvparten av gongene", 60 <= few_as_p0 <= 140, few_as_p0)
+    cfg_both = {"styles": True, "style_fraction": 1.0, "style_both": "few"}
+    pars = [SP.style_pair_for_game(cfg_both, rnd) for _ in range(20)]
+    ok("--style-both set same stil på båe sider", all(p == ("few", "few") for p in pars), pars[:2])
     cfg_off = {"styles": False}
     ok("utan --styles vert ingen stil sett",
        all(SP.style_pair_for_game(cfg_off, rnd) == (None, None) for _ in range(20)))

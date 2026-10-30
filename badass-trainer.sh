@@ -49,6 +49,7 @@ NESSBY="0"
 NBFRAC=""
 AGGR="0"
 STYLES="0"
+STYLEBOTH=""
 STYLEFRAC=""
 AGGRFRAC=""
 HUMANGAMES=""
@@ -80,6 +81,7 @@ while [ $# -gt 0 ]; do
     --nesseby)    NESSBY="1"; shift ;;
     --nesseby-fraction) NBFRAC="$2"; shift 2 ;;
     --styles)     STYLES="1"; shift ;;
+    --style-both) STYLES="1"; STYLEBOTH="$2"; shift 2 ;;
     --style-fraction) STYLEFRAC="$2"; shift 2 ;;
     --aggressive) AGGR="1"; shift ;;
     --aggressive-fraction) AGGRFRAC="$2"; shift 2 ;;
@@ -201,7 +203,11 @@ if [ "$AGGR" = "1" ]; then
 fi
 if [ "$STYLES" = "1" ]; then
   [ -n "$STYLEFRAC" ] || STYLEFRAC="1.0"
-  say "taktikk:  duellar i ${STYLEFRAC} av partia — few mot many, kingfwd mot kingguard"
+  if [ -n "$STYLEBOTH" ]; then
+    say "taktikk:  «$STYLEBOTH» på BÅE sider (trenar doktrina, ikkje duell) i ${STYLEFRAC} av partia"
+  else
+    say "taktikk:  duellar i ${STYLEFRAC} av partia — few mot many, kingfwd mot kingguard"
+  fi
 fi
 if [ -n "$HUMANGAMES" ]; then
   NHUM=$(ls -1 $HUMANGAMES 2>/dev/null | wc -l || true)
@@ -308,6 +314,7 @@ fi
 if [ "$STYLES" = "1" ]; then
   [ -n "$STYLEFRAC" ] || STYLEFRAC="1.0"
   CMD+=(--styles --style-fraction "$STYLEFRAC")
+  [ -z "$STYLEBOTH" ] || CMD+=(--style-both "$STYLEBOTH")
 fi
 # Menneskeparti: eit lite, kuratert shard som vert blanda inn per minibatch.
 # Vekta er med vilje låg — 12 % gjorde nettet klårt svakare (NAIS.3), sjå README.
