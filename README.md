@@ -416,6 +416,8 @@ Kalibrering mot nivå 1 (uniformt tilfeldig), 20 parti hver: **L2 85 %**,
 | **NAIS.1** (`nais1/c4.pt`, ny serie: 50 % Nesseby + aggressiv side, 4 t) | 4 sykl. / 247 409 prøver | **0.992** | **62.5 % mot AIL0.10** (25–15, n=40) · 92.5 % mot L3 (37–3) · 50 % mot AIL0.10 under Nesseby (15–15) | 13–7 / 12–8 mot AIL0.10 |
 | **NAIS.2** (`nais2/c4.pt`, Nesseby 100 %, 4 t) | 4 sykl. / 253 737 prøver | **0.9705** | **63.3 % mot NAIS.1 under Nesseby** (19–11, n=30) · 95.0 % mot L3 (38–2) | 10–5 / 9–6 mot NAIS.1 (Nesseby) |
 | **NAIS.3** (`nais3/c2.pt`, 1 t: NAIS.2 + 2 menneskeparti, 12 % av kvar batch) | 2 sykl. / 102 697 prøver | 0.9802 | **26.7 % mot NAIS.2 under Nesseby** (8–22, n=30) · 90.0 % mot L3 | ikkje tilrådd — sjå nedanfor |
+| **NAIS.4** (`nais4/c2.pt`, 2 sykl. à 400 parti på RTX 3070 Ti, Nesseby 100 % + aggressiv side) | 2 sykl. / 214 994 prøver | — | **63.3 % mot NAIS.2 under Nesseby** (19–11, n=30) · **100 % mot L3** (40–0) | 10–5 / 9–6 mot NAIS.2 |
+| **NAIS.5** (`nais5/c11.pt`, 11 sykl. à ~80 parti oppå NAIS.4, 235 190 prøver, 3070 Ti) | 11 sykl. | — | **76.7 % mot NAIS.4 under Nesseby** (23–7, n=30) · 97.5 % mot L3 (39–1) | 14–1 / 9–6 mot NAIS.4 (skeiv) |
 | referanse: `Lookahead=4` mot `Lookahead=0`, same vekter | — | — | — | 85 % (17–3) |
 
 \* AIL0.3 sitt tap er ikkje samanliknbart: MCTS-π er mjukare (vitjingstal
