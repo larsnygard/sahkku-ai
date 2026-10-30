@@ -15,4 +15,3 @@ data/*.npz
 *.log
 
 # Ikke engines
-engines/
