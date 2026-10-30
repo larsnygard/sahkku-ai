@@ -13,3 +13,6 @@ checkpoints/
 runs/
 data/*.npz
 *.log
+
+# Ikke engines
+engines/
