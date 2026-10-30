@@ -378,6 +378,17 @@ def style_summary(cfg):
         return sum(vals) / len(vals) if vals else None
 
     bits = []
+    # Avgjerdsmål: løysingar per 100 halvtrekk (tel VAL, ikkje tilstand)
+    rrl = [g.get("relrate") for g in games if g.get("relrate")]
+    if rrl:
+        per = {s: sum(g[s] for g in rrl) / len(rrl) for s in (0, 1)}
+        if any(g["s0"] != g["s1"] for g in games):
+            a = [g["relrate"][0] for g in games if g["s0"] == "few" and g.get("relrate")]
+            b = [g["relrate"][1] for g in games if g["s1"] == "many" and g.get("relrate")]
+            if a and b:
+                bits.append(f"løysingar/100 halvtrekk: few {sum(a)/len(a):.1f} vs many {sum(b)/len(b):.1f}")
+        else:
+            bits.append(f"løysingar/100 halvtrekk: {per[0]:.1f} / {per[1]:.1f}")
     few, many = style_mean("few", "rel40"), style_mean("many", "rel40")
     if few is not None and many is not None:
         bits.append(f"løyste@40: few {few:.1f} vs many {many:.1f}")
@@ -507,6 +518,7 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
     _nb_caps = cfg.get("_nb_caps") if _nb else None
     _ply_no = 0
     _snap40 = {}          # side -> tal løyste soldatar ved trekk 40
+    _rel_moves = {0: 0, 1: 0}    # løysingar spela, per side (avgjerdsmål)
     st = E.State(first=rng.randint(0, 1), nesseby=_nb)
     _op = E.opening_roll(st, rng.random)
     qd_side = qd_side_for_game(cfg, rng)
@@ -602,8 +614,12 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             for _s in (0, 1):
                 _snap40[_s] = sum(1 for q in E.soldiers(st, _s) if q.released and not q.captured)
         _k_before = E.king(st).o
+        _side = st.turn
+        _mv_played = next((m for a, m in ids if a == best), None)
         apply_choice(st, ids, best, rng)
         _ply_no += 1
+        if _mv_played is not None and _mv_played.get("kind") == "rel":
+            _rel_moves[_side] += 1
         if _nb_caps is not None:
             _k_now = E.king(st).o
             if _k_before is None and _k_now is not None:
@@ -627,6 +643,8 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             "s0": style_p0, "s1": style_p1, "winner": st.winner,
             "plies": _ply_no, "reason": st.win_reason or "",
             "rel40": _snap40,            # {0: n, 1: n} løyste soldatar ved trekk 40
+            "relrate": {s: (100.0 * _rel_moves[s] / _ply_no if _ply_no else 0.0)
+                        for s in (0, 1)},   # løysingar per 100 halvtrekk
             "krank": {0: _king_rank(st, 0), 1: _king_rank(st, 1)},
             "kowner": E.king(st).o,
         })
@@ -840,6 +858,7 @@ if __name__ == "__main__":
     ap.add_argument("--styles", action="store_true",
                     help="tactic duels: one side 'few'/'kingfwd' vs 'many'/'kingguard'")
     ap.add_argument("--style-fraction", type=float, default=1.0)
+    ap.add_argument("--style-both", default=None, choices=["few", "many", "kingfwd", "kingguard"])
     ap.add_argument("--aggressive", action="store_true",
                     help="one side plays aggressively (weight on captures and advances)")
     ap.add_argument("--aggressive-fraction", type=float, default=1.0)
@@ -854,4 +873,4 @@ if __name__ == "__main__":
                  a.queen_delay, a.queen_delay_soldiers, a.max_plies,
                  a.nesseby, a.nesseby_fraction,
                  a.aggressive, a.aggressive_fraction,
-                 a.styles, a.style_fraction)
+                 a.styles, a.style_fraction, a.style_both)
