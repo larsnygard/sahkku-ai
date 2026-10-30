@@ -73,6 +73,50 @@ Duell-svar (frå treningspartia sjølv, ikkje benken):
 - Standardregel-benken under 90 % → ikkje standardmotor, sjølv om Nesseby er
   betre. (NAIS.3 er presedensen: 26,7 % vart ståande att i menyen som eksperiment.)
 
+## Resultat (2 syklusar, 792 parti, 3070 Ti, 30. oktober)
+
+```
+few         322 - 48   many        87.0 %  n=370  (clear)
+kingfwd     210 - 212  kingguard   49.8 %  n=422  (within noise)
+
+activated soldiers at ply 40 — few 1.14 vs many 1.75
+king distance to enemy home  — fwd 0.29 vs guard 1.76
+```
+
+**Aktivering: avgjort.** Å aktivere FÅ soldatar og dytte dei hardt fram slår å
+aktivere mange med 87 % (95 %-CI ≈ 83,5–90,5). Effekten er så stor at han er
+tydeleg uansett kva ein meiner om mekanismen.
+
+**Kongedoktrine: null.** 49,8 % over 422 parti (CI ≈ 45–54,6) — å bruke kongen
+offensivt og å verne han bak er like gode. Men stilane batt: kongen enda 0,29
+rad frå fienden med `kingfwd` mot 1,76 med `kingguard`. Altså: stilen verka,
+og det han styrer betyr ingenting for kven som vinn.
+
+**Porten om åtferd vart ikkje møtt som skrive.** Kravet var at `few` skulle
+liggje ≥1,0 under `many` ved trekk 40; målt skilnad er 0,61. Kravet var eit
+dårleg mål: han tel kor mange soldatar som ER ute, ikkje om nettet *vel* å
+aktivere — og ei side som vinn kan aktivere undervegs. Duell-resultatet er den
+sterke evidensen; åtferdsmålet er ein svak proxy og vert erstatta av
+«løysingar per tur» i neste runde.
+
+## Kva NAIS.6 kosta
+
+Nettet vart klårt svakare: 2–6 i Nesseby mot NAIS.5 (25 %, stoppa ved 8 parti),
+medan standardreglane står på 100 % mot L3 (40–0). Årsaka er strukturell og
+følgjer av designet: **kvar kamp hadde éi side som spelte den TAPANDE doktrina**
+(many, 48 sigrar av 370). Halvparten av treningsdataen lærte altså bort det som
+taper. Symmetriske duellar er rett for å MÅLE; dei er feil for å TRENE.
+
+## Neste køyring (NAIS.7)
+
+- **Berre aktiveringsaksen.** Kongedoktrina er ein null — ho får 0 % av partia.
+- **`few` på BÅE sider** (eller på nettet si eiga side i kvar kamp), so all data
+   dreg same veg. `many` vert verken spela eller lærd.
+- Start frå **NAIS.5** (ikkje NAIS.6: han er svekka).
+- Same gate som før, men åtferdsmålet er no «løysingar per tur» med krav om
+  ≥25 % færre hjå den styrte sida.
+- Benk som vanleg: ≥55 % mot NAIS.5 i Nesseby for å bli standard.
+
 ## Etterpå
 
 1. `node tools/eval_match.js` (Nesseby 30 mot NAIS.5, L3 40) — som vanleg.
