@@ -274,10 +274,10 @@ def main():
                     help="share of games played with Nesseby when --nesseby is on "
                          "(0.5 = mixed; one net then learns both rule sets)")
     ap.add_argument("--styles", action="store_true",
-                    help="taktikk-duellar: kvar kamp spelar éi side «few» eller «kingfwd» "
-                         "mot «many» eller «kingguard» (sjå selfplay.PAIRS)")
+                    help="tactic duels: one side plays 'few' or 'kingfwd' "
+                         "against 'many' or 'kingguard' (see selfplay.PAIRS)")
     ap.add_argument("--style-fraction", type=float, default=1.0,
-                    help="del av partia som er stil-duellar")
+                    help="share of games played as tactic duels")
     ap.add_argument("--aggressive", action="store_true",
                     help="one side per game plays aggressively (weight on captures and "
                          "advances); the side alternates so the net learns both")
