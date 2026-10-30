@@ -174,7 +174,9 @@ def run_loop(args):
                             nesseby=args.nesseby,
                             nesseby_fraction=args.nesseby_fraction,
                             aggressive=args.aggressive,
-                            aggressive_fraction=args.aggressive_fraction)
+                            aggressive_fraction=args.aggressive_fraction,
+                            styles=args.styles,
+                            style_fraction=args.style_fraction)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -271,6 +273,11 @@ def main():
     ap.add_argument("--nesseby-fraction", type=float, default=1.0,
                     help="share of games played with Nesseby when --nesseby is on "
                          "(0.5 = mixed; one net then learns both rule sets)")
+    ap.add_argument("--styles", action="store_true",
+                    help="taktikk-duellar: kvar kamp spelar éi side «few» eller «kingfwd» "
+                         "mot «many» eller «kingguard» (sjå selfplay.PAIRS)")
+    ap.add_argument("--style-fraction", type=float, default=1.0,
+                    help="del av partia som er stil-duellar")
     ap.add_argument("--aggressive", action="store_true",
                     help="one side per game plays aggressively (weight on captures and "
                          "advances); the side alternates so the net learns both")

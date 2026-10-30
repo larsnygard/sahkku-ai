@@ -256,6 +256,129 @@ def reweight_aggressive(st, ids, pi, cap=AGR_CAP, adv=AGR_ADV):
     return out
 
 
+# ------------------------------------------------------------------ stil-eksperiment
+# NAIS.6: fire taktiske stilar, køyrde som DUGELEGAR (kvar kamp: éi side spelar
+# stil A, den andre stil B, og sidene byter kvar kamp). Då svarar køyringa på
+# to spørsmål samstundes: kva taktikk vinn (duellane er eit kontrollert
+# forsøk), og nettet lærer båe sidene av kvar taktikk.
+#
+#   few        aktiver FÅ soldatar, og dytt dei som alt er ute hardt fram
+#   many       aktiver SÅ MANGE som mogleg, spreidd over breidda
+#   kingfwd    etter kongekapring: bruk kongen offensivt, inn mot fienden
+#   kingguard  etter kongekapring: hald kongen attende, send soldatane fremst
+PAIRS = [("few", "many"), ("kingfwd", "kingguard")]
+REL_FEW = 0.30        # løysing vert lite attraktiv når ≥2 alt er ute
+REL_MANY = 2.5        # løysing vert sterkt attraktiv
+PUSH = 1.6            # soldat som alt er ute, framover
+KING_FWD = 2.5        # kongetrekk som kjem nærare fienden
+KING_BACK = 2.5       # kongetrekk som går bort frå fienden
+SOLDIER_SEND = 1.6    # soldatframrykk når kongen skal vernast
+
+
+def style_pair_for_game(cfg, rng):
+    """Kva stil kvar side spelar i dette partiet (None = vanleg)."""
+    if not cfg.get("styles"):
+        return (None, None)
+    if rng.random() >= float(cfg.get("style_fraction", 1.0)):
+        return (None, None)
+    pair = PAIRS[rng.randint(0, len(PAIRS) - 1)]
+    return pair if rng.randint(0, 1) == 0 else (pair[1], pair[0])
+
+
+def _enemy_home_row(side):
+    return 2 if side == 0 else 0
+
+
+def _king_rank(st, side):
+    """Kor nær fienden sin heimrad kongen står (lågare = lenger fram)."""
+    k = E.king(st)
+    if k is None or k.captured or k.o != side:
+        return None
+    return abs(E.pt(E.at_idx(st, k))[1] - _enemy_home_row(side))
+
+
+def reweight_style(st, ids, pi, style):
+    """Vekt π for éin stil. Vert køyrd FØR policy-målet vert skrive, so både
+    trekket som vert spelt og målet nettet lærer av ber stilen."""
+    out = dict(pi)
+    me = st.turn
+    released = sum(1 for q in E.soldiers(st, me) if q.released and not q.captured)
+    krank = _king_rank(st, me)
+    eh = _enemy_home_row(me)
+    for a, mv in ids:
+        if mv.get("kind") in ("pass", "reroll") or a not in out:
+            continue
+        p = E.piece(st, mv["pid"])
+        w = 1.0
+        if style == "few":
+            if mv.get("kind") == "rel":
+                if released >= 2:
+                    w *= REL_FEW
+            elif p.t == "s":
+                w *= PUSH
+        elif style == "many":
+            if mv.get("kind") == "rel":
+                w *= REL_MANY
+        elif style in ("kingfwd", "kingguard") and krank is not None:
+            if p.t == "k":
+                adv = abs(E.pt(E.move_dest(st, mv))[1] - eh) - krank
+                if style == "kingfwd":
+                    w *= KING_FWD if adv < 0 else (0.4 if adv > 0 else 1.0)
+                else:
+                    w *= KING_BACK if adv > 0 else (0.4 if adv < 0 else 1.0)
+            elif p.t == "s" and style == "kingguard":
+                w *= SOLDIER_SEND
+        out[a] = out[a] * w
+    tot = sum(out.values())
+    return {a: v / tot for a, v in out.items()} if tot > 0 else dict(pi)
+
+
+def style_summary(cfg):
+    """Kort oppsummering av stil-duellane for éin arbeidar (til loggen)."""
+    games = cfg.get("_style_games") or []
+    if not games:
+        return ""
+    out = []
+    for a, b in PAIRS:
+        wa = wb = dr = 0
+        for g in games:
+            s0, s1, w = g["s0"], g["s1"], g["winner"]
+            if {s0, s1} != {a, b}:
+                continue
+            if w is None:
+                dr += 1
+                continue
+            who = s0 if w == 0 else s1
+            if who == a:
+                wa += 1
+            else:
+                wb += 1
+        n = wa + wb
+        if n:
+            out.append(f"{a} {wa}-{wb} {b}" + (f" ({dr} draw)" if dr else ""))
+    # åtferd: snitt løyste soldatar ved trekk 40, og kor nær fienden kongen enda
+    def style_mean(style, key):
+        vals = []
+        for g in games:
+            for s in (0, 1):
+                if (g["s0"] if s == 0 else g["s1"]) != style:
+                    continue
+                v = (g.get(key) or {}).get(s)
+                if v is not None:
+                    vals.append(v)
+        return sum(vals) / len(vals) if vals else None
+
+    bits = []
+    few, many = style_mean("few", "rel40"), style_mean("many", "rel40")
+    if few is not None and many is not None:
+        bits.append(f"løyste@40: few {few:.1f} vs many {many:.1f}")
+    kf, kg = style_mean("kingfwd", "krank"), style_mean("kingguard", "krank")
+    if kf is not None and kg is not None:
+        bits.append(f"kongeavstand: fwd {kf:.1f} vs guard {kg:.1f}")
+    txt = ", ".join(out + bits)
+    return (", stil: " + txt) if txt else ""
+
+
 def safe_capture(st, ids, pi):
     """Trygt slag med høgast π, om det er minst CAP_RATIO av beste π."""
     if not ids:
@@ -367,11 +490,14 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             _nb = rng.random() < _frac
     agg_side = aggressive_side_for_game(cfg, rng)
     cfg["_agg_side"] = agg_side          # so køyringa kan dokumentere effekten
+    style_p0, style_p1 = style_pair_for_game(cfg, rng)
+    cfg["_style_pair"] = (style_p0, style_p1)
     # Diagnostikk for Nesseby: kven kaprar kongen, og når? (Asymmetrien vi
     # fann: Giera-setet vann 22 av 30 i benken medan tilfeldig spel gjev Menn
     # 57 % — då må vi måle kven som faktisk tek kongen, ikkje gjette.)
     _nb_caps = cfg.get("_nb_caps") if _nb else None
     _ply_no = 0
+    _snap40 = {}          # side -> tal løyste soldatar ved trekk 40
     st = E.State(first=rng.randint(0, 1), nesseby=_nb)
     _op = E.opening_roll(st, rng.random)
     qd_side = qd_side_for_game(cfg, rng)
@@ -422,6 +548,13 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             if pi2 and tot2 > 0:
                 pi = {a: p / tot2 for a, p in pi2.items()}
                 legal = list(pi.keys())
+        # Stilen må inn FØR målet vert skrive. (Den gamle aggressive-køyringa
+        # vekta etterpå, so berre trekket — ikkje policy-målet — bar stilen;
+        # nettet lærte då berre av stillingane som oppstod.)
+        my_style = style_p0 if st.turn == 0 else style_p1
+        if my_style:
+            pi = reweight_style(st, ids, pi, my_style)
+            legal = list(pi.keys())
         pol = np.zeros(FT.N_ACTIONS, np.float32)
         for a in legal:
             pol[a] = pi[a]
@@ -456,10 +589,13 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
                 if isinstance(stats, dict):
                     stats.setdefault("fallback_soldiers", []).append(stats_soldiers)
         _before = list(st.dice)
+        if _ply_no == 40 and not _snap40:
+            for _s in (0, 1):
+                _snap40[_s] = sum(1 for q in E.soldiers(st, _s) if q.released and not q.captured)
         _k_before = E.king(st).o
         apply_choice(st, ids, best, rng)
+        _ply_no += 1
         if _nb_caps is not None:
-            _ply_no += 1
             _k_now = E.king(st).o
             if _k_before is None and _k_now is not None:
                 _nb_caps.append((_k_now, _ply_no))
@@ -474,6 +610,17 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
             else:
                 rec_ply["moves"].append(_mv)
     cfg["_last_state"] = st          # feilsøking: kva enda partiet i?
+    # Stil-duell: logg kven som spela kva, kven som vann og korleis åtferda
+    # vart — utan dette kan vi ikkje seie om stilen batt eller berre var støy.
+    if style_p0 or style_p1:
+        g_ = cfg.setdefault("_style_games", [])
+        g_.append({
+            "s0": style_p0, "s1": style_p1, "winner": st.winner,
+            "plies": _ply_no, "reason": st.win_reason or "",
+            "rel40": _snap40,            # {0: n, 1: n} løyste soldatar ved trekk 40
+            "krank": {0: _king_rank(st, 0), 1: _king_rank(st, 1)},
+            "kowner": E.king(st).o,
+        })
     # MCTS: verdimålet er PARTIRESULTATET (AlphaZero-konvensjonen), ikkje
     # søkets eige verdianslag — elles vert måla mjuke tal som ikkje lærer
     # nettet kven som faktisk vann.
@@ -596,8 +743,9 @@ def worker(args):
     if qds is not None:
         qdtxt = (f", queen handicap: {qds.get('viol', 0)} fallback activations"
                  f" (of {len(qds.get('fallback_soldiers', []))})")
+    styletxt = style_summary(cfg)
     print(f"[w{wid}] done: {cfg['games_per_worker']} games, {len(samples)} samples -> {out} "
-          f"(Menn wins {wins[0]}, Giera wins {wins[1]}{qdtxt}{nbtxt})", flush=True)
+          f"(Menn wins {wins[0]}, Giera wins {wins[1]}{qdtxt}{nbtxt}{styletxt})", flush=True)
     return len(samples)
 
 
@@ -607,7 +755,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  sims=0, c_puct=1.6, leaf_batch=8, opponent="", opponent_level=3,
                  queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES,
                  nesseby=False, nesseby_fraction=1.0,
-                 aggressive=False, aggressive_fraction=1.0):
+                 aggressive=False, aggressive_fraction=1.0,
+                 styles=False, style_fraction=1.0):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -622,7 +771,9 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "max_plies": max_plies, "nesseby": bool(nesseby),
            "nesseby_fraction": float(nesseby_fraction),
            "aggressive": bool(aggressive),
-           "aggressive_fraction": float(aggressive_fraction)}
+           "aggressive_fraction": float(aggressive_fraction),
+           "styles": bool(styles),
+           "style_fraction": float(style_fraction)}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker
@@ -676,6 +827,9 @@ if __name__ == "__main__":
                     help="play with the Nesseby rule (king cannot be captured by landing)")
     ap.add_argument("--nesseby-fraction", type=float, default=1.0,
                     help="share of games with Nesseby when --nesseby is set")
+    ap.add_argument("--styles", action="store_true",
+                    help="tactic duels: one side 'few'/'kingfwd' vs 'many'/'kingguard'")
+    ap.add_argument("--style-fraction", type=float, default=1.0)
     ap.add_argument("--aggressive", action="store_true",
                     help="one side plays aggressively (weight on captures and advances)")
     ap.add_argument("--aggressive-fraction", type=float, default=1.0)
@@ -689,4 +843,5 @@ if __name__ == "__main__":
                  a.sims, a.c_puct, a.leaf_batch, a.opponent, a.opponent_level,
                  a.queen_delay, a.queen_delay_soldiers, a.max_plies,
                  a.nesseby, a.nesseby_fraction,
-                 a.aggressive, a.aggressive_fraction)
+                 a.aggressive, a.aggressive_fraction,
+                 a.styles, a.style_fraction)

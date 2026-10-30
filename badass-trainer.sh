@@ -14,6 +14,9 @@
 #       (auto = fysiske kjernar; ei eksplisitt vekt vinn over VRAM-/minnetaka,
 #        men du får ei åtvaring om ho ligg over det maskina tilrår)
 #   ./badass-trainer.sh --aggressive                     # éi side spelar aggressivt
+#   ./badass-trainer.sh --styles                         # taktikk-duellar (NAIS.6):
+#       few vs many (kor mange soldatar som vert aktiverte) og
+#       kingfwd vs kingguard (kva kongen gjer etter at han er kapra)
 #   ./badass-trainer.sh --human-games runs/human/*.spg   # blanda inn menneskeparti
 #       (standardvekt 0,05; høgare gav klårt svakare nett i NAIS.3-forsøket)
 #
@@ -45,6 +48,8 @@ OUT=""
 NESSBY="0"
 NBFRAC=""
 AGGR="0"
+STYLES="0"
+STYLEFRAC=""
 AGGRFRAC=""
 HUMANGAMES=""
 HUMANWEIGHT="0.05"
@@ -74,6 +79,8 @@ while [ $# -gt 0 ]; do
     --out)        OUT="$2"; shift 2 ;;
     --nesseby)    NESSBY="1"; shift ;;
     --nesseby-fraction) NBFRAC="$2"; shift 2 ;;
+    --styles)     STYLES="1"; shift ;;
+    --style-fraction) STYLEFRAC="$2"; shift 2 ;;
     --aggressive) AGGR="1"; shift ;;
     --aggressive-fraction) AGGRFRAC="$2"; shift 2 ;;
     --human-games)  shift; while [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; do
@@ -192,6 +199,10 @@ if [ "$AGGR" = "1" ]; then
   [ -n "$AGGRFRAC" ] || AGGRFRAC="1.0"
   say "stil:     éi side aggressiv i ${AGGRFRAC} av partia (slag ×2,5, framrykk ×1,4)"
 fi
+if [ "$STYLES" = "1" ]; then
+  [ -n "$STYLEFRAC" ] || STYLEFRAC="1.0"
+  say "taktikk:  duellar i ${STYLEFRAC} av partia — few mot many, kingfwd mot kingguard"
+fi
 if [ -n "$HUMANGAMES" ]; then
   NHUM=$(ls -1 $HUMANGAMES 2>/dev/null | wc -l || true)
   say "menneske: ${NHUM} filer blanda inn, vekt ${HUMANWEIGHT} av kvar batch"
@@ -293,6 +304,10 @@ fi
 if [ "$AGGR" = "1" ]; then
   [ -n "$AGGRFRAC" ] || AGGRFRAC="1.0"
   CMD+=(--aggressive --aggressive-fraction "$AGGRFRAC")
+fi
+if [ "$STYLES" = "1" ]; then
+  [ -n "$STYLEFRAC" ] || STYLEFRAC="1.0"
+  CMD+=(--styles --style-fraction "$STYLEFRAC")
 fi
 # Menneskeparti: eit lite, kuratert shard som vert blanda inn per minibatch.
 # Vekta er med vilje låg — 12 % gjorde nettet klårt svakare (NAIS.3), sjå README.
