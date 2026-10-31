@@ -24,8 +24,8 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-RUN=nais8
-INIT=engines/nais7-nn.pt       # sterkaste modellen; vert breidd ut til 18 globale
+RUN=nais9
+INIT=engines/nais8-nn.pt       # sterkaste modellen; vert breidd ut til 18 globale
 CYCLES=10                      # siste syklusnummer
 HOURS=0                        # 0 = inga tidsgrense, --cycles avgjer
 GAMES=200
