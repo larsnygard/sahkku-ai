@@ -126,7 +126,11 @@ budget_left() {
 export_and_gate() {          # $1 = syklusnummer
   local k="$1"
   local ck="checkpoints/${RUN}/c${k}.pt"
-  [ -f "$ck" ] || die "syklus $k skreiv ikkje $ck — stoggar (ingen halvferdig motor pusht)"
+  # Pipeline skriv c<k>.pt under checkpoints/<run>/; treningssteget skriv òg
+  # checkpoints/<run>_c<k>/latest.pt. Ta den andre om den fyrste manglar, so
+  # ein ikkje stoggar på ei fillene ein berre ikkje visste namnet på.
+  [ -f "$ck" ] || ck="checkpoints/${RUN}_c${k}/latest.pt"
+  [ -f "$ck" ] || die "syklus $k skreiv ingen vekt (verken checkpoints/${RUN}/c${k}.pt eller checkpoints/${RUN}_c${k}/latest.pt) — stoggar"
   say "[c$k] eksporterer $ck → engines/${RUN}-nn"
   .venv/bin/python3 -m sahkku_ai.export --net "$ck" --out "engines/${RUN}-nn" --name "${RUN^^}" >/dev/null \
     || die "eksporten feila for syklus $k"
@@ -139,16 +143,37 @@ export_and_gate() {          # $1 = syklusnummer
 }
 
 write_cycle_row() {          # $1 = syklusnummer
-  .venv/bin/python3 - "$RUN" "$1" "$INIT" "$OPP" "$HAND" <<'PY' || true
+  .venv/bin/python3 - "$RUN" "$1" "$INIT" "$OPP" "$HAND" "$DONE" <<'PY' || true
 import json, pathlib, sys, torch
 run, k, init, opp, hand = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5]
+done = int(sys.argv[6])
 p = pathlib.Path(f"runs/{run}_report.md")
 if not p.exists():
-    p.write_text("\n".join([
-        f"# {run.upper()} — sykluslogg", "",
-        f"- startvekt: `{init}`",
-        f"- diett: motstandar **{opp}**, nettsida tvinga inn i **{hand}**",
-        "", "| syklus | prøver (til no) | val-tap | sjekkpunkt |", "|---|---|---|---|"]) + "\n")
+    head = [f"# {run.upper()} — sykluslogg", "",
+            f"- startvekt: `{init}`",
+            f"- diett: motstandar **{opp}**, nettsida tvinga inn i **{hand}**",
+            "", "| syklus | prøver (til no) | val-tap | sjekkpunkt |", "|---|---|---|---|"]
+    # Syklusar som alt var trena før dette skriptet tok over: før dei inn i
+    # tabellen, so loggen ikkje ser ut som økta byrja midt i.
+    if done > 0:
+        try:
+            rows_prev = [json.loads(l) for l in
+                         pathlib.Path(f"runs/{run}/training_log.jsonl").read_text().splitlines() if l.strip()]
+        except Exception:
+            rows_prev = []
+        cum = 0
+        for r in rows_prev:
+            if r.get("cycle", 0) > done:
+                break
+            cum += r.get("new_samples", 0)
+            ck = f"checkpoints/{run}/c{r['cycle']}.pt"
+            try:
+                bv = torch.load(ck, map_location="cpu", weights_only=False).get("meta", {}).get("best_val")
+            except Exception:
+                bv = None
+            head.append(f"| {r['cycle']} | {cum} | {bv:.3f} | `{ck}` |" if isinstance(bv, float)
+                        else f"| {r['cycle']} | {cum} | ? | `{ck}` |")
+    p.write_text("\n".join(head) + "\n")
 try:
     rows = [json.loads(l) for l in pathlib.Path(f"runs/{run}/training_log.jsonl").read_text().splitlines() if l.strip()]
 except Exception:
