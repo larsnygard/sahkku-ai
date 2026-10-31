@@ -45,3 +45,10 @@
 | 38 | 763154 | 0.542 | `checkpoints/nais8/c38.pt` |
 | 39 | 780252 | 0.542 | `checkpoints/nais8/c39.pt` |
 | 40 | 797116 | 0.542 | `checkpoints/nais8/c40.pt` |
+
+**nais8 er publisert** — v1.29.0
+- Nesseby mot nais7: **0.0 %** (12 parti, kort benk — køyringa går)
+- standardmotor: nei — nais7 står
+- S-UCI: 239 pass, 0 fail
+- deploy:   live no:   v1.29.0
+>>>>>>> 7249e7e (report: løsnet mergekonflikt (publiser-blokk + sykkelrader))

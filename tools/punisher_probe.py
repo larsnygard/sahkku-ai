@@ -38,6 +38,7 @@ def probe(net_path, games, sims, seed=0, max_plies=2500, hand_style=""):
     rng = random.Random(seed)
     score = 0.0
     lost_released = lost_all = plies_total = 0
+    act_sum = act_n = 0          # utløyste soldatar nettet held ute (etter opninga)
     t0 = time.time()
 
     for g in range(games):
@@ -83,6 +84,12 @@ def probe(net_path, games, sims, seed=0, max_plies=2500, hand_style=""):
                 if p.released:
                     ever_rel[p.id] = True
             plies_total += 1
+            # Aktivering er det mennesket slår henne på: ho held ~1 soldat ute
+            # og den eine vert plukka. Tel berre etter opninga (trekk 12+).
+            if st.moves >= 12 and st.winner is None:
+                act_sum += sum(1 for q in E.soldiers(st, net_side)
+                               if q.released and not q.captured)
+                act_n += 1
 
         for p in st.pieces:
             if p.o != net_side or not p.captured:
@@ -104,6 +111,8 @@ def probe(net_path, games, sims, seed=0, max_plies=2500, hand_style=""):
     print(f"\nstraffar mot {net_path}: {score / n * 100:.1f} % for nettet ({score:.0f}/{n})")
     print(f"nettet miste {lost_released / n:.1f} utløyste soldatar "
           f"og {lost_all / n:.1f} brikker per parti")
+    act = (act_sum / act_n) if act_n else 0.0
+    print(f"utløyste soldatar nettet held ute: {act:.2f} i snitt (etter trekk 12)")
     print(f"snitt {plies_total / n:.0f} halvtrekk per parti")
     return score / n
 
