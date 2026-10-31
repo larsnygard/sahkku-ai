@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 
+
 """Framdrift for ein treningskøyring — les den LEVANDE prosessen og loggen.
 
 Loggen har éi linje per arbeidar («[w3] 15/25 parti»), men ingen samla
