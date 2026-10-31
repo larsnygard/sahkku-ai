@@ -31,3 +31,5 @@
 | 24 | 516503 | 0.542 | `checkpoints/nais8/c24.pt` |
 | 25 | 534439 | 0.542 | `checkpoints/nais8/c25.pt` |
 | 26 | 551975 | 0.542 | `checkpoints/nais8/c26.pt` |
+| 27 | 569577 | 0.542 | `checkpoints/nais8/c27.pt` |
+| 28 | 587935 | 0.542 | `checkpoints/nais8/c28.pt` |
