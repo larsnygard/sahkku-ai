@@ -6,6 +6,7 @@ graph can run in plain JS (export.py emits weights + a JS runner).
 """
 from __future__ import annotations
 import json
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -81,7 +82,42 @@ class Net(nn.Module):
     def load(cls, path, map_location="cpu"):
         ck = torch.load(path, map_location=map_location, weights_only=False)
         net = cls(**ck["cfg"])
+        cls._widen_if_needed(ck, path)
         net.load_state_dict(ck["state"])
         net.eval()
         net.meta = ck.get("meta", {})
         return net
+
+    @classmethod
+    def _widen_if_needed(cls, ck, path):
+        """Gjer eit eldre checkpoint breiare når N_GLOBAL har auka.
+
+        Når det kjem nye globale trekk (t.d. bonderisiko g[16]/g[17]) har alle
+        lagra modellar for smal inngang og ville ikkje late seg laste. Dei nye
+        kolonnane vert sette til 0 — dei er heilt utan verknad på utdata, so
+        den gamle modellen spelar NØYAKTIG som før, og treninga kan halde fram
+        frå han. Same regel som tools/expand_net.py, berre automatisk.
+        """
+        sd = cls(**ck["cfg"]).state_dict()
+        old = ck["state"]
+        if all(old[k].shape == sd[k].shape for k in sd if k in old):
+            return
+        widened = []
+        for k, v in sd.items():
+            src = old.get(k)
+            if src is None:
+                raise RuntimeError(f"{path}: manglar {k}")
+            if src.shape == v.shape:
+                v.copy_(src)
+            elif k.endswith(".weight") and v.dim() == 2 and v.shape[0] == src.shape[0]:
+                v.zero_()
+                v[:, :src.shape[1]] = src
+                widened.append((k, src.shape[1], v.shape[1]))
+            else:
+                raise RuntimeError(f"{path}: kan ikkje breie ut {k} "
+                                   f"{tuple(src.shape)} -> {tuple(v.shape)}")
+        ck["state"] = sd
+        if widened:
+            k, a, b = widened[0]
+            print(f"[last] {os.path.basename(path)}: breidd ut {a} -> {b} inngangsvektor "
+                  f"(nye globale trekk = 0, modellen er uendra)", flush=True)

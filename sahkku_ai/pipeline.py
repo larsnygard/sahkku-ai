@@ -258,6 +258,8 @@ def main():
                     help="MCTS simulations per decision in self-play (0 = playouts)")
     ap.add_argument("--c-puct", type=float, default=1.6)
     ap.add_argument("--leaf-batch", type=int, default=8)
+    # «punisher» = menneskestrategien (aktiver mange, hald dei attende, plukk
+    # brikka som står framme); elles classic<N>
     ap.add_argument("--train-opponent", dest="train_opponent", default="",
                     help="train against the classic CPU instead of self-play (e.g. \"classic3\")")
     ap.add_argument("--train-opponent-level", dest="train_opponent_level", type=int, default=3)

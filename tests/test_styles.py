@@ -76,6 +76,34 @@ def main():
                many[r] / many[other] > b_ratio * 2.0,
                f"{many[r] / many[other]:.2f} mot {b_ratio:.2f}")
 
+    # ---- 1b. hold: straffar landing i fiendens rekkjevidd ----------------
+    st = fresh(0)
+    sold = E.soldiers(st, 0)
+    for q in sold[:2]:
+        q.released = True
+    st.dice = ["X", "III", "II"]
+    st.used = [False, False, False]
+    st.phase = "move"
+    base, hold, ids = weights(st, "hold")
+    caps = FT.capture_squares(st, 1)
+    def soldat(a, m):
+        return m.get("pid") is not None and m.get("kind") != "rel" \
+               and E.piece(st, m["pid"]).t == "s"
+    risky = [a for a, m in ids if soldat(a, m) and E.move_dest(st, m) in caps]
+    safe = [a for a, m in ids if soldat(a, m) and E.move_dest(st, m) not in caps]
+    rel = [a for a, m in ids if m.get("kind") == "rel"]
+    if risky and safe:
+        r0, s0_ = risky[0], safe[0]
+        ok("«hold» dempar landing i fiendens rekkjevidd",
+           (hold[r0] / hold[s0_]) < (base[r0] / base[s0_]) * 0.3,
+           f"{hold[r0] / hold[s0_]:.2f} mot {base[r0] / base[s0_]:.2f}")
+    if rel:
+        other = next((a for a, m in ids if m.get("kind") != "rel"), None)
+        if other is not None:
+            ok("«hold» fremjar løysing (aktiver fleire)",
+               (hold[rel[0]] / hold[other]) > (base[rel[0]] / base[other]) * 1.5,
+               f"{hold[rel[0]] / hold[other]:.2f}")
+
     # ---- 2. kongestilane -------------------------------------------------
     st = fresh(0)
     king = E.king(st)
@@ -107,6 +135,7 @@ def main():
     ok("alle kampar har eit stil-par", all(p[0] and p[1] for p in pairs))
     gyldige = {frozenset(x) for x in SP.PAIRS}
     ok("para kjem frå PAIRS", all(frozenset(p) in gyldige for p in pairs), pairs[:3])
+    ok("«hold» kan duellerast", any("hold" in p for p in pairs), pairs[:4])
     few_as_p0 = sum(1 for p in pairs if p[0] in ("few", "many"))
     ok("sidene er bytte om lag halvparten av gongene", 60 <= few_as_p0 <= 140, few_as_p0)
     cfg_both = {"styles": True, "style_fraction": 1.0, "style_both": "few"}

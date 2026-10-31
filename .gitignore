@@ -15,3 +15,4 @@ data/*.npz
 *.log
 
 # Ikke engines
+engines/tmp-g18.*

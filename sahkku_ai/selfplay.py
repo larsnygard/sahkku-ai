@@ -266,13 +266,16 @@ def reweight_aggressive(st, ids, pi, cap=AGR_CAP, adv=AGR_ADV):
 #   many       aktiver SÅ MANGE som mogleg, spreidd over breidda
 #   kingfwd    etter kongekapring: bruk kongen offensivt, inn mot fienden
 #   kingguard  etter kongekapring: hald kongen attende, send soldatane fremst
-PAIRS = [("few", "many"), ("kingfwd", "kingguard")]
+PAIRS = [("few", "many"), ("kingfwd", "kingguard"), ("hold", "few")]
 REL_FEW = 0.30        # løysing vert lite attraktiv når ≥2 alt er ute
 REL_MANY = 2.5        # løysing vert sterkt attraktiv
 PUSH = 1.6            # soldat som alt er ute, framover
 KING_FWD = 2.5        # kongetrekk som kjem nærare fienden
 KING_BACK = 2.5       # kongetrekk som går bort frå fienden
 SOLDIER_SEND = 1.6    # soldatframrykk når kongen skal vernast
+HOLD_RISK = 0.15      # landing der fienden kan slå NO: nesten utelukka
+HOLD_SAFE = 1.30      # landing utanfor rekkjevidd
+HOLD_RELEASE = 2.0    # «hold» aktiverer FLERE soldatar, ikkje færre
 
 
 def style_pair_for_game(cfg, rng):
@@ -313,6 +316,8 @@ def reweight_style(st, ids, pi, style):
     me = st.turn
     released = sum(1 for q in E.soldiers(st, me) if q.released and not q.captured)
     krank = _king_rank(st, me)
+    # Felt fienden kan slå på NO — same sanning som motoren, rekna éin gong
+    _hold_caps = FT.capture_squares(st, 1 - me) if style == "hold" else ()
     eh = _enemy_home_row(me)
     for a, mv in ids:
         if mv.get("kind") in ("pass", "reroll") or a not in out:
@@ -328,6 +333,14 @@ def reweight_style(st, ids, pi, style):
         elif style == "many":
             if mv.get("kind") == "rel":
                 w *= REL_MANY
+        elif style == "hold":
+            # Menneska sin strategi: aktiver mange soldatar, hald dei utanfor
+            # rekkjevidd, og plukk brikka som står framme. `few` dempar
+            # aktiveringa; `hold` gjer det motsette og straffar RISIKOEN.
+            if mv.get("kind") == "rel":
+                w *= HOLD_RELEASE
+            elif p.t == "s":
+                w *= HOLD_RISK if E.move_dest(st, mv) in _hold_caps else HOLD_SAFE
         elif style in ("kingfwd", "kingguard") and krank is not None:
             if p.t == "k":
                 adv = abs(E.pt(E.move_dest(st, mv))[1] - eh) - krank
@@ -668,7 +681,10 @@ def play_vs_opponent(net, device, cfg, rng, samples_out, pred=None):
     ho kan lære noko ho ikkje alt kan (t.d. ikkje å henge dronninga).
     """
     from . import classic as CL
+    from . import punisher as PU
     level = cfg.get("opponent_level", 3)
+    # Straffar-motstandaren (menneskestrategien) eller klassisk CPU
+    use_pun = cfg.get("opponent", "").startswith("punisher")
     net_side = rng.randint(0, 1)
     st = E.State(first=rng.randint(0, 1))
     E.opening_roll(st, rng.random)
@@ -688,7 +704,11 @@ def play_vs_opponent(net, device, cfg, rng, samples_out, pred=None):
             E.pass_remaining(st)
             continue
         if st.turn != net_side:
-            mv = CL.pick(st, level, rng.random)
+            if use_pun:
+                act = PU.pick_action(st)
+                mv = None if act is None or act.get("kind") in ("pass", "reroll") else act
+            else:
+                mv = CL.pick(st, level, rng.random)
             if mv is None:
                 E.pass_remaining(st)
                 continue
@@ -745,7 +765,8 @@ def worker(args):
         cfg["_nb_caps"] = []          # [(side, ply)] — kven kapra kongen
     t0 = time.time()
     for g in range(cfg["games_per_worker"]):
-        if cfg.get("opponent", "").startswith("classic"):
+        opp = cfg.get("opponent", "")
+        if opp.startswith("classic") or opp.startswith("punisher"):
             w = play_vs_opponent(net, device, cfg, rng, samples, pred)
         else:
             w = play_selfplay_game(net, device, cfg, rng, samples, pred)

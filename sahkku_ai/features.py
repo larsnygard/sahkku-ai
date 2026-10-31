@@ -26,7 +26,8 @@ CLASSES = ["M", "K", "Q", "k"]
 CLASS_IDX = {c: i for i, c in enumerate(CLASSES)}
 
 N_PLANES = 16   # see encode_state
-N_GLOBAL = 16   # global scalar vector (10 opphavlege + 5 doktrine/terningar + regelmodus)
+N_GLOBAL = 18   # global scalar vector (10 opphavlege + 5 doktrine/terningar + regelmodus
+                #                + 2 bonderisiko: eigne og fiendens hengande soldatar)
 
 
 def sq_to_hw(i: int):
@@ -118,7 +119,12 @@ def encode_state(st: E.State):
     # «Aktivering er risikobusiness»: dette er talet som gjer risikoen synleg.
     if qm is not None and qm.released and not qm.captured:
         # berre dronningfeltet er interessant — ikkje alle slagfelt
-        g[13] = 1.0 if _square_attackable(st, qm.at, foe) else 0.0
+        # FØR brukte dette _square_attackable, ein handskriven geometrihjelpar.
+        # Han var ikkje samd med trekk-generatoren: han såg ikkje vertikale
+        # konge-/dronningtrekk (kom etter at hjelparen vart skriven) og han
+        # svara «åtkommeleg» òg i ferdige stillingar. No brukar vi same
+        # sanning som motoren: kan fienden faktisk slå på feltet?
+        g[13] = 1.0 if (st.winner is None and qm.at in capture_squares(st, foe)) else 0.0
 
     # g[14] = kor sannsynleg er det at MOTSTANDAREN får eit trekk dei kan
     # nytte i neste kast? Fyrst kva terningar dei kan nytte i det heile
@@ -131,6 +137,20 @@ def encode_state(st: E.State):
     # nett ikkje vite kva reglar det spelar etter, og då måtte vi hatt eitt
     # nett per regelvariant i staden for eitt som kan veljast i menyen.
     g[15] = 1.0 if getattr(st, "nesseby", False) else 0.0
+
+    # g[16]/g[17] = kor stor del av kvar side sine UTLØYSTE soldatar som står
+    # der motstandaren kan slå dei i neste trekk. Dette er bonderisikoen, og
+    # han er heile forklaringa på at eit menneske slår NAIS: nettet held få
+    # brikker ute og set dei framme, so den eine aktive brikka vert plukka.
+    # Utan dette talet kunne nettet ikkje sjå skilnaden på «ute» og «utsett».
+    mine_caps = capture_squares(st, foe)      # felt FIENDEN kan slå på
+    foe_caps = capture_squares(st, me)        # felt EG kan slå på
+    g[16] = (sum(1 for p in E.soldiers(st, me)
+                 if p.released and not p.captured
+                 and E.soldier_at(me, p.at) in mine_caps) / 15.0)
+    g[17] = (sum(1 for p in E.soldiers(st, foe)
+                 if p.released and not p.captured
+                 and E.soldier_at(foe, p.at) in foe_caps) / 15.0)
     return pl, g
 
 
@@ -153,6 +173,83 @@ DICE_USE_PROB = (0.0,      # 0 fjes
                  0.5781,                    # III åleine
                  0.8750, 0.8750,             # X+III / II+III
                  0.9844)                    # alle tre
+
+
+def capture_squares(st, side):
+    """{felt} der `side` kan slå ein fiende NO — rekna med MOTORENS eige
+    trekk-generator.
+
+    Fyrste forsøk var handskriven geometri (syklusaritmetikk + gen_kq_moves).
+    Han var ikkje samd med dommaren: han overrapporterte slag på felt der
+    landingsregelen nektar (t.d. fiendens heimrad), og paritetstesten mot JS
+    fanga det. Her lånar vi stillinga, set terningane til éin og éin verdi, og
+    spør generatoren — same sanning som spelet sjølv brukar.
+    """
+    save = (st.turn, st.phase, list(st.dice), list(st.used))
+    out = set()
+    try:
+        st.turn = side
+        st.phase = "move"
+        for face in ("X", "II", "III"):
+            st.dice = [face, "_", "_"]
+            st.used = [False, True, True]
+            for mv in E.legal_moves(st, side):
+                land = E.move_dest(st, mv)
+                if any(x.o == 1 - side and not x.captured for x in E.occ(st, land)):
+                    out.add(land)
+    finally:
+        st.turn, st.phase, st.dice, st.used = save[0], save[1], save[2], save[3]
+    return out
+
+
+def _capture_squares_geometry(st, side):
+    """{felt} som `side` kan slå ein fiende på NO, med terning 1-3.
+
+    Brukt til bonderisikoen: ei utløyst brikke som står på eit slikt felt kan
+    takast i neste trekk. Menneske utnyttar dette mot NAIS — nokre soldatar
+    framme, resten heime, og så plukkar dei brikka som står framme når ho kjem
+    innanfor. Nettet såg kor mange brikker som var ute, men ikkje kor utsette
+    dei stod.
+    """
+    foe = 1 - side
+    out = set()
+    # Den fremste UUTLØYSTE soldaten kan slå ved LØYSING: X løyser han og han
+    # landar eitt steg framme — står det ein fiende der, vert han teken. Utan
+    # dette missa hjelparen ei heil og vanleg slagform (funne i paritetstesten:
+    # JS, som brukar trekk-generatoren, såg ho; geometrien min gjorde ikkje).
+    unrel = [q for q in E.soldiers(st, side) if not q.released and not q.captured]
+    if unrel:
+        front = max(unrel, key=lambda q: q.at)
+        sq = E.soldier_at(side, front.at + 1)
+        # Landingsregelen må med: ein soldat kan ikkje lande kvar som helst
+        # (t.d. ikkje på fiendens heimrad). Utan han overrapporterte hjelparen
+        # slag som ikkje finst — fanga i paritetstesten mot appens dommar.
+        if (any(x.o == foe and not x.captured for x in E.occ(st, sq))
+                and E.soldier_landing_ok(st, front, sq) and E.can_land(st, front, sq)):
+            out.add(sq)
+    for q in st.pieces:
+        if q.captured or q.o != side:
+            continue
+        if q.t == "s":
+            if not q.released:
+                continue                     # løysing er handsama over
+            for v in (1, 2, 3):
+                sq = E.soldier_at(side, q.at + v)
+                if (any(x.o == foe and not x.captured for x in E.occ(st, sq))
+                        and E.soldier_landing_ok(st, q, sq) and E.can_land(st, q, sq)):
+                    out.add(sq)
+        else:
+            for v in (1, 2, 3):
+                for mv in E.gen_kq_moves(st, q, v):
+                    land = E.move_dest(st, mv)
+                    # gen_kq_moves gjev geometriske kandidatar; can_land er den
+                    # autoritative filteren (t.d. nektar han landing på
+                    # fiendens heimrad). Utan han overrapporterte hjelparen
+                    # slag som dommaren ikkje godkjenner.
+                    if (any(x.o == foe and not x.captured for x in E.occ(st, land))
+                            and E.can_land(st, q, land)):
+                        out.add(land)
+    return out
 
 
 def _square_attackable(st, sq, side):
