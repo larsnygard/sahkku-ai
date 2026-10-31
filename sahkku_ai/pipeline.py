@@ -106,29 +106,23 @@ def run_loop(args):
             spg_shard = None
 
     # ---- starting point ---------------------------------------------------
-    # Med --start-cycle N må løkka halde fram frå syklus N-1, ikkje frå
-    # init.pt (elles trenar ein på nytt frå tilfeldig nett).
-    if args.init:
-        net_path = args.init
-        print(f"[init] continuing from {net_path}", flush=True)
-    else:
+    # Rekkjefylgja er VIKTIG og har vore feil: --init låg fyrst, so kvar
+    # omstart av ei køyring som alt hadde syklusar trena på nytt frå
+    # startvekta — 13 ferdige syklusar vart kasta kvar gong, og kvart
+    # sjekkpunkt var i røynda eitt syklus oppå startvekta.
+    # Regelen: siste fullførte syklus vinn. --init gjeld berre når det ikkje
+    # finst noko å halde fram frå (ny køyring), og --force-init overstyrer
+    # med vilje.
+    net_path, init_msg = choose_start_net(ckdir, args.start_cycle, args.init, args.force_init)
+    if net_path is None:
         p = os.path.join(ckdir, "init.pt")
-        done = sorted(globmod.glob(os.path.join(ckdir, "c*.pt")),
-                      key=lambda q: int(re.sub(r"\D", "", os.path.basename(q)) or 0))
-        latest = [q for q in done
-                  if int(re.sub(r"\D", "", os.path.basename(q)) or 0) < args.start_cycle]
-        if latest and not args.force_init:
-            net_path = latest[-1]
-            print(f"[init] continuing from {net_path} (last completed cycle)", flush=True)
-        elif os.path.exists(p) and not args.force_init:
-            net_path = p
-            print(f"[init] reusing {p}", flush=True)
-        else:
-            net = Net(ch=args.ch, blocks=args.blocks, fc=args.fc)
-            net.meta = {"run": run, "cycle": 0, "steps": 0, "history": []}
-            net.save(p, net.meta)
-            net_path = p
-            print(f"[init] ny nett {net.cfg} -> {p}", flush=True)
+        net = Net(ch=args.ch, blocks=args.blocks, fc=args.fc)
+        net.meta = {"run": run, "cycle": 0, "steps": 0, "history": []}
+        net.save(p, net.meta)
+        net_path = p
+        print(f"[init] ny nett {net.cfg} -> {p}", flush=True)
+    else:
+        print(f"[init] {init_msg}", flush=True)
 
     t_run = time.time()
     last_cycle_s = 0.0            # kor lang den FØRRE syklusen vart
@@ -233,6 +227,35 @@ def run_loop(args):
         last_cycle_s = float(rec["elapsed_s"])
         print(f"[c{cycle}] done in {rec['elapsed_s']}s -> {p}", flush=True)
     print(f"all done: {args.out}.js (+ .weights.json) and {ckdir}/", flush=True)
+
+
+def choose_start_net(ckdir, start_cycle, init=None, force_init=False):
+    """Kva vekt skal syklusane starte frå? (None = lag eit nytt nett.)
+
+    Siste fullførte syklus vinn over --init. Elles ville kvar omstart av ei
+    køyring trena på nytt frå startvekta og kasta alt som var gjort — det var
+    faktisk tilfellet: 13 ferdige syklusar vart nullstilte kvar gong ei blokk
+    starta, og kvart sjekkpunkt var eitt syklus oppå startvekta.
+    """
+    p = os.path.join(ckdir, "init.pt")
+    if force_init:
+        # Med vilje: overstyr alt som ligg i køyringa
+        if init:
+            return init, f"continuing from {init} (forced)"
+        if os.path.exists(p):
+            return p, f"reusing {p} (forced)"
+        return None, None
+    done = sorted(globmod.glob(os.path.join(ckdir, "c*.pt")),
+                  key=lambda q: int(re.sub(r"\D", "", os.path.basename(q)) or 0))
+    latest = [q for q in done
+              if int(re.sub(r"\D", "", os.path.basename(q)) or 0) < start_cycle]
+    if latest:
+        return latest[-1], f"continuing from {latest[-1]} (last completed cycle)"
+    if init:
+        return init, f"continuing from {init}"
+    if os.path.exists(p):
+        return p, f"reusing {p}"
+    return None, None
 
 
 def main():
