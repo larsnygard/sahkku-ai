@@ -25,7 +25,7 @@ from sahkku_ai import punisher as PU
 from sahkku_ai.model import Net
 
 
-def probe(net_path, games, sims, seed=0, max_plies=2500):
+def probe(net_path, games, sims, seed=0, max_plies=2500, hand_style=""):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Net.load() si map_location flyttar berre tensorane; modulen må flyttast
     # etterpå (same grunn som i selfplay.py).
@@ -42,7 +42,10 @@ def probe(net_path, games, sims, seed=0, max_plies=2500):
         net_side = g % 2
         st = E.State(first=rng.randint(0, 1), nesseby=True)
         E.opening_roll(st, rng.random)
-        was = {p.id: (p.o, p.released) for p in st.pieces}
+        # «var ho nokon gong utløyst?» — flagget må fylgjast gjennom partiet.
+        # (Å lese det ved start gav alltid False: ingen soldat er utløyst då,
+        # so proben rapporterte 0 uansett kva som vart teke.)
+        ever_rel = {p.id: False for p in st.pieces}
 
         for _ in range(max_plies):
             if st.winner is not None:
@@ -52,6 +55,11 @@ def probe(net_path, games, sims, seed=0, max_plies=2500):
                 st.phase = "move"
             if st.turn == net_side:
                 pi, _z = MCTS.search(pred, st, cfg, rng, root_noise=False)
+                if hand_style:
+                    # tving nettet inn i stilen — same handikap som i treninga
+                    from sahkku_ai import selfplay as SP
+                    ids = FT.legal_ids(st)
+                    pi = SP.reweight_style(st, ids, pi, hand_style)
                 byid = {FT.move_id(st, m): m for a, m in FT.legal_ids(st)
                         if m.get("pid") is not None}
                 mv = byid.get(max(pi, key=pi.get)) if pi else None
@@ -69,16 +77,17 @@ def probe(net_path, games, sims, seed=0, max_plies=2500):
                     continue
                 E.apply_move(st, act)
             E.settle(st)
+            for p in st.pieces:
+                if p.released:
+                    ever_rel[p.id] = True
             plies_total += 1
 
         for p in st.pieces:
-            w = was.get(p.id)
-            if not w or w[0] != net_side or p.o != net_side:
+            if p.o != net_side or not p.captured:
                 continue
-            if p.captured:
-                lost_all += 1
-                if p.t == "s" and w[1]:
-                    lost_released += 1
+            lost_all += 1
+            if p.t == "s" and ever_rel.get(p.id):
+                lost_released += 1
 
         if st.winner == net_side:
             score += 1.0
@@ -104,8 +113,10 @@ def main():
     ap.add_argument("--games", type=int, default=20)
     ap.add_argument("--sims", type=int, default=45)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--hand-style", default="",
+                    help="tving nettet inn i ein stil (few/hold/...) so straffaren får noko å ta")
     a = ap.parse_args()
-    probe(a.net, a.games, a.sims, a.seed)
+    probe(a.net, a.games, a.sims, a.seed, hand_style=a.hand_style)
     return 0
 
 

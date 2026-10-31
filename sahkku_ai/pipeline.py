@@ -177,7 +177,8 @@ def run_loop(args):
                             aggressive_fraction=args.aggressive_fraction,
                             styles=args.styles,
                             style_fraction=args.style_fraction,
-                            style_both=args.style_both)
+                            style_both=args.style_both,
+                            hand_style=args.hand_style)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -263,6 +264,10 @@ def main():
     ap.add_argument("--train-opponent", dest="train_opponent", default="",
                     help="train against the classic CPU instead of self-play (e.g. \"classic3\")")
     ap.add_argument("--train-opponent-level", dest="train_opponent_level", type=int, default=3)
+    # Handikap på nettsida medan ho spelar mot motstandaren: «few» tvingar henne
+    # til å halde få soldatar ute, so straffaren faktisk får noko å ta.
+    ap.add_argument("--hand-style", dest="hand_style", default="",
+                    help="few/many/hold/kingfwd/kingguard — stilpåtvunge nettsida mot motstandaren")
     ap.add_argument("--queen-delay", type=int, default=-1,
                     help="self-play handicap: -1 off, 0/1 fixed side, 2 = random side "
                          "per game. That side may not activate its queen until it has "

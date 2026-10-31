@@ -725,6 +725,14 @@ def play_vs_opponent(net, device, cfg, rng, samples_out, pred=None):
                 continue
         else:
             pi, z, legal = evaluate_root(net, device, st, cfg, rng)
+        # HANDIKAP: tving nettsida inn i ein stil (t.d. «few»: få soldatar
+        # ute, press framover). Poenget er at straffaren då HAR noko å straffe —
+        # ei side som alt held seg attende gjev han ingen mål å ta. Same
+        # omfordeling som i sjølvspel, med vilje på BERRE nettsida.
+        hs = cfg.get("hand_style") or ""
+        if hs:
+            pi = reweight_style(st, ids, pi, hs)
+            legal = [a for a in legal if pi.get(a, 0.0) > 0.0] or legal
         pol = np.zeros(FT.N_ACTIONS, np.float32)
         for a in legal:
             pol[a] = pi[a]
@@ -804,7 +812,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  queen_delay=-1, queen_delay_soldiers=2, max_plies=MAX_PLIES,
                  nesseby=False, nesseby_fraction=1.0,
                  aggressive=False, aggressive_fraction=1.0,
-                 styles=False, style_fraction=1.0, style_both=None):
+                 styles=False, style_fraction=1.0, style_both=None,
+                 hand_style=""):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -822,7 +831,9 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "aggressive_fraction": float(aggressive_fraction),
            "styles": bool(styles),
            "style_fraction": float(style_fraction),
-           "style_both": style_both}
+           "style_both": style_both,
+           # tving nettsida inn i ein stil når ho spelar mot straffaren
+           "hand_style": hand_style or ""}
     jobs = [(w, json.dumps(cfg)) for w in range(workers)]
     # Vektorisert løype (K parti i lufta + CUDA-graph) når --k-games > 1
     fn = worker
