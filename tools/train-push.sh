@@ -206,7 +206,10 @@ commit_and_push() {          # $1 = syklusnummer
   # Berre sjekkpunktet og loggen i git. .js/.weights vert eksporterte av porten
   # på Nox-sida uansett, so dei treng ikkje liggje i historia — og dei er 8,5 MB
   # per syklus me ikkje får att.
-  git add "engines/${RUN}-nn.pt" "runs/${RUN}_report.md"
+  # runs/ er gitignora (store artefakt), men syklusloggen vil vi ha på origin
+  # so framgangen kan fylgjast frå kvar som helst — difor -f på akkurat ho.
+  git add "engines/${RUN}-nn.pt"
+  git add -f "runs/${RUN}_report.md"
   if git diff --cached --quiet; then
     say "[c$k] inga endring i motor-filene — hoppar over commit"
   else
