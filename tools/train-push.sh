@@ -36,6 +36,7 @@ HAND=hold
 EXTRA=()
 DRY=0
 NO_PUSH=0
+PUSH_EVERY=1        # kvar N-te syklus vert pusht (0 = berre den siste)
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -51,6 +52,7 @@ while [ $# -gt 0 ]; do
     --threads)    EXTRA+=(--threads "$2"); shift 2 ;;
     --dry)        DRY=1; shift ;;
     --no-push)    NO_PUSH=1; shift ;;
+    --push-every) PUSH_EVERY="$2"; shift 2 ;;
     *)            EXTRA+=("$1"); shift ;;
   esac
 done
@@ -194,7 +196,17 @@ PY
 commit_and_push() {          # $1 = syklusnummer
   local k="$1"
   [ "$NO_PUSH" = "1" ] && { say "[c$k] --no-push: motor ligg i engines/${RUN}-nn.*"; return 0; }
-  git add "engines/${RUN}-nn.js" "engines/${RUN}-nn.pt" "engines/${RUN}-nn.weights.json" "runs/${RUN}_report.md"
+  # Kvar N-te syklus (og alltid den siste): 40 syklusar × 6,4 MB er 250 MB
+  # git-historie, og det er ingenting å hente på å ha alle mellomstega der.
+  if [ "$PUSH_EVERY" != "0" ] && [ "$PUSH_EVERY" != "1" ] \
+     && [ $((k % PUSH_EVERY)) -ne 0 ] && [ "$k" -ne "$CYCLES" ]; then
+    say "[c$k] hoppar over push (kvar ${PUSH_EVERY}. syklus; neste ved $(( (k / PUSH_EVERY + 1) * PUSH_EVERY )))"
+    return 0
+  fi
+  # Berre sjekkpunktet og loggen i git. .js/.weights vert eksporterte av porten
+  # på Nox-sida uansett, so dei treng ikkje liggje i historia — og dei er 8,5 MB
+  # per syklus me ikkje får att.
+  git add "engines/${RUN}-nn.pt" "runs/${RUN}_report.md"
   if git diff --cached --quiet; then
     say "[c$k] inga endring i motor-filene — hoppar over commit"
   else

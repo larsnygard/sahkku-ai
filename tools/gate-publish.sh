@@ -70,14 +70,31 @@ case "$PAR" in *"OK"*) ;; *) say "FEIL: nett-paritet feila — publiserer ikkje"
 
 # ---- 3. benk ------------------------------------------------------------
 say "benk: Nesseby mot $BASE (30) og klassisk nivå 3 (40) — tek ~1,5 t"
-EVAL_NESSBY=1 node tools/eval_match.js "node engines/${RUN}-nn.js" "node engines/${BASE}-nn.js" 30 181 \
+# Treningsboksen pushar berre sjekkpunktet (.pt) for å halde git-historia
+# rimeleg. Difor bench-ar vi appen sin .js, som porten eksporterte rett over.
+NEWJS="$APP/engines/${RUN}.js"
+BASEJS="$APP/engines/${BASE}.js"
+[ -f "$NEWJS" ] || { say "FEIL: $NEWJS manglar etter eksport"; exit 1; }
+[ -f "$BASEJS" ] || { say "FEIL: $BASEJS manglar (base=$BASE)"; exit 1; }
+EVAL_NESSBY=1 node tools/eval_match.js "node $NEWJS" "node $BASEJS" 30 181 \
   > "runs/eval/${RUN}_nesseby.txt" 2>&1
-EVAL_SETOPT_B=Level=3 node tools/eval_match.js "node engines/${RUN}-nn.js" "node ../SnartSahkku/engines/sahkku-ref.js" 40 182 \
+EVAL_SETOPT_B=Level=3 node tools/eval_match.js "node $NEWJS" "node $APP/engines/sahkku-ref.js" 40 182 \
   > "runs/eval/${RUN}_L3.txt" 2>&1
 NB=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_nesseby.txt" | tail -1 | grep -oE "[0-9.]+")
 L3=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_L3.txt" | tail -1 | grep -oE "[0-9.]+")
 NB=${NB:-0}; L3=${L3:-0}
 say "resultat: Nesseby $NB % mot $BASE · klassisk L3 $L3 %"
+
+# Er dette framleis siste vekt? Under ein lang treningskøyring kjem det nye
+# sjekkpunkt kvart 12. minutt, og då er det sløsing å publisere eit som alt er
+# avløyst — neste tick tek den nye i staden.
+git fetch -q origin 2>/dev/null || true
+NOW_ORIGIN=$(git show "origin/main:engines/${RUN}-nn.pt" 2>/dev/null | sha256sum | cut -d' ' -f1)
+if [ -n "$NOW_ORIGIN" ] && [ "$NOW_ORIGIN" != "$NOW_SHA" ]; then
+  say "$RUN: nyare sjekkpunkt kom medan benken gjekk (${NOW_ORIGIN:0:12} mot ${NOW_SHA:0:12})"
+  say "publiserer ikkje eit avløyst sjekkpunkt — neste tick tek den nye"
+  exit 0
+fi
 
 # ---- 3b. menneskelege mål (ikkje-fatale, men skrivne i rapporten) -------
 # Benken over spelar mot ein motor. Det mennesket straffar er noko anna:
