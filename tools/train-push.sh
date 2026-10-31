@@ -68,6 +68,21 @@ if [ "$NO_PUSH" = "0" ] && [ "$DRY" = "0" ]; then
     || die "når ikkje origin — sjekk nøkkel/nett FØR treninga, ikkje etter 3 timar"
 fi
 
+# Same kode på begge maskinene: elles trenar boksen med gamle trekk (t.d. utan
+# g[16]/g[17]) og porten på andre sida lastar noko anna enn det som vart trena.
+if [ "$DRY" = "0" ] && [ "$NO_PUSH" = "0" ]; then
+  git pull -q --rebase --autostash origin "$BR" \
+    || die "git pull --rebase feila — fiks det no, ikkje etter tre timar"
+fi
+
+# Kodevakt: dei nye trekka og straffaren MÅ finnast i arbeidstreet.
+.venv/bin/python3 - <<'PY' || die "boksen køyrer gammal kode (manglar punisher eller g[16]/g[17]) — git pull først"
+import sys
+from sahkku_ai import features as FT
+import sahkku_ai.punisher  # noqa: F401
+sys.exit(0 if FT.N_GLOBAL == 18 else 1)
+PY
+
 .venv/bin/python3 - "$INIT" <<'PY' || die "startvekta let seg ikkje laste (manglar ho ei fil?)"
 import sys
 from sahkku_ai.model import Net
