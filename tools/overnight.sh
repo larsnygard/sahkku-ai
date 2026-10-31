@@ -21,6 +21,7 @@ CYCLES=8
 HOURS=9
 GAMES=400
 SIMS=45
+STEPS=900
 EXTRA=()
 DRY=0
 
@@ -32,6 +33,7 @@ while [ $# -gt 0 ]; do
     --hours)   HOURS="$2"; shift 2 ;;
     --games)   GAMES="$2"; shift 2 ;;
     --sims)    SIMS="$2"; shift 2 ;;
+    --steps)   STEPS="$2"; shift 2 ;;
     --threads) EXTRA+=(--threads "$2"); shift 2 ;;
     --dry)     DRY=1; shift ;;
     *)         EXTRA+=("$1"); shift ;;
@@ -59,7 +61,7 @@ say "trenar: $RUN i $CYCLES syklusar / maks $HOURS t (few på båe sider, Nesseb
 DRYARG=()
 [ "$DRY" = "1" ] && DRYARG=(--dry)
 ./badass-trainer.sh --run "$RUN" --init "$INIT" \
-    --cycles "$CYCLES" --hours "$HOURS" --games "$GAMES" --sims "$SIMS" \
+    --cycles "$CYCLES" --hours "$HOURS" --games "$GAMES" --sims "$SIMS" --steps "$STEPS" \
     --nesseby --nesseby-fraction 1.0 --style-both few "${EXTRA[@]}" "${DRYARG[@]}" \
     || die "treninga stoppa med feil (sjå loggen over) — ingen commit/push gjort"
 
