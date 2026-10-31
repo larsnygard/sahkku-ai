@@ -39,3 +39,5 @@
 | 32 | 658361 | 0.542 | `checkpoints/nais8/c32.pt` |
 | 33 | 675704 | 0.542 | `checkpoints/nais8/c33.pt` |
 | 34 | 693420 | 0.542 | `checkpoints/nais8/c34.pt` |
+| 35 | 711218 | 0.542 | `checkpoints/nais8/c35.pt` |
+| 36 | 729111 | 0.542 | `checkpoints/nais8/c36.pt` |
