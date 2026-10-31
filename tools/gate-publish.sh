@@ -134,7 +134,7 @@ fi
 
 # ---- 4. motorlista ------------------------------------------------------
 DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" "$SHORT" <<'PY'
-import json, pathlib, sys
+import datetime, json, pathlib, sys
 run, nb, l3, base, short = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5]
 p = pathlib.Path("/home/lars/src/SnartSahkku/engines/engines.json")
 m = json.loads(p.read_text())
@@ -143,12 +143,13 @@ name = "NAIS." + run.replace("nais", "")
 # Kort benk (12 parti) er nok til å seie «sånn ligg det an», men ikkje til å
 # flytte standardmotoren: feilmarginen er ±25 pp. Berre full benk får avgjere.
 better = nb >= 55.0 and short != "1"
-note = (f"Trena {run} (sjå sahkku-ai/docs/NAIS6-PLAN.md og runs/README) — "
+lagd = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+note = (f"Leggje ut {lagd} · Trena {run} (sjå sahkku-ai/docs og runs/README) — "
         f"{nb} % mot {base} i Nesseby ({'12 parti, kort benk medan køyringa går' if short == '1' else 'n=30'})"
         + (f" og {l3} % mot klassisk nivå 3 (n=40). " if short != "1" else ". ")
         + ("Standardmotor." if better else "Ikkje standardmotor (slår ikkje førre modell)."))
 entry = {"id": eid, "name": name, "type": "nn", "script": f"engines/{eid}.js",
-         "weights": f"engines/{eid}.weights.json", "lookahead": 4, "note": note}
+         "weights": f"engines/{eid}.weights.json", "lookahead": 4, "lagd": lagd, "note": note}
 m["engines"] = [e for e in m["engines"] if e["id"] != eid] + [entry]
 if better:
     m["default"] = eid
