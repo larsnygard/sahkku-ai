@@ -9,6 +9,8 @@ kan svarast for kvar einaste stilling.
 Køyr: .venv/bin/python tools/game_report.py <fil.spg>
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 
 import sys
 

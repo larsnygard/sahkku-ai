@@ -9,6 +9,8 @@ nett, og tel kor mange UTLØYSTE soldatar nettet mistar.
   .venv/bin/python tools/punisher_probe.py --net engines/nais5-nn.pt --games 20
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 
 import argparse
 import random

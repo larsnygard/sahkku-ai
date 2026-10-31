@@ -9,10 +9,12 @@ NØYAKTIG som før. Treninga kan so lære seg å bruke dei nye trekka.
 Køyr:  .venv/bin/python tools/expand_net.py <inn.pt> <ut.pt>
 """
 import sys
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 
 import torch
 
-sys.path.insert(0, "/home/lars/src/sahkku-ai")
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 from sahkku_ai.features import N_GLOBAL
 from sahkku_ai.model import Net
 

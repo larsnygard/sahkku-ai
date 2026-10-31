@@ -30,7 +30,15 @@ require(path.join(vroot, 'fen.js'));
 // SPG-skrivaren frå appen (kanonisk format), valfri: set EVAL_SPG=<fil>
 let SPG = null;
 try { require(path.join(vroot, '..', '..', 'SnartSahkku', 'js', 'spg.js')); SPG = global.SPG; }
-catch (e) { try { require('/home/lars/src/SnartSahkku/js/spg.js'); SPG = global.SPG; } catch (e2) { SPG = null; } }
+catch (e) {
+  // appen kan liggje ved sidan av repoet (vanleg) eller vere fråverande på
+  // treningsboksen; IKKJE hardkod ein brukar/sti.
+  var cands = ['../SnartSahkku/js/spg.js', '../../SnartSahkku/js/spg.js'];
+  SPG = null;
+  for (var ci = 0; ci < cands.length && !SPG; ci++) {
+    try { require(require('path').resolve(__dirname, cands[ci])); SPG = global.SPG; } catch (e2) {}
+  }
+}
 const SS = global.SS;
 
 const START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-.' +

@@ -8,8 +8,10 @@ samanliknar slutt-FEN med stillinga partiet faktisk enda i.
 """
 import json
 import sys
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 
-sys.path.insert(0, "/home/lars/src/sahkku-ai")
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 from sahkku_ai import spg as SPG
 from sahkku_ai import fen as FEN
 

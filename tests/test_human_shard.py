@@ -9,6 +9,7 @@ faktisk let seg lese (fallbacken).
 Køyr: .venv/bin/python -m tests.test_human_shard
 """
 from __future__ import annotations
+import os
 import sys
 
 import numpy as np
@@ -29,9 +30,11 @@ def ok(name, cond, extra=""):
         print(f"  FAIL {name}" + (f" :: {extra}" if extra else ""))
 
 
+# Relative, so testen òg køyrer på treningsboksen (ein annan brukar/sti)
+_HERE = os.path.dirname(os.path.abspath(__file__))
 GAMES = [
-    "/home/lars/src/sahkku-ai/tests/fixtures/human/menneske-2026-10-29T1205Z.spg",
-    "/home/lars/src/sahkku-ai/tests/fixtures/human/menneske-2026-10-29T1226Z.spg",
+    os.path.join(_HERE, "fixtures/human/menneske-2026-10-29T1205Z.spg"),
+    os.path.join(_HERE, "fixtures/human/menneske-2026-10-29T1226Z.spg"),
 ]
 
 

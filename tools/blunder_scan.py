@@ -9,6 +9,8 @@ med seg, og det treningskøyringa NAIS.3 blandar inn.
 Køyr: .venv/bin/python tools/blunder_scan.py <fil.spg> [...]
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 import sys
 
 from sahkku_ai import engine as E

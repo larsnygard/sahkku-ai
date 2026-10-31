@@ -10,8 +10,10 @@ Køyr:  .venv/bin/python tools/measure_captures.py <spg> <engine.js> [n]
 import json
 import subprocess
 import sys
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 
-sys.path.insert(0, "/home/lars/src/sahkku-ai")
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 from sahkku_ai import engine as E
 from sahkku_ai import fen as FEN
 from sahkku_ai import spg as SPG

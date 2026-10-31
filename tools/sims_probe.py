@@ -9,6 +9,8 @@ læringssignal målet ber.
 Køyr: .venv/bin/python tools/sims_probe.py [checkpoint] [fil.spg]
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 import math
 import random
 import sys

@@ -12,6 +12,8 @@ sannsyn (og/eller lågare verdi) enn NAIS.2, i same stilling.
 Køyr: .venv/bin/python tools/human_probe.py <fil.spg> [...]
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 import sys
 
 import numpy as np
