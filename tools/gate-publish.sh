@@ -69,21 +69,41 @@ case "$SUCI" in *"0 fail"*) ;; *) say "FEIL: S-UCI feila — publiserer ikkje"; 
 case "$PAR" in *"OK"*) ;; *) say "FEIL: nett-paritet feila — publiserer ikkje"; exit 1 ;; esac
 
 # ---- 3. benk ------------------------------------------------------------
-say "benk: Nesseby mot $BASE (30) og klassisk nivå 3 (40) — tek ~1,5 t"
+# Under ein aktiv treningskøyring kjem det nytt sjekkpunkt kvart 12.-24. minutt.
+# Ein full benk (30+40 parti, ~1,5 t) ville då alltid vere ferdig etter at han
+# var avløyst, so ingenting vart publisert før økta var over. Difor: er siste
+# sjekkpunkt FERSKT (< 40 min), køyrer vi ein KORT benk (12 Nesseby-parti) som
+# rekk å bli ferdig mellom to pushingar — men då vert han aldri standardmotor,
+# berre valfri. Er køyringa roleg, køyrer vi full benk som før.
+ENG_AGE=$(( $(date +%s) - $(git log -1 --format=%ct origin/main -- "engines/${RUN}-nn.pt" 2>/dev/null || echo 0) ))
+if [ "$ENG_AGE" -lt 2400 ]; then
+  SHORT=1; NBRUN=12; L3RUN=0
+  say "benk: KORT (sjekkpunktet er ${ENG_AGE}s gamalt — køyring pågår): Nesseby mot $BASE, 12 parti, ~20 min"
+else
+  SHORT=0; NBRUN=30; L3RUN=40
+  say "benk: full — Nesseby mot $BASE (30) og klassisk nivå 3 (40), ~1,5 t"
+fi
 # Treningsboksen pushar berre sjekkpunktet (.pt) for å halde git-historia
 # rimeleg. Difor bench-ar vi appen sin .js, som porten eksporterte rett over.
 NEWJS="$APP/engines/${RUN}.js"
 BASEJS="$APP/engines/${BASE}.js"
 [ -f "$NEWJS" ] || { say "FEIL: $NEWJS manglar etter eksport"; exit 1; }
 [ -f "$BASEJS" ] || { say "FEIL: $BASEJS manglar (base=$BASE)"; exit 1; }
-EVAL_NESSBY=1 node tools/eval_match.js "node $NEWJS" "node $BASEJS" 30 181 \
+EVAL_NESSBY=1 node tools/eval_match.js "node $NEWJS" "node $BASEJS" "$NBRUN" 181 \
   > "runs/eval/${RUN}_nesseby.txt" 2>&1
-EVAL_SETOPT_B=Level=3 node tools/eval_match.js "node $NEWJS" "node $APP/engines/sahkku-ref.js" 40 182 \
-  > "runs/eval/${RUN}_L3.txt" 2>&1
+L3=0
+if [ "$L3RUN" -gt 0 ]; then
+  EVAL_SETOPT_B=Level=3 node tools/eval_match.js "node $NEWJS" "node $APP/engines/sahkku-ref.js" "$L3RUN" 182 \
+    > "runs/eval/${RUN}_L3.txt" 2>&1
+fi
 NB=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_nesseby.txt" | tail -1 | grep -oE "[0-9.]+")
-L3=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_L3.txt" | tail -1 | grep -oE "[0-9.]+")
+L3=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_L3.txt" 2>/dev/null | tail -1 | grep -oE "[0-9.]+")
 NB=${NB:-0}; L3=${L3:-0}
-say "resultat: Nesseby $NB % mot $BASE · klassisk L3 $L3 %"
+if [ "$SHORT" = "1" ]; then
+  say "resultat: Nesseby $NB % mot $BASE (kort benk, 12 parti) · klassisk L3 ikkje køyrd"
+else
+  say "resultat: Nesseby $NB % mot $BASE · klassisk L3 $L3 %"
+fi
 
 # Er dette framleis siste vekt? Under ein lang treningskøyring kjem det nye
 # sjekkpunkt kvart 12. minutt, og då er det sløsing å publisere eit som alt er
@@ -113,16 +133,19 @@ if [ -f tools/punisher_probe.py ]; then
 fi
 
 # ---- 4. motorlista ------------------------------------------------------
-DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" <<'PY'
+DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" "$SHORT" <<'PY'
 import json, pathlib, sys
-run, nb, l3, base = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4]
+run, nb, l3, base, short = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5]
 p = pathlib.Path("/home/lars/src/SnartSahkku/engines/engines.json")
 m = json.loads(p.read_text())
 eid = run                      # nais7
 name = "NAIS." + run.replace("nais", "")
-better = nb >= 55.0
+# Kort benk (12 parti) er nok til å seie «sånn ligg det an», men ikkje til å
+# flytte standardmotoren: feilmarginen er ±25 pp. Berre full benk får avgjere.
+better = nb >= 55.0 and short != "1"
 note = (f"Trena {run} (sjå sahkku-ai/docs/NAIS6-PLAN.md og runs/README) — "
-        f"{nb} % mot {base} i Nesseby (n=30, 30 parti) og {l3} % mot klassisk nivå 3 (n=40). "
+        f"{nb} % mot {base} i Nesseby ({'12 parti, kort benk medan køyringa går' if short == '1' else 'n=30'})"
+        + (f" og {l3} % mot klassisk nivå 3 (n=40). " if short != "1" else ". ")
         + ("Standardmotor." if better else "Ikkje standardmotor (slår ikkje førre modell)."))
 entry = {"id": eid, "name": name, "type": "nn", "script": f"engines/{eid}.js",
          "weights": f"engines/{eid}.weights.json", "lookahead": 4, "note": note}
@@ -160,7 +183,11 @@ PY
 VERBUMP=$?
 [ "$VERBUMP" = "0" ] || { say "FEIL: versjons-/cache-bump feila — deployar ikkje ein motor brukarane ikkje får"; exit 1; }
 git add -A >/dev/null 2>&1
-git commit -q -m "Publiser $RUN: $NB % mot $BASE i Nesseby (n=30), $L3 % mot klassisk L3 (n=40). Standardmotor: $DEF. Eksportert frå engines/$RUN-nn.pt; S-UCI og nett-paritet grøne." || true
+if [ "$SHORT" = "1" ]; then
+  git commit -q -m "Publiser $RUN (kort benk): $NB % mot $BASE i Nesseby (12 parti, køyring pågår). Standardmotor: nei. Eksportert frå engines/$RUN-nn.pt; S-UCI og nett-paritet grøne." || true
+else
+  git commit -q -m "Publiser $RUN: $NB % mot $BASE i Nesseby (n=30), $L3 % mot klassisk L3 (n=40). Standardmotor: $DEF. Eksportert frå engines/$RUN-nn.pt; S-UCI og nett-paritet grøne." || true
+fi
 git push -q origin main 2>/dev/null || { git pull -q --rebase origin main >/dev/null 2>&1; git push -q origin main 2>/dev/null || say "ÅTVARING: push til appen feila"; }
 VER=$(node -e "console.log(require('fs').readFileSync('js/main.js','utf8').match(/APP_VERSION = '([^']+)'/)[1])")
 DEP=$(./sendsahkku.sh 2>&1 | tail -1)
@@ -170,8 +197,8 @@ sha256sum "$CK" | cut -d' ' -f1 > "$ROOT/$MARK"
 {
   say ""
   say "**$RUN er publisert** — $VER"
-  say "- Nesseby mot $BASE: **$NB %** (n=30)"
-  say "- klassisk nivå 3: **$L3 %** (n=40)"
+  say "- Nesseby mot $BASE: **$NB %** ($([ "$SHORT" = "1" ] && echo "12 parti, kort benk — køyringa går" || echo "n=30"))"
+  [ "$SHORT" = "1" ] || say "- klassisk nivå 3: **$L3 %** (n=40)"
   say "- standardmotor: $([ "$DEF" = "ja" ] && echo "**ja**" || echo "nei — $BASE står")"
   say "- S-UCI: $SUCI"
   say "- deploy: $DEP"
