@@ -25,12 +25,15 @@ def queen_sq(st, side):
 def can_take_queen(st, by_side):
     """Kan `by_side` slå motstandarens dronning i denne stillinga?"""
     qsq = queen_sq(st, 1 - by_side)
-    if qsq is None:
+    if qsq is None or st.winner is not None:
         return False
-    for mv in E.legal_moves(st, by_side):
-        if E.move_dest(st, mv) == qsq:
-            return True
-    return False
+    # FØR: E.legal_moves(st, by_side). Etter taparen sitt trekk er det
+    # VINNAREN sin tur i kastefasen, utan terningar — og då svarar
+    # legal_moves alltid tomt. Fylgja: skannaren fann aldri ei hengd dronning,
+    # uansett parti. capture_squares spør generatoren på nytt for kvar
+    # terningverdi og er uavhengig av kven sin tur det er.
+    from sahkku_ai import features as FT
+    return qsq in FT.capture_squares(st, by_side)
 
 
 def scan(path, quiet=False):
