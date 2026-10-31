@@ -11,9 +11,16 @@
 # rekkjevidd) medan straffaren tek det som stikk fram.
 #
 #   tools/train-push.sh                        # NAIS.8: 10 syklusar × 200 parti
-#   tools/train-push.sh --cycles 4 --hours 4   # kort blokk
+#   tools/train-push.sh --hours 3              # kort blokk om kvelden
+#   tools/train-push.sh --cycles 10 --hours 12 # nattblokke: HELD FRAM der ho slapp
 #   tools/train-push.sh --dry                  # vis kommandoen, gjer ingenting
 #   tools/train-push.sh --no-push              # tren + eksporter, ikkje commit
+#
+# Blokker: --cycles er SISTE syklusnummer, ikkje «kor mange til». Køyrer du
+# same kommandoen att, held pipeline fram frå siste fullførte syklus
+# (checkpoints/<run>/cN.pt) — ikkje frå --init. So kort blokk om kvelden og
+# lang blokk om natta er same kommando med anna tidsbudsjett, og kvar blokk
+# vert pusha og publisert for seg.
 #
 # Alt ukjent vert sendt rett til badass-trainer.sh.
 set -uo pipefail

@@ -12,13 +12,17 @@
 #
 #   tools/gate-publish.sh nais7 nais5
 set -uo pipefail
-RUN=${1:-nais7}
-BASE=${2:-nais5}
+RUN=${1:-nais8}
+BASE=${2:-auto}      # auto = den motoren som er standard no (kan skifte mellom blokker)
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT" || exit 0
 APP=/home/lars/src/SnartSahkku
-MARK="runs/${RUN}_published"
-[ -f "$MARK" ] && exit 0                                  # alt gjort: stille
+MARK="runs/${RUN}_published"     # inneheld shaen av det som vart publisert
+# Fleire blokker kan pushe same RUN (kort blokk om kvelden, lang om natta).
+# Difor: marker på motorFILA sin sha, ikkje på namnet — ei ny vekt = ny
+# publisering, same vekt = stille.
+LOCAL_SHA=$(sha256sum "engines/${RUN}-nn.pt" 2>/dev/null | cut -d' ' -f1)
+[ -n "$LOCAL_SHA" ] && [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$LOCAL_SHA" ] && exit 0
 exec 9>"/tmp/gate-${RUN}.lock"; flock -n 9 || exit 0      # ein tick om gongen
 
 say() { printf '%s\n' "$*"; }
@@ -28,9 +32,28 @@ git ls-tree -r --name-only origin/main -- engines 2>/dev/null | grep -qx "engine
 BR=$(git rev-parse --abbrev-ref HEAD)
 git pull -q --rebase --autostash origin "$BR" >/dev/null 2>&1 || git pull -q --rebase origin "$BR" >/dev/null 2>&1
 
-say "=== $RUN har nådd GitHub — køyrer porten ==="
+# Kven er standardmotoren no? (Kan ha skifta sidan førre blokk.)
+if [ "$BASE" = "auto" ]; then
+  BASE=$( .venv/bin/python3 -c "
+import json,sys
+m=json.load(open('$APP/engines/engines.json'))
+print(m.get('default') or '')" 2>/dev/null )
+  [ -n "$BASE" ] || { say "FEIL: fann ikkje standardmotor i engines.json"; exit 1; }
+  [ "$BASE" != "$RUN" ] || BASE=$( .venv/bin/python3 -c "
+import json
+m=json.load(open('$APP/engines/engines.json'))
+ids=[e['id'] for e in m['engines'] if e.get('type')=='nn' and e['id']!='$RUN']
+print(ids[-1] if ids else '')" 2>/dev/null )
+fi
+[ -n "$BASE" ] || { say "FEIL: ingen samanlikningsmotor"; exit 1; }
+
+say "=== $RUN har nådd GitHub — køyrer porten (samanliknar mot $BASE) ==="
 CK="engines/${RUN}-nn.pt"
 [ -f "$CK" ] || { say "FEIL: $CK manglar etter pull"; exit 1; }
+# Etter pull: er dette same vekta som alt vart publisert? (Vakta startar oss
+# berre ved ny sha, men porten kan òg startast for hand.)
+NOW_SHA=$(sha256sum "$CK" | cut -d' ' -f1)
+[ -f "$MARK" ] && [ "$(cat "$MARK")" = "$NOW_SHA" ] && { say "$RUN: same vekt som sist — ingenting å gjere"; exit 0; }
 
 # ---- 1. eksport til appen (rett namn → rett vektfil i .js) --------------
 .venv/bin/python3 -m sahkku_ai.export --net "$CK" --out "$APP/engines/$RUN" --name "NAIS.${RUN#nais}" >/dev/null 2>&1 \
@@ -126,7 +149,7 @@ VER=$(node -e "console.log(require('fs').readFileSync('js/main.js','utf8').match
 DEP=$(./sendsahkku.sh 2>&1 | tail -1)
 say "deploy: $DEP"
 
-touch "$ROOT/$MARK"
+sha256sum "$CK" | cut -d' ' -f1 > "$ROOT/$MARK"
 {
   say ""
   say "**$RUN er publisert** — $VER"
