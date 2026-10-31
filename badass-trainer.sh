@@ -51,6 +51,8 @@ AGGR="0"
 STYLES="0"
 STYLEBOTH=""
 STYLEFRAC=""
+OPP=""
+HAND=""
 AGGRFRAC=""
 HUMANGAMES=""
 HUMANWEIGHT="0.05"
@@ -83,6 +85,8 @@ while [ $# -gt 0 ]; do
     --styles)     STYLES="1"; shift ;;
     --style-both) STYLES="1"; STYLEBOTH="$2"; shift 2 ;;
     --style-fraction) STYLEFRAC="$2"; shift 2 ;;
+    --train-opponent) OPP="$2"; shift 2 ;;
+    --hand-style)  HAND="$2"; shift 2 ;;
     --aggressive) AGGR="1"; shift ;;
     --aggressive-fraction) AGGRFRAC="$2"; shift 2 ;;
     --human-games)  shift; while [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; do
@@ -311,6 +315,15 @@ if [ "$AGGR" = "1" ]; then
   [ -n "$AGGRFRAC" ] || AGGRFRAC="1.0"
   CMD+=(--aggressive --aggressive-fraction "$AGGRFRAC")
 fi
+# Motstandar (t.d. punisher) og stilen nettsida vert tvinga inn i medan ho
+# spelar mot han. Handikapet gjev motstandaren noko å straffe: ei side som alt
+# held seg attende er det ingenting å ta.
+if [ -n "$HAND" ] && [ -z "$OPP" ]; then
+  die "--hand-style krev --train-opponent (handikapet gjeld berre i spel mot motstandar)"
+fi
+[ -z "$OPP" ] || CMD+=(--train-opponent "$OPP")
+[ -z "$HAND" ] || CMD+=(--hand-style "$HAND")
+
 if [ "$STYLES" = "1" ]; then
   [ -n "$STYLEFRAC" ] || STYLEFRAC="1.0"
   CMD+=(--styles --style-fraction "$STYLEFRAC")

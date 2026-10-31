@@ -56,6 +56,22 @@ L3=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_L3.txt" | tail -1 | grep -
 NB=${NB:-0}; L3=${L3:-0}
 say "resultat: Nesseby $NB % mot $BASE · klassisk L3 $L3 %"
 
+# ---- 3b. menneskelege mål (ikkje-fatale, men skrivne i rapporten) -------
+# Benken over spelar mot ein motor. Det mennesket straffar er noko anna:
+# kor mange soldatar nettet held UTE, og kor mange av dei som vert tekne.
+# Same probe som vart brukt til aa diagnostisere NAIS.7-partiet (0.8 ute).
+HUM=""
+if [ -f tools/punisher_probe.py ]; then
+  say "menneskeleg mål: straffar mot $RUN (4 parti, --hand-style hold)"
+  if .venv/bin/python3 tools/punisher_probe.py --net "$CK" --games 4 --sims 45 --hand-style hold \
+       > "runs/eval/${RUN}_human.txt" 2>&1; then
+    HUM=$(grep -E "nettet miste|for nettet" "runs/eval/${RUN}_human.txt" | tr '\n' ' ' | sed 's/  */ /g')
+    say "  $HUM"
+  else
+    say "  (proben feila — sjå runs/eval/${RUN}_human.txt; publiserer likevel)"
+  fi
+fi
+
 # ---- 4. motorlista ------------------------------------------------------
 DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" <<'PY'
 import json, pathlib, sys
@@ -82,22 +98,27 @@ say "standardmotor: $([ "$DEF" = "ja" ] && echo "JA ($RUN)" || echo "nei — $BA
 # ---- 5. cache/versjon, commit, push, deploy ----------------------------
 cd "$APP" || exit 1
 python3 - <<'PY'
-import pathlib
+import pathlib, re, sys
 sw = pathlib.Path("sw.js"); s = sw.read_text()
 m = re.search(r"sahkku-v(\d+)", s)
 if m: s = s.replace(m.group(0), f"sahkku-v{int(m.group(1)) + 1}")
 sw.write_text(s)
 main = pathlib.Path("js/main.js"); t = main.read_text()
 m = re.search(r"APP_VERSION = 'v(\d+)\.(\d+)\.(\d+)'", t)
-if m:
-    new = f"v{m.group(1)}.{int(m.group(2)) + 1}.0"
-    t = t.replace(m.group(0), f"APP_VERSION = '{new}'")
-    main.write_text(t)
-    idx = pathlib.Path("index.html"); h = idx.read_text()
-    h = re.sub(r"v\d+\.\d+\.\d+ · AGPL", f"{new} · AGPL", h)
-    idx.write_text(h)
-    print(new)
+if not m:
+    sys.exit("APP_VERSION vart ikkje funnen i js/main.js — publicerer ikkje utan versjonsbump")
+new = f"v{m.group(1)}.{int(m.group(2)) + 1}.0"
+t = t.replace(m.group(0), f"APP_VERSION = '{new}'")
+main.write_text(t)
+idx = pathlib.Path("index.html"); h = idx.read_text()
+h2 = re.sub(r"v\d+\.\d+\.\d+ · AGPL", f"{new} · AGPL", h)
+if h2 == h:
+    sys.exit("fann ikkje versjonslinja i index.html — publicerer ikkje utan ho")
+idx.write_text(h2)
+print(new)
 PY
+VERBUMP=$?
+[ "$VERBUMP" = "0" ] || { say "FEIL: versjons-/cache-bump feila — deployar ikkje ein motor brukarane ikkje får"; exit 1; }
 git add -A >/dev/null 2>&1
 git commit -q -m "Publiser $RUN: $NB % mot $BASE i Nesseby (n=30), $L3 % mot klassisk L3 (n=40). Standardmotor: $DEF. Eksportert frå engines/$RUN-nn.pt; S-UCI og nett-paritet grøne." || true
 git push -q origin main 2>/dev/null || { git pull -q --rebase origin main >/dev/null 2>&1; git push -q origin main 2>/dev/null || say "ÅTVARING: push til appen feila"; }
@@ -114,4 +135,5 @@ touch "$ROOT/$MARK"
   say "- standardmotor: $([ "$DEF" = "ja" ] && echo "**ja**" || echo "nei — $BASE står")"
   say "- S-UCI: $SUCI"
   say "- deploy: $DEP"
-} | tee "$ROOT/runs/${RUN}_report.md"
+  [ -z "$HUM" ] || say "- mot straffaren: $HUM"
+} | tee -a "$ROOT/runs/${RUN}_report.md"
