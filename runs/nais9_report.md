@@ -50,3 +50,8 @@
 | 43 | 695234 | 0.542 | `checkpoints/nais9/c43.pt` |
 | 44 | 710820 | 0.542 | `checkpoints/nais9/c44.pt` |
 | 45 | 726711 | 0.542 | `checkpoints/nais9/c45.pt` |
+| 46 | 742180 | 0.542 | `checkpoints/nais9/c46.pt` |
+| 47 | 757357 | 0.542 | `checkpoints/nais9/c47.pt` |
+| 48 | 772340 | 0.542 | `checkpoints/nais9/c48.pt` |
+| 49 | 788561 | 0.542 | `checkpoints/nais9/c49.pt` |
+| 50 | 805015 | 0.542 | `checkpoints/nais9/c50.pt` |
