@@ -160,3 +160,8 @@
 | 153 | 2363631 | 0.542 | `checkpoints/nais9/c153.pt` |
 | 154 | 2378616 | 0.542 | `checkpoints/nais9/c154.pt` |
 | 155 | 2393027 | 0.542 | `checkpoints/nais9/c155.pt` |
+| 156 | 2407282 | 0.542 | `checkpoints/nais9/c156.pt` |
+| 157 | 2421673 | 0.542 | `checkpoints/nais9/c157.pt` |
+| 158 | 2435781 | 0.542 | `checkpoints/nais9/c158.pt` |
+| 159 | 2450006 | 0.542 | `checkpoints/nais9/c159.pt` |
+| 160 | 2464318 | 0.542 | `checkpoints/nais9/c160.pt` |
