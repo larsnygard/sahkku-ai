@@ -60,3 +60,8 @@
 | 53 | 851569 | 0.542 | `checkpoints/nais9/c53.pt` |
 | 54 | 866756 | 0.542 | `checkpoints/nais9/c54.pt` |
 | 55 | 881846 | 0.542 | `checkpoints/nais9/c55.pt` |
+| 56 | 896815 | 0.542 | `checkpoints/nais9/c56.pt` |
+| 57 | 911637 | 0.542 | `checkpoints/nais9/c57.pt` |
+| 58 | 927260 | 0.542 | `checkpoints/nais9/c58.pt` |
+| 59 | 941588 | 0.542 | `checkpoints/nais9/c59.pt` |
+| 60 | 956428 | 0.542 | `checkpoints/nais9/c60.pt` |
