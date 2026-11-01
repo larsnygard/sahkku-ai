@@ -110,3 +110,8 @@
 | 103 | 1613567 | 0.542 | `checkpoints/nais9/c103.pt` |
 | 104 | 1629112 | 0.542 | `checkpoints/nais9/c104.pt` |
 | 105 | 1644917 | 0.542 | `checkpoints/nais9/c105.pt` |
+| 106 | 1661194 | 0.542 | `checkpoints/nais9/c106.pt` |
+| 107 | 1676962 | 0.542 | `checkpoints/nais9/c107.pt` |
+| 108 | 1692453 | 0.542 | `checkpoints/nais9/c108.pt` |
+| 109 | 1707601 | 0.542 | `checkpoints/nais9/c109.pt` |
+| 110 | 1723401 | 0.542 | `checkpoints/nais9/c110.pt` |
