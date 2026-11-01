@@ -20,3 +20,8 @@
 | 13 | 211062 | 0.542 | `checkpoints/nais9/c13.pt` |
 | 14 | 226015 | 0.542 | `checkpoints/nais9/c14.pt` |
 | 15 | 241471 | 0.542 | `checkpoints/nais9/c15.pt` |
+| 16 | 257505 | 0.542 | `checkpoints/nais9/c16.pt` |
+| 17 | 274287 | 0.542 | `checkpoints/nais9/c17.pt` |
+| 18 | 290073 | 0.542 | `checkpoints/nais9/c18.pt` |
+| 19 | 305403 | 0.542 | `checkpoints/nais9/c19.pt` |
+| 20 | 321676 | 0.542 | `checkpoints/nais9/c20.pt` |
