@@ -85,3 +85,8 @@
 | 78 | 1226670 | 0.542 | `checkpoints/nais9/c78.pt` |
 | 79 | 1241470 | 0.542 | `checkpoints/nais9/c79.pt` |
 | 80 | 1256522 | 0.542 | `checkpoints/nais9/c80.pt` |
+| 81 | 1272433 | 0.542 | `checkpoints/nais9/c81.pt` |
+| 82 | 1287666 | 0.542 | `checkpoints/nais9/c82.pt` |
+| 83 | 1304182 | 0.542 | `checkpoints/nais9/c83.pt` |
+| 84 | 1319654 | 0.542 | `checkpoints/nais9/c84.pt` |
+| 85 | 1334886 | 0.542 | `checkpoints/nais9/c85.pt` |
