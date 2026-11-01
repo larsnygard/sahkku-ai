@@ -140,3 +140,8 @@
 | 133 | 2068736 | 0.542 | `checkpoints/nais9/c133.pt` |
 | 134 | 2083229 | 0.542 | `checkpoints/nais9/c134.pt` |
 | 135 | 2097868 | 0.542 | `checkpoints/nais9/c135.pt` |
+| 136 | 2112896 | 0.542 | `checkpoints/nais9/c136.pt` |
+| 137 | 2127424 | 0.542 | `checkpoints/nais9/c137.pt` |
+| 138 | 2141780 | 0.542 | `checkpoints/nais9/c138.pt` |
+| 139 | 2155994 | 0.542 | `checkpoints/nais9/c139.pt` |
+| 140 | 2171002 | 0.542 | `checkpoints/nais9/c140.pt` |
