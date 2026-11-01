@@ -185,3 +185,8 @@
 | 178 | 2735018 | 0.542 | `checkpoints/nais9/c178.pt` |
 | 179 | 2750158 | 0.542 | `checkpoints/nais9/c179.pt` |
 | 180 | 2764258 | 0.542 | `checkpoints/nais9/c180.pt` |
+| 181 | 2779024 | 0.542 | `checkpoints/nais9/c181.pt` |
+| 182 | 2793684 | 0.542 | `checkpoints/nais9/c182.pt` |
+| 183 | 2808450 | 0.542 | `checkpoints/nais9/c183.pt` |
+| 184 | 2823306 | 0.542 | `checkpoints/nais9/c184.pt` |
+| 185 | 2837207 | 0.542 | `checkpoints/nais9/c185.pt` |
