@@ -65,3 +65,8 @@
 | 58 | 927260 | 0.542 | `checkpoints/nais9/c58.pt` |
 | 59 | 941588 | 0.542 | `checkpoints/nais9/c59.pt` |
 | 60 | 956428 | 0.542 | `checkpoints/nais9/c60.pt` |
+| 61 | 971626 | 0.542 | `checkpoints/nais9/c61.pt` |
+| 62 | 986594 | 0.542 | `checkpoints/nais9/c62.pt` |
+| 63 | 1001203 | 0.542 | `checkpoints/nais9/c63.pt` |
+| 64 | 1015957 | 0.542 | `checkpoints/nais9/c64.pt` |
+| 65 | 1030212 | 0.542 | `checkpoints/nais9/c65.pt` |
