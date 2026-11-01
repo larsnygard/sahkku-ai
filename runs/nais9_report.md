@@ -70,3 +70,8 @@
 | 63 | 1001203 | 0.542 | `checkpoints/nais9/c63.pt` |
 | 64 | 1015957 | 0.542 | `checkpoints/nais9/c64.pt` |
 | 65 | 1030212 | 0.542 | `checkpoints/nais9/c65.pt` |
+| 66 | 1045375 | 0.542 | `checkpoints/nais9/c66.pt` |
+| 67 | 1060233 | 0.542 | `checkpoints/nais9/c67.pt` |
+| 68 | 1075415 | 0.542 | `checkpoints/nais9/c68.pt` |
+| 69 | 1091656 | 0.542 | `checkpoints/nais9/c69.pt` |
+| 70 | 1106351 | 0.542 | `checkpoints/nais9/c70.pt` |
