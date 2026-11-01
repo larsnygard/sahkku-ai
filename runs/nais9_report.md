@@ -115,3 +115,8 @@
 | 108 | 1692453 | 0.542 | `checkpoints/nais9/c108.pt` |
 | 109 | 1707601 | 0.542 | `checkpoints/nais9/c109.pt` |
 | 110 | 1723401 | 0.542 | `checkpoints/nais9/c110.pt` |
+| 111 | 1738347 | 0.542 | `checkpoints/nais9/c111.pt` |
+| 112 | 1753673 | 0.542 | `checkpoints/nais9/c112.pt` |
+| 113 | 1767938 | 0.542 | `checkpoints/nais9/c113.pt` |
+| 114 | 1782592 | 0.542 | `checkpoints/nais9/c114.pt` |
+| 115 | 1797933 | 0.542 | `checkpoints/nais9/c115.pt` |
