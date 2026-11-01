@@ -105,3 +105,8 @@
 | 98 | 1534411 | 0.542 | `checkpoints/nais9/c98.pt` |
 | 99 | 1550865 | 0.542 | `checkpoints/nais9/c99.pt` |
 | 100 | 1567031 | 0.542 | `checkpoints/nais9/c100.pt` |
+| 101 | 1582467 | 0.542 | `checkpoints/nais9/c101.pt` |
+| 102 | 1597689 | 0.542 | `checkpoints/nais9/c102.pt` |
+| 103 | 1613567 | 0.542 | `checkpoints/nais9/c103.pt` |
+| 104 | 1629112 | 0.542 | `checkpoints/nais9/c104.pt` |
+| 105 | 1644917 | 0.542 | `checkpoints/nais9/c105.pt` |
