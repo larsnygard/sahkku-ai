@@ -90,3 +90,8 @@
 | 83 | 1304182 | 0.542 | `checkpoints/nais9/c83.pt` |
 | 84 | 1319654 | 0.542 | `checkpoints/nais9/c84.pt` |
 | 85 | 1334886 | 0.542 | `checkpoints/nais9/c85.pt` |
+| 86 | 1350830 | 0.542 | `checkpoints/nais9/c86.pt` |
+| 87 | 1366808 | 0.542 | `checkpoints/nais9/c87.pt` |
+| 88 | 1381350 | 0.542 | `checkpoints/nais9/c88.pt` |
+| 89 | 1395936 | 0.542 | `checkpoints/nais9/c89.pt` |
+| 90 | 1411024 | 0.542 | `checkpoints/nais9/c90.pt` |
