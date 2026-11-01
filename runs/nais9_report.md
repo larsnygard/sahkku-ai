@@ -125,3 +125,8 @@
 | 118 | 1843529 | 0.542 | `checkpoints/nais9/c118.pt` |
 | 119 | 1858246 | 0.542 | `checkpoints/nais9/c119.pt` |
 | 120 | 1873527 | 0.542 | `checkpoints/nais9/c120.pt` |
+| 121 | 1888735 | 0.542 | `checkpoints/nais9/c121.pt` |
+| 122 | 1903512 | 0.542 | `checkpoints/nais9/c122.pt` |
+| 123 | 1918693 | 0.542 | `checkpoints/nais9/c123.pt` |
+| 124 | 1933932 | 0.542 | `checkpoints/nais9/c124.pt` |
+| 125 | 1949025 | 0.542 | `checkpoints/nais9/c125.pt` |
