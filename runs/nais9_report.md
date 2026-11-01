@@ -175,3 +175,8 @@
 | 168 | 2584354 | 0.542 | `checkpoints/nais9/c168.pt` |
 | 169 | 2599668 | 0.542 | `checkpoints/nais9/c169.pt` |
 | 170 | 2614505 | 0.542 | `checkpoints/nais9/c170.pt` |
+| 171 | 2629778 | 0.542 | `checkpoints/nais9/c171.pt` |
+| 172 | 2644709 | 0.542 | `checkpoints/nais9/c172.pt` |
+| 173 | 2660452 | 0.542 | `checkpoints/nais9/c173.pt` |
+| 174 | 2675536 | 0.542 | `checkpoints/nais9/c174.pt` |
+| 175 | 2690183 | 0.542 | `checkpoints/nais9/c175.pt` |
