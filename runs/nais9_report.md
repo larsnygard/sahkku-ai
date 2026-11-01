@@ -45,3 +45,8 @@
 | 38 | 615836 | 0.542 | `checkpoints/nais9/c38.pt` |
 | 39 | 631815 | 0.542 | `checkpoints/nais9/c39.pt` |
 | 40 | 647936 | 0.542 | `checkpoints/nais9/c40.pt` |
+| 41 | 663502 | 0.542 | `checkpoints/nais9/c41.pt` |
+| 42 | 679268 | 0.542 | `checkpoints/nais9/c42.pt` |
+| 43 | 695234 | 0.542 | `checkpoints/nais9/c43.pt` |
+| 44 | 710820 | 0.542 | `checkpoints/nais9/c44.pt` |
+| 45 | 726711 | 0.542 | `checkpoints/nais9/c45.pt` |
