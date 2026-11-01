@@ -40,3 +40,8 @@
 | 33 | 534170 | 0.542 | `checkpoints/nais9/c33.pt` |
 | 34 | 550557 | 0.542 | `checkpoints/nais9/c34.pt` |
 | 35 | 567382 | 0.542 | `checkpoints/nais9/c35.pt` |
+| 36 | 583185 | 0.542 | `checkpoints/nais9/c36.pt` |
+| 37 | 599216 | 0.542 | `checkpoints/nais9/c37.pt` |
+| 38 | 615836 | 0.542 | `checkpoints/nais9/c38.pt` |
+| 39 | 631815 | 0.542 | `checkpoints/nais9/c39.pt` |
+| 40 | 647936 | 0.542 | `checkpoints/nais9/c40.pt` |
