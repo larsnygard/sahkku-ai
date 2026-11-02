@@ -250,3 +250,8 @@
 | 243 | 3691426 | 0.542 | `checkpoints/nais9/c243.pt` |
 | 244 | 3706473 | 0.542 | `checkpoints/nais9/c244.pt` |
 | 245 | 3720654 | 0.542 | `checkpoints/nais9/c245.pt` |
+| 246 | 3735332 | 0.542 | `checkpoints/nais9/c246.pt` |
+| 247 | 3749653 | 0.542 | `checkpoints/nais9/c247.pt` |
+| 248 | 3764502 | 0.542 | `checkpoints/nais9/c248.pt` |
+| 249 | 3778800 | 0.542 | `checkpoints/nais9/c249.pt` |
+| 250 | 3793330 | 0.542 | `checkpoints/nais9/c250.pt` |
