@@ -305,3 +305,8 @@
 | 298 | 4513379 | 0.542 | `checkpoints/nais9/c298.pt` |
 | 299 | 4527984 | 0.542 | `checkpoints/nais9/c299.pt` |
 | 300 | 4542676 | 0.542 | `checkpoints/nais9/c300.pt` |
+| 301 | 4556791 | 0.542 | `checkpoints/nais9/c301.pt` |
+| 302 | 4571309 | 0.542 | `checkpoints/nais9/c302.pt` |
+| 303 | 4585806 | 0.542 | `checkpoints/nais9/c303.pt` |
+| 304 | 4600639 | 0.542 | `checkpoints/nais9/c304.pt` |
+| 305 | 4614675 | 0.542 | `checkpoints/nais9/c305.pt` |
