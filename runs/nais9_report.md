@@ -270,3 +270,8 @@
 | 263 | 3987617 | 0.542 | `checkpoints/nais9/c263.pt` |
 | 264 | 4002357 | 0.542 | `checkpoints/nais9/c264.pt` |
 | 265 | 4017037 | 0.542 | `checkpoints/nais9/c265.pt` |
+| 266 | 4032112 | 0.542 | `checkpoints/nais9/c266.pt` |
+| 267 | 4047214 | 0.542 | `checkpoints/nais9/c267.pt` |
+| 268 | 4062495 | 0.542 | `checkpoints/nais9/c268.pt` |
+| 269 | 4077013 | 0.542 | `checkpoints/nais9/c269.pt` |
+| 270 | 4092050 | 0.542 | `checkpoints/nais9/c270.pt` |
