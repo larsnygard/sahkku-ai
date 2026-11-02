@@ -325,3 +325,8 @@
 | 318 | 4803119 | 0.542 | `checkpoints/nais9/c318.pt` |
 | 319 | 4817820 | 0.542 | `checkpoints/nais9/c319.pt` |
 | 320 | 4832345 | 0.542 | `checkpoints/nais9/c320.pt` |
+| 321 | 4847437 | 0.542 | `checkpoints/nais9/c321.pt` |
+| 322 | 4862276 | 0.542 | `checkpoints/nais9/c322.pt` |
+| 323 | 4877436 | 0.542 | `checkpoints/nais9/c323.pt` |
+| 324 | 4892559 | 0.542 | `checkpoints/nais9/c324.pt` |
+| 325 | 4908379 | 0.542 | `checkpoints/nais9/c325.pt` |
