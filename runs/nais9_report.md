@@ -320,3 +320,8 @@
 | 313 | 4730420 | 0.542 | `checkpoints/nais9/c313.pt` |
 | 314 | 4745097 | 0.542 | `checkpoints/nais9/c314.pt` |
 | 315 | 4760134 | 0.542 | `checkpoints/nais9/c315.pt` |
+| 316 | 4774758 | 0.542 | `checkpoints/nais9/c316.pt` |
+| 317 | 4789353 | 0.542 | `checkpoints/nais9/c317.pt` |
+| 318 | 4803119 | 0.542 | `checkpoints/nais9/c318.pt` |
+| 319 | 4817820 | 0.542 | `checkpoints/nais9/c319.pt` |
+| 320 | 4832345 | 0.542 | `checkpoints/nais9/c320.pt` |
