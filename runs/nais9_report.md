@@ -245,3 +245,8 @@
 | 238 | 3618007 | 0.542 | `checkpoints/nais9/c238.pt` |
 | 239 | 3633095 | 0.542 | `checkpoints/nais9/c239.pt` |
 | 240 | 3647576 | 0.542 | `checkpoints/nais9/c240.pt` |
+| 241 | 3661941 | 0.542 | `checkpoints/nais9/c241.pt` |
+| 242 | 3676923 | 0.542 | `checkpoints/nais9/c242.pt` |
+| 243 | 3691426 | 0.542 | `checkpoints/nais9/c243.pt` |
+| 244 | 3706473 | 0.542 | `checkpoints/nais9/c244.pt` |
+| 245 | 3720654 | 0.542 | `checkpoints/nais9/c245.pt` |
