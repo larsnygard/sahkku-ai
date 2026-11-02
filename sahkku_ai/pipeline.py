@@ -120,7 +120,7 @@ def run_loop(args):
         net.meta = {"run": run, "cycle": 0, "steps": 0, "history": []}
         net.save(p, net.meta)
         net_path = p
-        print(f"[init] ny nett {net.cfg} -> {p}", flush=True)
+        print(f"[init] new net {net.cfg} -> {p}", flush=True)
     else:
         print(f"[init] {init_msg}", flush=True)
 
@@ -182,7 +182,7 @@ def run_loop(args):
         shard_expr = " ".join(pats)
         ck = os.path.join(ckdir, f"c{cycle}.pt")
         if os.path.exists(ck) and not args.force_train:
-            print(f"[c{cycle}] trening finst alt: {ck}", flush=True)
+            print(f"[c{cycle}] training checkpoint already exists: {ck}", flush=True)
         else:
             train_net(f"{run}_c{cycle}", shard_expr, init=net_path,
                       steps=args.steps, batch=args.batch, lr=args.lr,
@@ -213,7 +213,7 @@ def run_loop(args):
                 with open(os.path.join(rundir, f"eval_c{cycle}.txt"), "w") as f:
                     f.write(out)
             except Exception as e:                      # noqa: BLE001
-                print(f"[c{cycle}] eval feila: {e}", flush=True)
+                print(f"[c{cycle}] eval failed: {e}", flush=True)
 
         n_samples = 0
         for s in globmod.glob(os.path.join(cyc_dir, "shard_*.npz")):
@@ -290,11 +290,11 @@ def main():
     # Handikap på nettsida medan ho spelar mot motstandaren: «few» tvingar henne
     # til å halde få soldatar ute, so straffaren faktisk får noko å ta.
     ap.add_argument("--hand-style", dest="hand_style", default="",
-                    help="few/many/hold/kingfwd/kingguard — stilpåtvunge nettsida mot motstandaren")
+                    help="few/many/hold/kingfwd/kingguard — style forced on the web side against the opponent")
     ap.add_argument("--queen-delay", type=int, default=-1,
                     help="self-play handicap: -1 off, 0/1 fixed side, 2 = random side "
                          "per game. That side may not activate its queen until it has "
-                         "--queen-delay-soldiers soldatar att (AIL0.6-eksperimentet)")
+                         "the required number of soldiers out (the AIL0.6 experiment)")
     ap.add_argument("--queen-delay-soldiers", type=int, default=2)
     ap.add_argument("--max-plies", type=int, default=300,
                     help="ply cap per game during data generation")
@@ -333,7 +333,7 @@ def main():
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--seed", type=int, default=13)
     ap.add_argument("--init", default=None, help="checkpoint to start from")
-    ap.add_argument("--spg", default=None, help="mappe med .spg-samlingar (valfri)")
+    ap.add_argument("--spg", default=None, help="folder with .spg collections (optional)")
     ap.add_argument("--spg-out", default=None)
     ap.add_argument("--out", default="engines/sahkku-nn")
     ap.add_argument("--eval-games", type=int, default=0)

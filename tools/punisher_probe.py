@@ -102,30 +102,30 @@ def probe(net_path, games, sims, seed=0, max_plies=2500, hand_style=""):
             score += 1.0
         elif st.winner is None:
             score += 0.5
-        res = ("vann" if st.winner == net_side
-               else "uavgjort" if st.winner is None else "tapte")
-        print(f"[{g + 1}/{games}] nett som {'Menn' if net_side == 0 else 'Koner'}: "
-              f"{res} etter {st.moves} trekk ({time.time() - t0:.0f}s)", flush=True)
+        res = ("won" if st.winner == net_side
+               else "draw" if st.winner is None else "lost")
+        print(f"[{g + 1}/{games}] net as {'Menn' if net_side == 0 else 'Koner'}: "
+              f"{res} after {st.moves} moves ({time.time() - t0:.0f}s)", flush=True)
 
     n = games
-    print(f"\nstraffar mot {net_path}: {score / n * 100:.1f} % for nettet ({score:.0f}/{n})")
-    print(f"nettet miste {lost_released / n:.1f} utløyste soldatar "
-          f"og {lost_all / n:.1f} brikker per parti")
+    print(f"\npunisher vs {net_path}: {score / n * 100:.1f} % for the net ({score:.0f}/{n})")
+    print(f"the net lost {lost_released / n:.1f} released soldiers "
+          f"and {lost_all / n:.1f} pieces per game")
     act = (act_sum / act_n) if act_n else 0.0
-    print(f"utløyste soldatar nettet held ute: {act:.2f} i snitt (etter trekk 12)")
-    print(f"snitt {plies_total / n:.0f} halvtrekk per parti")
+    print(f"released soldiers the net keeps out: {act:.2f} on average (after move 12)")
+    print(f"average {plies_total / n:.0f} half-moves per game")
     return score / n
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--net", required=True, help="checkpoint eller eksportert .pt")
+    ap.add_argument("--net", required=True, help="checkpoint or exported .pt")
     ap.add_argument("--games", type=int, default=20)
     ap.add_argument("--sims", type=int, default=45)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--hand-style", default="",
-                    help="tving nettet inn i ein stil (few/hold/...) so straffaren får noko å ta")
+                    help="force the net into a style (few/hold/...) so the punisher gets something to take")
     a = ap.parse_args()
     probe(a.net, a.games, a.sims, a.seed, hand_style=a.hand_style)
     return 0

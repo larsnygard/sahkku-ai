@@ -106,7 +106,7 @@ class Net(nn.Module):
         for k, v in sd.items():
             src = old.get(k)
             if src is None:
-                raise RuntimeError(f"{path}: manglar {k}")
+                raise RuntimeError(f"{path}: missing key {k}")
             if src.shape == v.shape:
                 v.copy_(src)
             elif k.endswith(".weight") and v.dim() == 2 and v.shape[0] == src.shape[0]:
@@ -114,10 +114,10 @@ class Net(nn.Module):
                 v[:, :src.shape[1]] = src
                 widened.append((k, src.shape[1], v.shape[1]))
             else:
-                raise RuntimeError(f"{path}: kan ikkje breie ut {k} "
+                raise RuntimeError(f"{path}: cannot widen tensor {k} "
                                    f"{tuple(src.shape)} -> {tuple(v.shape)}")
         ck["state"] = sd
         if widened:
             k, a, b = widened[0]
-            print(f"[last] {os.path.basename(path)}: breidd ut {a} -> {b} inngangsvektor "
-                  f"(nye globale trekk = 0, modellen er uendra)", flush=True)
+            print(f"[load] {os.path.basename(path)}: widened input vector {a} -> {b} "
+                  f"(new global features = 0, model unchanged)", flush=True)
