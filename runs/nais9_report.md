@@ -195,3 +195,8 @@
 | 188 | 2880632 | 0.542 | `checkpoints/nais9/c188.pt` |
 | 189 | 2895197 | 0.542 | `checkpoints/nais9/c189.pt` |
 | 190 | 2909853 | 0.542 | `checkpoints/nais9/c190.pt` |
+| 191 | 2925225 | 0.542 | `checkpoints/nais9/c191.pt` |
+| 192 | 2939849 | 0.542 | `checkpoints/nais9/c192.pt` |
+| 193 | 2954770 | 0.542 | `checkpoints/nais9/c193.pt` |
+| 194 | 2969308 | 0.542 | `checkpoints/nais9/c194.pt` |
+| 195 | 2984911 | 0.542 | `checkpoints/nais9/c195.pt` |
