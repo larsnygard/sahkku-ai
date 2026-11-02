@@ -210,3 +210,8 @@
 | 203 | 3104594 | 0.542 | `checkpoints/nais9/c203.pt` |
 | 204 | 3120132 | 0.542 | `checkpoints/nais9/c204.pt` |
 | 205 | 3134738 | 0.542 | `checkpoints/nais9/c205.pt` |
+| 206 | 3149960 | 0.542 | `checkpoints/nais9/c206.pt` |
+| 207 | 3164604 | 0.542 | `checkpoints/nais9/c207.pt` |
+| 208 | 3179680 | 0.542 | `checkpoints/nais9/c208.pt` |
+| 209 | 3193865 | 0.542 | `checkpoints/nais9/c209.pt` |
+| 210 | 3208651 | 0.542 | `checkpoints/nais9/c210.pt` |
