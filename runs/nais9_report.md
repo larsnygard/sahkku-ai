@@ -205,3 +205,8 @@
 | 198 | 3029844 | 0.542 | `checkpoints/nais9/c198.pt` |
 | 199 | 3044654 | 0.542 | `checkpoints/nais9/c199.pt` |
 | 200 | 3059641 | 0.542 | `checkpoints/nais9/c200.pt` |
+| 201 | 3075183 | 0.542 | `checkpoints/nais9/c201.pt` |
+| 202 | 3089999 | 0.542 | `checkpoints/nais9/c202.pt` |
+| 203 | 3104594 | 0.542 | `checkpoints/nais9/c203.pt` |
+| 204 | 3120132 | 0.542 | `checkpoints/nais9/c204.pt` |
+| 205 | 3134738 | 0.542 | `checkpoints/nais9/c205.pt` |
