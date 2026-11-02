@@ -833,7 +833,7 @@ var M = {};
 var SS = (typeof globalThis !== 'undefined' ? globalThis : this).SS;
 
 // ==================== FEATURES + ACTIONS (mirrors features.py) ============
-var N_PLANES = 16, N_GLOBAL = 16;   // fylt inn av export.py
+var N_PLANES = 16, N_GLOBAL = 27;   // fylt inn av export.py
 var REL_BASE = 0, MOVE_BASE = 180, SPEC_BASE = 180 + 8100;
 var CLASSES = ['M', 'K', 'Q', 'k'];
 var FIRST_PASS = [[], []];
@@ -916,6 +916,65 @@ function encodeState(st) {
   }
   g[14] = DICE_USE_PROB[us.mask];                 // friheit i neste kast
   g[15] = st.nesseby ? 1 : 0;                     // regelmodus (Nesseby av/på)
+  // g[16]/g[17] = bonderisiko: kor stor del av kvar side sine utløyste soldatar
+  // som står der motstandaren kan slå dei i neste trekk. `caps` er alt rekna ut
+  // for fienden; vi treng same tabell for mi eiga side.
+  var usMe = usableAndCapture(st, me);
+  var expMe = 0, expFoe = 0;
+  for (var si = 0; si < st.pieces.length; si++) {
+    var q = st.pieces[si];
+    if (q.t !== 's' || !q.released || q.captured) continue;
+    var sq = SS.soldierAt(q.o, q.at);
+    if (q.o === me) { if (us.caps[sq]) expMe++; }
+    else { if (usMe.caps[sq]) expFoe++; }
+  }
+  g[16] = expMe / 15;
+  g[17] = expFoe / 15;
+
+  // ---- KAISER-0: syklusposisjon, slott-avstand, terningar, Nesseby-port
+  // (spegl av features.py g[18..26]; alt rekt ut frå stillingsdata åleine
+  //  — pass-streak og andre felt utanfor referee-en høyrer ikkje heime.)
+  // g[18]/g[19] = snitt syklusposisjon (p.at, 0..59) for utløyste soldatar.
+  function meanPos(side) {
+    var ps = SS.aliveSoldiers(st, side).filter(function (p) { return p.released; });
+    if (!ps.length) return 0;
+    var s = 0;
+    for (var mi = 0; mi < ps.length; mi++) s += ps[mi].at / 60;
+    return s / ps.length;
+  }
+  g[18] = meanPos(me);
+  g[19] = meanPos(foe);
+  // g[20] = kongen sin avstand frå slottet H2, snudd (1.0 = heime).
+  if (k) g[20] = 1 - Math.min(cheb(k.at, 22), 14) / 14;
+  // g[21] = dronninga mi sin avstand frå heimfeltet (L2=18 / D2=26), snudd.
+  if (qm) g[21] = 1 - Math.min(cheb(qm.at, me === 0 ? 18 : 26), 14) / 14;
+  // g[22] = ubrukte X-terningar i kastet /3.
+  var xLeft = 0;
+  for (var di = 0; di < Math.min(3, (st.dice || []).length); di++) {
+    if (!st.used[di] && st.dice[di] === 'X') xLeft++;
+  }
+  g[22] = xLeft / 3;
+  // g[23] = aktiv terningverdi /3.
+  g[23] = (v || 0) / 3;
+  // g[24] = brukbare terningar att i handa /3 (dice_left — same tal i
+  //  begge refereear; pass-streak finst ikkje i JS og kan ikkje vere trekk).
+  g[24] = (SS.diceLeft ? SS.diceLeft(st)
+                       : (st.dice || []).filter(function (d, i2) { return !st.used[i2] && d !== '_'; }).length) / 3;
+  // g[25]/g[26] = NESSEBY-NØKLELEN: porten for landingskap av kongen.
+  //  g[25] = mine soldatar på FIENDEN sin heimrad; g[26] = fienden sine
+  //  soldatar på MI heimrad. (rad: menn heime = 0, koner heime = 2.)
+  var gateMe = 0, gateFoe = 0;
+  var foeRow = (me === 0) ? 2 : 0;        // fienden sin heimrad
+  var myRow = (me === 0) ? 0 : 2;         // mi heimrad
+  for (var gi = 0; gi < st.pieces.length; gi++) {
+    var qp = st.pieces[gi];
+    if (qp.t !== 's' || !qp.released || qp.captured) continue;
+    var gsq = SS.soldierAt(qp.o, qp.at), grow = SS.pt(gsq).row;
+    if (qp.o === me) { if (grow === foeRow) gateMe++; }
+    else { if (grow === myRow) gateFoe++; }
+  }
+  g[25] = gateMe / 15;
+  g[26] = gateFoe / 15;
   return { planes: pl, glob: g };
 }
 
@@ -1091,13 +1150,17 @@ function netForward(planes, glob) {
 
 // ==================== S-UCI LOOP (referee-checked, spec §4-5) =============
 var START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-./m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';
-var ENGINE_NAME = 'NAIS.3';   // settast ved eksport (--name)
+var ENGINE_NAME = 'SahkkuNN 1.1 (KAISER-globals)';   // settast ved eksport (--name)
 var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
 var DEEP = 0;            // 0 = av; m > 0 = 2-ply: motstandaren sine m beste svar vert rekna med
 var CAP_MARGIN = 0.12;   // trygt slag innanfor denne verdimarginen av beste trekk vert valt
 var NESSBY = false;      // regelmodus når stillinga kjem frå FEN (S-UCI/eval)
+var REROLL_EVAL = 0;     // 0 = gamal oppførsel (reroll berre når tvungen)
+                         // 1 = 64-rollsforventning samanlikna med trekka
+                         // 2 = som 1, men krev REROLL_MARGIN over beste trekk
+var REROLL_MARGIN = 0.0; // margin som krevst for å omkaste framfor beste trekk
 var DEC = { X: 'X', '2': 'II', '3': 'III', '_': '_' };  // wire-faces -> interne fjes (som i ref)
 
 function encode(st_, mv) {
@@ -1209,8 +1272,42 @@ function opponentCanTakeBack(ch, mv) {
 function childValue(ch, rootTurn) {
   if (ch.winner !== null && ch.winner !== undefined) return ch.winner === rootTurn ? 1 : -1;
   var v = valueOf(ch);
+  // Materialblending (KAISER.1): stillingsnettet pluss justerbart materiale.
+  // Standard blend=0: NAIS.9-oppførselen er uendra; KAISER slår det på med
+  // `setoption name Material value ...`. blend=0 gjev nøyaktig gamal kodeveg
+  // (materiale reknast ikkje ein gong), so alt som er validert med NAIS.9
+  // held seg til KAISER er godteken.
+  if (MAT.blend !== 0) v = clamp1(v + MAT.blend * materialSum(ch));
   return ch.turn === rootTurn ? v : -v;
 }
+// ---- MATERIELLE VERDIAR (spegl av sahkku_ai/materials.py) ----------------
+// Justerbare i sanntid: `setoption name Material value sHome=0.04,qAct=-0.12,...`
+// Skilnadene Lars bad om: heimeståande vs utløyst soldat; heimeståande vs
+// AKTIVERT dronning — ei aktivert dronning er ein FLEMM (ho kan kapast, og
+// tapet er umiddelbart når ho fell).
+var MAT = { sHome: 0, sAct: 0, qHome: 0, qAct: 0, king: 0, kFar: 0, blend: 0 };
+function materialSum(st_) {
+  var s = 0;
+  for (var i = 0; i < st_.pieces.length; i++) {
+    var p = st_.pieces[i];
+    if (p.captured) continue;
+    if (p.t === 's') s += p.released ? MAT.sAct : MAT.sHome;
+    else if (p.t === 'q') s += p.released ? MAT.qAct : MAT.qHome;
+    else if (p.t === 'k') s += MAT.king + MAT.kFar * (Math.min(cheb(p.at, SS.CASTLE), 14) / 14);
+  }
+  return s;
+}
+function clamp1(x) { return x < -1 ? -1 : (x > 1 ? 1 : x); }
+function applyMatOption(oval) {
+  var parts = oval.replace(/;/g, ',').split(',');
+  for (var i = 0; i < parts.length; i++) {
+    var kv = parts[i].split('=');
+    if (kv.length !== 2) continue;
+    var k = kv[0].trim();
+    if (MAT[k] !== undefined) { var x = parseFloat(kv[1]); if (!isNaN(x)) MAT[k] = x; }
+  }
+}
+
 // 2-ply: etter vårt trekk er motstandaren i tur. Verdistett vårt trekk som
 // det VERSTE motstandaren kan gjere mot oss, blant dei m beste svara hans
 // (etter policy). Det fangar t.d. «trekket mitt ser bra ut, men han tek
@@ -1235,6 +1332,235 @@ function deepScore(ch, rootTurn, m) {
     if (v < worst) worst = v;
   }
   return worst === Infinity ? childValue(ch, rootTurn) : worst;
+}
+
+// ---- REROLL-EVALUERING (KAISER.1): 64-rollsforventning ==================
+// Ein omkast av eit X-terning er ein SANSLIGKnute: verdien er forventinga
+// over det neste kastet. Terningane er 4-siders (X, II, III, blank) — 4^3 =
+// 64 like sannsynlege utfall. For KVART utfall spelar vi det beste policy-
+// svaret (djupt etter LA/DEEP) og tek verdien; gjennomsnittet er verdien av
+// å omkaste. Sammenliknast med beste verkelege trekk i pick().
+// 64 grunutfall dekkjer heile fordelinga (XII+XIII+XIII... er ikkje
+// eigne utfall — kvar terning er X/II/III/blank), så dette er EKSAKT, ikkje
+// sampling. Kostnad: 64 × (éin policy-evaluering + opp til LA barn) — berre
+// på stillinger der X kan omkastast.
+function rollFaces() {
+  if (!rollFaces._f) {
+    var f = [];
+    for (var a = 0; a < 4; a++) for (var b = 0; b < 4; b++) for (var c = 0; c < 4; c++) {
+      f.push([SS.DICE[a], SS.DICE[b], SS.DICE[c]]);
+    }
+    rollFaces._f = f;
+  }
+  return rollFaces._f;
+}
+function rerollValue(st_, root, depth) {
+  // Verdi av å omkaste eit ubrukt X: 64 like sannsynlege fjes, beste
+  // policy-svar eitt trekk djupt, memoert (utfalla går att på tvers av
+  // heile treet). Utan røyr: omkasten er berre ein ny kastfase-forventning.
+  var faces = rollFaces(), sum = 0;
+  for (var i = 0; i < faces.length; i++) {
+    var g = SS.deserialize(SS.serialize(st_));
+    var slotIx = -1;
+    for (var s = 0; s < 3; s++) if (g.dice[s] === 'X' && !g.used[s]) { slotIx = s; break; }
+    if (slotIx < 0) return -Infinity;
+    g.dice = g.dice.slice(); g.used = g.used.slice();
+    g.dice[slotIx] = faces[i][0];
+    g.used[slotIx] = (faces[i][0] === '_');
+    // Dei andre terningane står URANDA (rerollX byter berre X-feltet), og
+    // allereie brukte felt verer BLI brukte.
+    g.phase = 'move';
+    var ids = legalIds(g);
+    var real = [];
+    for (var j = 0; j < ids.length; j++) if (ids[j][0] < SPEC_BASE) real.push(ids[j]);
+    var v;
+    if (!real.length) {
+      // inga røyr med dette fjeset: omkast = ny kastfase for same side
+      var gr = SS.deserialize(SS.serialize(g));
+      gr.dice = []; gr.used = []; gr.phase = 'roll';
+      v = (depth <= 0 || gr.winner != null) ? leafRoot(gr, root)
+                                            : rollPhaseValue(gr, root, depth, false);
+    } else {
+      var fr = memoEval(g);
+      real.sort(function (a, b) { return fr.policy[b[0]] - fr.policy[a[0]]; });
+      var top = real.slice(0, Math.min(3, real.length));
+      var best = -Infinity;
+      for (var t = 0; t < top.length; t++) {
+        var tok = encode(g, top[t][1]);
+        if (!tok) continue;
+        var h = SS.deserialize(SS.serialize(g));
+        var mv = decode(h, tok);
+        if (!mv) continue;
+        SS.applyMove(h, mv); SS.settle(h);
+        var cv = (depth <= 1 || h.winner != null)
+          ? leafRoot(h, root) : searchPos(h, root, depth - 1, -Infinity, Infinity);
+        if (cv > best) best = cv;
+      }
+      v = best === -Infinity ? leafRoot(g, root) : best;
+    }
+    sum += v;
+  }
+  return sum / faces.length;
+}
+function evalReroll(st_, root, depth) {
+  // spelarkommandoen (go) brukar depth=0; scorefen-søket tek med djupet sitt
+  return rerollValue(st_, root, depth === undefined ? 0 : depth);
+}
+
+// ---- SCOREFEN-SØK (KAISER.1): alpha-beta med policy-ordning =============
+// scoreSearch(st, root, depth, alfa, beta): verdi frå `root` si side.
+//  * Blad (depth=0): netten (+materiale), forteikn for kven som søkjer.
+//  * Trekkfase: verkelege trekk, policy-ordna, breidd W=6; alpha-beta-
+//    klipping. Reroll av X er ein SANSLIGKnute med verdi = 64-forventning
+//    (rerollValue) og tek del i MAX-leddet som alle andre trekk.
+//  * Kastfase (ingen terning kasta): forventa verdi = gjennomsnitt over
+//    64 kva-kast-utfall (same utfallsrom som terningane). Kvart utfall
+//    searchast vidare med eitt trekk djupare.
+//  * Pass (inga røyr): kasta vert avslutta, turden byter; verdien er
+//    stillinga etter passet søkt med djupde-1.
+// FART (KAISER.1): netForward er ~100 ms i rein JS (~22M MACs). Full breidd
+//  av 64-utslaget ved kvar knute eksploderer (64² per trekkpar). Konvensjon:
+//  i KASTFASEN er verdien = gjennomsnitt over 64 utslag av BESTE POLICY-SVAR
+//  eitt trekk djupt (standard for terningspill: «best response»), ikkje
+//  fullgjera søk under kvart utslag. Kvart utslag er memoert — dei same
+//  stillingane går att på tvers av syskenknuter, så memoen gjer kastfasen
+//  til ~64+64 netto-evalueringar PR SIDE-TUR (ikkje per trekk).
+//  I TREKKFASA: policy-ordna breidd 6 med alpha-beta (EXACT/LOW/UPPER i TT).
+//  NODE_TAK tel netto-evalueringar; ved takket vert bladet brukt og svaret
+//  er ei grense (oppgitt som `cap=1` i info-linja).
+var MEMO = new Map(), MEMO_CAP = 4000;
+var TT = new Map(), TT_CAP = 60000;
+var NODES = 0, NODE_TAK = 4000;
+function memoEval(st_) {
+  var key = SS.serialize(st_);
+  var hit = MEMO.get(key);
+  if (hit !== undefined) { MEMO.delete(key); MEMO.set(key, hit); return hit; }
+  var e = encodeState(st_);
+  var r = netForward(e.planes, e.glob);
+  hit = { enc: e, policy: r.policy, value: r.value };
+  NODES++;
+  MEMO.set(key, hit);
+  if (MEMO.size > MEMO_CAP) { var it = MEMO.keys().next(); if (!it.done) MEMO.delete(it.value); }
+  return hit;
+}
+function blended(st_, rawValue) {
+  return MAT.blend !== 0 ? clamp1(rawValue + MAT.blend * materialSum(st_)) : rawValue;
+}
+function leafRoot(ch, root) {
+  // bladverdi frå rota si side (netten tel frå sida-som-trekkjer)
+  var v = blended(ch, memoEval(ch).value);
+  return ch.turn === root ? v : -v;
+}
+var SEARCH_W = 6;
+
+// Kastfase: 64-utslagsforventning over beste policy-svar (memoert per utslag).
+// rerollOk=false: kastet er ALLEREIE omkasta (éin omkast per kast) — då
+// vert ikkje omkastet tilbodt att (lèt òg som stoppar gjensidig reskursjon).
+function rollPhaseValue(ch, root, depth, rerollOk) {
+  var faces = rollFaces(), sum = 0;
+  for (var i = 0; i < faces.length; i++) {
+    var g = SS.deserialize(SS.serialize(ch));
+    g.dice = faces[i].slice();
+    g.used = g.dice.map(function (d) { return d === '_'; });
+    g.diceBy = g.turn;
+    g.phase = 'move';
+    var ids = legalIds(g);
+    var real = [];
+    for (var j = 0; j < ids.length; j++) if (ids[j][0] < SPEC_BASE) real.push(ids[j]);
+    var v;
+    if (!real.length) {
+      if (rerollOk !== false && SS.canRerollX(g)) {
+        v = rerollValue(g, root, depth);         // omkast-innslaget i kastfasen
+      } else {
+        var gp = SS.deserialize(SS.serialize(g));
+        SS.passRemaining(gp);
+        v = (depth <= 1 || gp.winner != null) ? leafRoot(gp, root)
+                                              : searchPos(gp, root, depth - 1, -Infinity, Infinity);
+      }
+    } else {
+      var fr = memoEval(g);
+      real.sort(function (a, b) { return fr.policy[b[0]] - fr.policy[a[0]]; });
+      var tok = encode(g, real[0][1]);
+      var h = SS.deserialize(SS.serialize(g));
+      var mv = tok ? decode(h, tok) : null;
+      if (!mv) { v = leafRoot(g, root); }
+      else {
+        SS.applyMove(h, mv); SS.settle(h);
+        v = (depth <= 1 || h.winner != null) ? leafRoot(h, root)
+                                             : searchPos(h, root, depth - 1, -Infinity, Infinity);
+      }
+    }
+    sum += v;
+  }
+  return sum / faces.length;
+}
+
+// Trekkfase: policy-ordna alpha-beta, breidd W; reroll som MAX-opning.
+function searchMoves(ch, root, depth, alfa, beta) {
+  var key = SS.serialize(ch) + '|' + depth;
+  var tt = TT.get(key);
+  if (tt !== undefined) {
+    if (tt.f === 0) return tt.v;
+    if (tt.f === 1 && tt.v >= beta) return tt.v;    // LOW ( Cause-clipped
+    if (tt.f === 2 && tt.v <= alfa) return tt.v;    // UPPER
+    alfa = Math.max(alfa, tt.v); beta = Math.min(beta, tt.v);
+  }
+  var ids = legalIds(ch);
+  var real = [];
+  for (var i = 0; i < ids.length; i++) if (ids[i][0] < SPEC_BASE) real.push(ids[i]);
+  var fr = memoEval(ch);
+  if (real.length) {
+    real.sort(function (a, b) { return fr.policy[b[0]] - fr.policy[a[0]]; });
+    real = real.slice(0, SEARCH_W);
+  }
+  var isMax = (ch.turn === root);
+  var best = isMax ? -Infinity : Infinity;
+  var a = alfa, b = beta;
+  for (var r = 0; r < real.length; r++) {
+    if (NODES >= NODE_TAK) break;
+    var tok = encode(ch, real[r][1]);
+    if (!tok) continue;
+    var g = SS.deserialize(SS.serialize(ch));
+    var mv = decode(g, tok);
+    if (!mv) continue;
+    SS.applyMove(g, mv); SS.settle(g);
+    var v = searchPos(g, root, depth - 1, a, b);
+    if (isMax) { if (v > best) best = v; if (best > a) a = best; }
+    else { if (v < best) best = v; if (best < b) b = best; }
+    if (a >= b) break;                                     // alpha-beta-klipping
+  }
+  // REROLL: MAX-spelaren sin rett (kastet er hans) — tel i MAX-leddet.
+  if (isMax && ch.phase === 'move' && SS.canRerollX(ch) && NODES < NODE_TAK) {
+    var rv = rerollValue(ch, root, depth);
+    if (rv > best) best = rv;
+    if (best > a) a = best;
+  }
+  if (!isFinite(best)) {
+    // ingen røyr, ingen omkast: kasta avsluttast, turden går over
+    var g2 = SS.deserialize(SS.serialize(ch));
+    SS.passRemaining(g2);
+    best = searchPos(g2, root, depth - 1, alfa, beta);
+  }
+  if (TT.size < TT_CAP) {
+    var f = (best <= alfa) ? 2 : (best >= beta) ? 1 : 0;
+    TT.set(key, { v: best, f: f });
+  }
+  return best;
+}
+function searchPos(ch, root, depth, alfa, beta) {
+  if (ch.winner !== null && ch.winner !== undefined) return ch.winner === root ? 1 : -1;
+  if (depth <= 0 || NODES >= NODE_TAK) return leafRoot(ch, root);
+  if (ch.phase === 'roll' && !(ch.dice && ch.dice.length)) {
+    var v = rollPhaseValue(ch, root, depth, true);
+    if (TT.size < TT_CAP) TT.set(SS.serialize(ch) + '|' + depth, { v: v, f: 0 });
+    return v;
+  }
+  return searchMoves(ch, root, depth, alfa, beta);
+}
+function scoreSearch(stF, root, depth, nodeTak) {
+  MEMO.clear(); TT.clear(); NODES = 0;
+  NODE_TAK = Math.max(50, nodeTak | 0);
+  return searchPos(stF, root, Math.max(1, depth), -Infinity, Infinity);
 }
 
 function pick(st_) {
@@ -1319,6 +1645,13 @@ function doGo() {
     for (var i = 0; i < ids.length; i++) if (ids[i][0] === pk.aid) mv = ids[i][1];
     tok = mv ? encode(st, mv) : 'pass';
   }
+  // REROLL-EVALUERING i partispel (KAISER.1): same 64-forventning som i
+  //  scorefen, samanlikna med det valde trekket sin verdi (frå pick).
+  //  Krev marginen REROLL_MARGIN; RerollEval=0 lèt heilt vere (NAIS-vegen).
+  if (REROLL_EVAL > 0 && tok !== 'reroll' && tok !== 'pass' && SS.canRerollX(st)) {
+    var rv = evalReroll(st, st.turn);
+    if (rv > pk.value + REROLL_MARGIN) tok = 'reroll';
+  }
   if (dbg) out('info string value=' + pk.value.toFixed(3));
   out('bestmove ' + tok);
 }
@@ -1339,6 +1672,9 @@ M.onLine = function (line) {
       out('option name Deep type spin default 0 min 0 max 4');
       out('option name CapMargin type string default 0.12');
       out('option name Nesseby type check default false');
+      out('option name RerollEval type spin default 0 min 0 max 2');
+      out('option name RerollMargin type string default 0.0');
+      out('option name Material type string default sHome=0,sAct=0,qHome=0,qAct=0,king=0,kFar=0,blend=0');
       out('uciok');
     } else if (cmd === 'isready') {
       out('readyok');
@@ -1365,9 +1701,51 @@ M.onLine = function (line) {
           var d = parseInt(oval, 10);
           DEEP = isNaN(d) ? 0 : Math.max(0, Math.min(4, d));
         }
+        else if (onm === 'rerolleval') {
+          var re = parseInt(oval, 10);
+          REROLL_EVAL = isNaN(re) ? 0 : Math.max(0, Math.min(2, re));
+        }
+        else if (onm === 'rerollmargin') {
+          var rm = parseFloat(oval);
+          REROLL_MARGIN = isNaN(rm) ? 0 : Math.max(-1, Math.min(1, rm));
+        }
+        else if (onm === 'material') {
+          applyMatOption(oval);
+        }
       }
     } else if (cmd === 'position') {
       st = parsePosition(words); ilStreak = 0;
+    } else if (cmd === 'scorefen') {
+      // scorefen <FEN> [depth d] [nodes n] — stillingsverdie frå sida som
+      //  skal trekke sitt syn. d=0: netten (+materiale). d>=1: alpha-beta
+      //  med policy-ordna trekk (breidd 6) + 64-utslag i kastfasen.
+      var fenWords = words.slice(1);
+      var dIx = fenWords.indexOf('depth');
+      var nIx = fenWords.indexOf('nodes');
+      var dep = dIx >= 0 ? parseInt(fenWords[dIx + 1], 10) : 1;
+      var tak = nIx >= 0 ? parseInt(fenWords[nIx + 1], 10) : 1200;
+      if (isNaN(dep)) dep = 1;
+      dep = Math.max(0, Math.min(8, dep));
+      if (isNaN(tak)) tak = 1200;
+      tak = Math.max(50, Math.min(20000, tak));
+      if (dIx >= 0) fenWords.splice(dIx, 2);
+      if ((nIx = fenWords.indexOf('nodes')) >= 0) fenWords.splice(nIx, 2);
+      var stF = SS.fromFEN(fenWords.join(' '));
+      if (NESSBY) stF.nesseby = true;
+      var t0 = Date.now();
+      var val = (dep === 0) ? leafRoot(stF, stF.turn)
+                            : scoreSearch(stF, stF.turn, dep, tak);
+      var capped = NODES >= tak;
+      var mat = materialSum(stF);
+      out('info score fen value=' + val.toFixed(4) + ' depth=' + dep +
+          ' net=' + memoEval(stF).value.toFixed(4) + ' mat=' + mat.toFixed(4) +
+          ' blend=' + MAT.blend.toFixed(3) + ' nodes=' + NODES +
+          ' ms=' + (Date.now() - t0) + (capped ? ' cap=1' : ''));
+      out('bestmove none');
+    } else if (cmd === 'material') {
+      out('info material sHome=' + MAT.sHome + ' sAct=' + MAT.sAct +
+          ' qHome=' + MAT.qHome + ' qAct=' + MAT.qAct + ' king=' + MAT.king +
+          ' kFar=' + MAT.kFar + ' blend=' + MAT.blend);
     } else if (cmd === 'diceroll') {
       if (words.length < 4) { out('error diceroll treng 3 terningar'); return; }
       var faces = [words[1], words[2], words[3]].map(function (f) {

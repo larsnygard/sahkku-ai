@@ -26,8 +26,9 @@ CLASSES = ["M", "K", "Q", "k"]
 CLASS_IDX = {c: i for i, c in enumerate(CLASSES)}
 
 N_PLANES = 16   # see encode_state
-N_GLOBAL = 18   # global scalar vector (10 opphavlege + 5 doktrine/terningar + regelmodus
-                #                + 2 bonderisiko: eigne og fiendens hengande soldatar)
+N_GLOBAL = 27   # global scalar vector (see encode_state for the numbered list)
+                # 0-9   opphavlege · 10-14 doktrine/terningar · 15 regelmodus
+                # 16-17 bonderisiko · 18-26 KAISER-utvidinga (KAISER-0 below)
 
 
 def sq_to_hw(i: int):
@@ -151,6 +152,58 @@ def encode_state(st: E.State):
     g[17] = (sum(1 for p in E.soldiers(st, foe)
                  if p.released and not p.captured
                  and E.soldier_at(foe, p.at) in foe_caps) / 15.0)
+
+    # ---- KAISER-0: syklusposisjon, kongen sin avstand, terningar, Nesseby ----
+    # (Desse ni trekka kom med KAISER.1 2026-11-02: spelarane sin FART rundt
+    #  tallsyklusen var usynleg — flyplanene viser rekker, ikkje framsteg —
+    #  og Nesseby-regelens port (nokon nådd motstandarens heimrad) fanst
+    #  ikkje i vektoren i det heile.)
+    # g[18]/g[19] = snitt syklusposisjon for UTLØYSTE soldatar (p.at er
+    # 8-tals-syklusposisjon 0..59 — same felt kan liggje på to posisjonar,
+    # og «kor langt har dei kome» er spelet sin klokke). 0 = heime.
+    def _mean_pos(side: int) -> float:
+        ps = [p.at / 60.0 for p in E.soldiers(st, side)
+              if p.released and not p.captured]
+        return sum(ps) / len(ps) if ps else 0.0
+    g[18] = _mean_pos(me)
+    g[19] = _mean_pos(foe)
+    # g[20] = kongen sin avstand frå slottet H2, snudd (1.0 = heime trygg).
+    #  g[12] måler avstand til næraste FIENDE; dette er avstanden til heimen —
+    #  same doktrine, anna målepunkt (kongen som har vandra er ein annan
+    #  spelar enn kongen på slottet).
+    if k is not None:
+        g[20] = 1.0 - min(_cheb(k.at, 22), 14) / 14.0
+    # g[21] = dronninga mi sin avstand frå heimfeltet (L2=18 / D2=26), snudd.
+    #  «Aktivering er risikobusiness»: kor nær opningsfeltet ho står når ho
+    #  vert slagen, fortel kor lang veg ho har att (dronninga sin veg).
+    if qm is not None:
+        g[21] = 1.0 - min(_cheb(qm.at, 18 if me == 0 else 26), 14) / 14.0
+    # g[22] = ubrukte X-terningar i kastet /3 (g[8] tel heile kastet; dette
+    #  er X-ane EG har att i handa — omkast-resursen).
+    g[22] = sum(1 for i in range(min(3, len(st.dice)))
+                if not (st.used[i] if i < len(st.used) else False)
+                and st.dice[i] == "X") / 3.0
+    # g[23] = aktiv terningverdi /3 (1/2/3 → 0.33/0.67/1.0; 0 = ingen aktiv).
+    #  plane 11 har koden i eit hjørne; her ligg talet på FC-inngangen.
+    g[23] = E.active_value(st) / 3.0
+    # g[24] = brukbare terningar att i handa /3 (ubrukte, ikkje-blanke).
+    #  (Pass-streaken vart vridd ut: han finst ikkje i JS-referee-en eller
+    #  FEN-en, og nett-paritet krev at begge partar reknar NØYAKTIG same
+    #  vektor ut frå stillingsdata åleine. dice_left finst i begge.)
+    g[24] = (sum(1 for i in range(min(3, len(st.dice)))
+                 if not (st.used[i] if i < len(st.used) else True)
+                 and st.dice[i] != "_") / 3.0)
+    # g[25]/g[26] = NESSEBY-NØKLELEN: porten for landingskap av kongen.
+    #  Regelen: kongen kan først kaprast ved landing når nokon har nådd
+    #  MOTSTANDAREN sin heimrad. g[25] = mine soldatar på FIENDEN sin
+    #  heimrad (porten EG har opna for mine landingskap); g[26] = fienden
+    #  sine soldatar på MI heimrad (porten deir har opna mot kongen min).
+    g[25] = sum(1 for p in E.soldiers(st, me)
+                if p.released and not p.captured
+                and E.E_row(E.soldier_at(me, p.at)) == (2 if me == 0 else 0)) / 15.0
+    g[26] = sum(1 for p in E.soldiers(st, foe)
+                if p.released and not p.captured
+                and E.E_row(E.soldier_at(foe, p.at)) == (0 if me == 0 else 2)) / 15.0
     return pl, g
 
 
