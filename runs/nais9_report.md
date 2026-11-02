@@ -220,3 +220,8 @@
 | 213 | 3252841 | 0.542 | `checkpoints/nais9/c213.pt` |
 | 214 | 3267316 | 0.542 | `checkpoints/nais9/c214.pt` |
 | 215 | 3281881 | 0.542 | `checkpoints/nais9/c215.pt` |
+| 216 | 3295855 | 0.542 | `checkpoints/nais9/c216.pt` |
+| 217 | 3310607 | 0.542 | `checkpoints/nais9/c217.pt` |
+| 218 | 3325793 | 0.542 | `checkpoints/nais9/c218.pt` |
+| 219 | 3340883 | 0.542 | `checkpoints/nais9/c219.pt` |
+| 220 | 3355853 | 0.542 | `checkpoints/nais9/c220.pt` |
