@@ -285,3 +285,8 @@
 | 278 | 4211945 | 0.542 | `checkpoints/nais9/c278.pt` |
 | 279 | 4226928 | 0.542 | `checkpoints/nais9/c279.pt` |
 | 280 | 4241736 | 0.542 | `checkpoints/nais9/c280.pt` |
+| 281 | 4256228 | 0.542 | `checkpoints/nais9/c281.pt` |
+| 282 | 4271165 | 0.542 | `checkpoints/nais9/c282.pt` |
+| 283 | 4285762 | 0.542 | `checkpoints/nais9/c283.pt` |
+| 284 | 4300525 | 0.542 | `checkpoints/nais9/c284.pt` |
+| 285 | 4316118 | 0.542 | `checkpoints/nais9/c285.pt` |
