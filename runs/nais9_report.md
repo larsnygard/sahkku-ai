@@ -315,3 +315,8 @@
 | 308 | 4658500 | 0.542 | `checkpoints/nais9/c308.pt` |
 | 309 | 4673971 | 0.542 | `checkpoints/nais9/c309.pt` |
 | 310 | 4687687 | 0.542 | `checkpoints/nais9/c310.pt` |
+| 311 | 4701948 | 0.542 | `checkpoints/nais9/c311.pt` |
+| 312 | 4716026 | 0.542 | `checkpoints/nais9/c312.pt` |
+| 313 | 4730420 | 0.542 | `checkpoints/nais9/c313.pt` |
+| 314 | 4745097 | 0.542 | `checkpoints/nais9/c314.pt` |
+| 315 | 4760134 | 0.542 | `checkpoints/nais9/c315.pt` |
