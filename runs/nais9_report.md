@@ -215,3 +215,8 @@
 | 208 | 3179680 | 0.542 | `checkpoints/nais9/c208.pt` |
 | 209 | 3193865 | 0.542 | `checkpoints/nais9/c209.pt` |
 | 210 | 3208651 | 0.542 | `checkpoints/nais9/c210.pt` |
+| 211 | 3223249 | 0.542 | `checkpoints/nais9/c211.pt` |
+| 212 | 3238602 | 0.542 | `checkpoints/nais9/c212.pt` |
+| 213 | 3252841 | 0.542 | `checkpoints/nais9/c213.pt` |
+| 214 | 3267316 | 0.542 | `checkpoints/nais9/c214.pt` |
+| 215 | 3281881 | 0.542 | `checkpoints/nais9/c215.pt` |
