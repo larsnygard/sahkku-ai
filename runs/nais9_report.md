@@ -290,3 +290,8 @@
 | 283 | 4285762 | 0.542 | `checkpoints/nais9/c283.pt` |
 | 284 | 4300525 | 0.542 | `checkpoints/nais9/c284.pt` |
 | 285 | 4316118 | 0.542 | `checkpoints/nais9/c285.pt` |
+| 286 | 4331210 | 0.542 | `checkpoints/nais9/c286.pt` |
+| 287 | 4346564 | 0.542 | `checkpoints/nais9/c287.pt` |
+| 288 | 4362116 | 0.542 | `checkpoints/nais9/c288.pt` |
+| 289 | 4377529 | 0.542 | `checkpoints/nais9/c289.pt` |
+| 290 | 4393186 | 0.542 | `checkpoints/nais9/c290.pt` |
