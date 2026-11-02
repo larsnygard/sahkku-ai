@@ -345,3 +345,8 @@
 | 338 | 5104748 | 0.542 | `checkpoints/nais9/c338.pt` |
 | 339 | 5120770 | 0.542 | `checkpoints/nais9/c339.pt` |
 | 340 | 5136994 | 0.542 | `checkpoints/nais9/c340.pt` |
+| 341 | 5152036 | 0.542 | `checkpoints/nais9/c341.pt` |
+| 342 | 5167815 | 0.542 | `checkpoints/nais9/c342.pt` |
+| 343 | 5183754 | 0.542 | `checkpoints/nais9/c343.pt` |
+| 344 | 5199240 | 0.542 | `checkpoints/nais9/c344.pt` |
+| 345 | 5214107 | 0.542 | `checkpoints/nais9/c345.pt` |
