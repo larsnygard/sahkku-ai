@@ -260,3 +260,8 @@
 | 253 | 3837104 | 0.542 | `checkpoints/nais9/c253.pt` |
 | 254 | 3852281 | 0.542 | `checkpoints/nais9/c254.pt` |
 | 255 | 3867450 | 0.542 | `checkpoints/nais9/c255.pt` |
+| 256 | 3882675 | 0.542 | `checkpoints/nais9/c256.pt` |
+| 257 | 3897627 | 0.542 | `checkpoints/nais9/c257.pt` |
+| 258 | 3912651 | 0.542 | `checkpoints/nais9/c258.pt` |
+| 259 | 3927828 | 0.542 | `checkpoints/nais9/c259.pt` |
+| 260 | 3942987 | 0.542 | `checkpoints/nais9/c260.pt` |
