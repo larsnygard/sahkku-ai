@@ -335,3 +335,8 @@
 | 328 | 4952448 | 0.542 | `checkpoints/nais9/c328.pt` |
 | 329 | 4967692 | 0.542 | `checkpoints/nais9/c329.pt` |
 | 330 | 4982210 | 0.542 | `checkpoints/nais9/c330.pt` |
+| 331 | 4996799 | 0.542 | `checkpoints/nais9/c331.pt` |
+| 332 | 5011650 | 0.542 | `checkpoints/nais9/c332.pt` |
+| 333 | 5026652 | 0.542 | `checkpoints/nais9/c333.pt` |
+| 334 | 5042764 | 0.542 | `checkpoints/nais9/c334.pt` |
+| 335 | 5058458 | 0.542 | `checkpoints/nais9/c335.pt` |
