@@ -300,3 +300,8 @@
 | 293 | 4437599 | 0.542 | `checkpoints/nais9/c293.pt` |
 | 294 | 4452738 | 0.542 | `checkpoints/nais9/c294.pt` |
 | 295 | 4467945 | 0.542 | `checkpoints/nais9/c295.pt` |
+| 296 | 4483549 | 0.542 | `checkpoints/nais9/c296.pt` |
+| 297 | 4498536 | 0.542 | `checkpoints/nais9/c297.pt` |
+| 298 | 4513379 | 0.542 | `checkpoints/nais9/c298.pt` |
+| 299 | 4527984 | 0.542 | `checkpoints/nais9/c299.pt` |
+| 300 | 4542676 | 0.542 | `checkpoints/nais9/c300.pt` |
