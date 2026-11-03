@@ -1285,7 +1285,8 @@ function childValue(ch, rootTurn) {
 // Skilnadene Lars bad om: heimeståande vs utløyst soldat; heimeståande vs
 // AKTIVERT dronning — ei aktivert dronning er ein FLEMM (ho kan kapast, og
 // tapet er umiddelbart når ho fell).
-var MAT = { sHome: 0, sAct: 0, qHome: 0, qAct: 0, king: 0, kFar: 0, blend: 0 };
+var MAT_DEFAULT = { sHome: 0, sAct: 0, qHome: 0, qAct: 0, king: 0, kFar: 0, blend: 0 };
+var MAT = /*§MATERIAL§*/MAT_DEFAULT;
 function materialSum(st_) {
   var s = 0;
   for (var i = 0; i < st_.pieces.length; i++) {
@@ -1306,6 +1307,11 @@ function applyMatOption(oval) {
     var k = kv[0].trim();
     if (MAT[k] !== undefined) { var x = parseFloat(kv[1]); if (!isNaN(x)) MAT[k] = x; }
   }
+}
+
+function matStr() {
+  return 'sHome=' + MAT.sHome + ',sAct=' + MAT.sAct + ',qHome=' + MAT.qHome +
+         ',qAct=' + MAT.qAct + ',king=' + MAT.king + ',kFar=' + MAT.kFar + ',blend=' + MAT.blend;
 }
 
 // 2-ply: etter vårt trekk er motstandaren i tur. Verdistett vårt trekk som
@@ -1674,7 +1680,7 @@ M.onLine = function (line) {
       out('option name Nesseby type check default false');
       out('option name RerollEval type spin default 0 min 0 max 2');
       out('option name RerollMargin type string default 0.0');
-      out('option name Material type string default sHome=0,sAct=0,qHome=0,qAct=0,king=0,kFar=0,blend=0');
+      out('option name Material type string default ' + matStr());
       out('uciok');
     } else if (cmd === 'isready') {
       out('readyok');
