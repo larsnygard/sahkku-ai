@@ -56,7 +56,7 @@ NOW_SHA=$(sha256sum "$CK" | cut -d' ' -f1)
 [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$NOW_SHA" ] && { say "$RUN: same vekt som sist — ingenting å gjere"; exit 0; }
 
 # ---- 1. eksport til appen (rett namn → rett vektfil i .js) --------------
-.venv/bin/python3 -m sahkku_ai.export --net "$CK" --out "$APP/engines/$RUN" --name "$(echo "$RUN" | sed -E 's/^([a-z]+)([0-9]+)$/\U\1.\2/')" >/dev/null 2>&1 \
+.venv/bin/python3 -m sahkku_ai.export --net "$CK" --out "$APP/engines/$RUN" --name "$(echo "$RUN" | sed -E 's/^([a-z]+)([0-9]+)$/\U\1.\2/')" $(case "$RUN" in kaiser*) echo --material ;; esac) >/dev/null 2>&1 \
   || { say "FEIL: eksport feila"; exit 1; }
 rm -f "$APP/engines/$RUN.pt"
 

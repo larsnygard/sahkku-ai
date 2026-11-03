@@ -33,7 +33,7 @@ MATERIALS = {
     "sHome": 0.03,
     "sAct": 0.05,
     "qHome": 0.04,
-    "qAct": -0.10,
+    "qAct": -0.20,
     "king": 0.02,
     "kFar": -0.02,
     "blend": 0.30,

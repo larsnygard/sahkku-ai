@@ -134,7 +134,8 @@ export_and_gate() {          # $1 = syklusnummer
   [ -f "$ck" ] || ck="checkpoints/${RUN}_c${k}/latest.pt"
   [ -f "$ck" ] || die "syklus $k skreiv ingen vekt (verken checkpoints/${RUN}/c${k}.pt eller checkpoints/${RUN}_c${k}/latest.pt) — stoggar"
   say "[c$k] eksporterer $ck → engines/${RUN}-nn"
-  .venv/bin/python3 -m sahkku_ai.export --net "$ck" --out "engines/${RUN}-nn" --name "${RUN^^}" >/dev/null \
+  MATARG=(); case "$RUN" in kaiser*) MATARG=(--material) ;; esac
+  .venv/bin/python3 -m sahkku_ai.export --net "$ck" --out "engines/${RUN}-nn" --name "${RUN^^}" "${MATARG[@]}" >/dev/null \
     || die "eksporten feila for syklus $k"
   local par
   par=$(.venv/bin/python3 tests/test_net_parity.py "engines/${RUN}-nn.pt" --js "engines/${RUN}-nn.js" 2>&1 | tail -1)

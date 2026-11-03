@@ -23,7 +23,7 @@ def tensor_b64(t):
     return base64.b64encode(a.tobytes()).decode("ascii")
 
 
-def export(net_path, out_prefix, quant="fp32", name="SahkkuNN 1.0"):
+def export(net_path, out_prefix, quant="fp32", name="SahkkuNN 1.0", material=False):
     net = Net.load(net_path, map_location="cpu")
     sd = net.state_dict()
     blobs, shapes = {}, {}
@@ -56,6 +56,12 @@ def export(net_path, out_prefix, quant="fp32", name="SahkkuNN 1.0"):
     src = src.replace("__N_GLOBAL__", str(N_GLOBAL))
     src = src.replace("__WEIGHTS_FILE__", os.path.basename(wpath))
     src = src.replace("__ENGINE_NAME__", name)
+    if material:
+        # KAISER-motoren skal spele med materialblendinga på frå fyrste trekk;
+        # elles er heile materialmodulen død kode (MAT står på 0/blend 0).
+        from .materials import MATERIALS
+        mat = json.dumps(MATERIALS)
+        src = src.replace("/*§MATERIAL§*/MAT_DEFAULT", mat)
     rpath = out_prefix + ".js"
     with open(rpath, "w", encoding="utf-8") as f:
         f.write(src)
@@ -71,5 +77,7 @@ if __name__ == "__main__":
     ap.add_argument("--quant", default="fp32")
     ap.add_argument("--name", default="SahkkuNN 1.0",
                     help="S-UCI-id, t.d. «AIL0.1»")
+    ap.add_argument("--material", action="store_true",
+                    help="bake MATERIALS (materials.py) inn som standard i motoren")
     a = ap.parse_args()
-    export(a.net, a.out, a.quant, a.name)
+    export(a.net, a.out, a.quant, a.name, a.material)
