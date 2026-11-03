@@ -1286,7 +1286,7 @@ function childValue(ch, rootTurn) {
 // AKTIVERT dronning — ei aktivert dronning er ein FLEMM (ho kan kapast, og
 // tapet er umiddelbart når ho fell).
 var MAT_DEFAULT = { sHome: 0, sAct: 0, qHome: 0, qAct: 0, king: 0, kFar: 0, blend: 0 };
-var MAT = /*§MATERIAL§*/MAT_DEFAULT;
+var MAT = {"sHome": 0.03, "sAct": 0.05, "qHome": 0.04, "qAct": -0.2, "king": 0.02, "kFar": -0.02, "blend": 0.3};
 function materialSum(st_) {
   var s = 0;
   for (var i = 0; i < st_.pieces.length; i++) {
