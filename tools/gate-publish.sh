@@ -56,7 +56,7 @@ NOW_SHA=$(sha256sum "$CK" | cut -d' ' -f1)
 [ -f "$MARK" ] && [ "$(cat "$MARK")" = "$NOW_SHA" ] && { say "$RUN: same vekt som sist — ingenting å gjere"; exit 0; }
 
 # ---- 1. eksport til appen (rett namn → rett vektfil i .js) --------------
-.venv/bin/python3 -m sahkku_ai.export --net "$CK" --out "$APP/engines/$RUN" --name "NAIS.${RUN#nais}" >/dev/null 2>&1 \
+.venv/bin/python3 -m sahkku_ai.export --net "$CK" --out "$APP/engines/$RUN" --name "$(echo "$RUN" | sed -E 's/^([a-z]+)([0-9]+)$/\U\1.\2/')" >/dev/null 2>&1 \
   || { say "FEIL: eksport feila"; exit 1; }
 rm -f "$APP/engines/$RUN.pt"
 
@@ -134,12 +134,12 @@ fi
 
 # ---- 4. motorlista ------------------------------------------------------
 DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" "$SHORT" <<'PY'
-import datetime, json, pathlib, sys
+import datetime, json, pathlib, re, sys
 run, nb, l3, base, short = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5]
 p = pathlib.Path("/home/lars/src/SnartSahkku/engines/engines.json")
 m = json.loads(p.read_text())
-eid = run                      # nais7
-name = "NAIS." + run.replace("nais", "")
+eid = run                      # nais7 / kaiser1
+name = re.sub(r"^([a-z]+)([0-9]+)$", r"\1.\2", run).upper()   # kaiser1 -> KAISER.1
 # Kort benk (12 parti) er nok til å seie «sånn ligg det an», men ikkje til å
 # flytte standardmotoren: feilmarginen er ±25 pp. Berre full benk får avgjere.
 better = nb >= 55.0 and short != "1"
