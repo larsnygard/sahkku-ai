@@ -24,8 +24,8 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-RUN=nais9
-INIT=engines/nais8-nn.pt       # sterkaste modellen; vert breidd ut til 18 globale
+RUN=kaiser1
+INIT=engines/kaiser1-nn.pt     # KAISER.1: 27 globale, materiale + alpha-beta
 CYCLES=10                      # siste syklusnummer
 HOURS=0                        # 0 = inga tidsgrense, --cycles avgjer
 GAMES=200
