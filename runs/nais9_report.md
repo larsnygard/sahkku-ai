@@ -355,3 +355,4 @@
 | 348 | 5259419 | 0.542 | `checkpoints/nais9/c348.pt` |
 | 349 | 5274392 | 0.542 | `checkpoints/nais9/c349.pt` |
 | 350 | 5289092 | 0.542 | `checkpoints/nais9/c350.pt` |
+| 351 | 5304344 | 0.542 | `checkpoints/nais9/c351.pt` |
