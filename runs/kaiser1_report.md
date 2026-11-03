@@ -40,3 +40,8 @@
 | 33 | 486859 | 0.542 | `checkpoints/kaiser1/c33.pt` |
 | 34 | 500128 | 0.542 | `checkpoints/kaiser1/c34.pt` |
 | 35 | 514379 | 0.542 | `checkpoints/kaiser1/c35.pt` |
+| 36 | 528556 | 0.542 | `checkpoints/kaiser1/c36.pt` |
+| 37 | 542405 | 0.542 | `checkpoints/kaiser1/c37.pt` |
+| 38 | 556750 | 0.542 | `checkpoints/kaiser1/c38.pt` |
+| 39 | 571464 | 0.542 | `checkpoints/kaiser1/c39.pt` |
+| 40 | 585704 | 0.542 | `checkpoints/kaiser1/c40.pt` |
