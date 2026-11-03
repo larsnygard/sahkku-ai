@@ -58,6 +58,8 @@ def main():
             raise SystemExit(f"cannot expand {k}: {tuple(src_t.shape)} -> {tuple(v.shape)}")
 
     net.load_state_dict(new)
+    dst_dir = _os.path.dirname(_os.path.abspath(dst))
+    _os.makedirs(dst_dir, exist_ok=True)   # checkpoints/ er gitignored — lagast self
     meta = ck.get("meta", {})
     meta["expanded_from"] = src
     meta["globals_added"] = N_GLOBAL - (old["pol_fc.weight"].shape[1] - 8 * 45)
