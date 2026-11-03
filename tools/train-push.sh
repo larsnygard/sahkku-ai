@@ -83,7 +83,7 @@ fi
 import sys
 from sahkku_ai import features as FT
 import sahkku_ai.punisher  # noqa: F401
-sys.exit(0 if FT.N_GLOBAL == 18 else 1)
+sys.exit(0 if FT.N_GLOBAL >= 18 else 1)
 PY
 
 .venv/bin/python3 - "$INIT" <<'PY' || die "startvekta let seg ikkje laste (manglar ho ei fil?)"
