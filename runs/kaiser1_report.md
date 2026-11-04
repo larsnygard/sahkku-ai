@@ -125,3 +125,8 @@
 | 118 | 1757929 | 0.542 | `checkpoints/kaiser1/c118.pt` |
 | 119 | 1773557 | 0.542 | `checkpoints/kaiser1/c119.pt` |
 | 120 | 1788515 | 0.542 | `checkpoints/kaiser1/c120.pt` |
+| 121 | 1804273 | 0.542 | `checkpoints/kaiser1/c121.pt` |
+| 122 | 1819476 | 0.542 | `checkpoints/kaiser1/c122.pt` |
+| 123 | 1834378 | 0.542 | `checkpoints/kaiser1/c123.pt` |
+| 124 | 1849658 | 0.542 | `checkpoints/kaiser1/c124.pt` |
+| 125 | 1864967 | 0.542 | `checkpoints/kaiser1/c125.pt` |
