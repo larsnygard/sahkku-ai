@@ -1150,7 +1150,7 @@ function netForward(planes, glob) {
 
 // ==================== S-UCI LOOP (referee-checked, spec §4-5) =============
 var START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-./m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';
-var ENGINE_NAME = 'KAISER1';   // settast ved eksport (--name)
+var ENGINE_NAME = 'KAISER.1';   // settast ved eksport (--name)
 var st = SS.fromFEN(START_FEN);
 var dbg = false, ilStreak = 0;
 var LA = 4;              // 0 = rein policy (moment); k = 1-ply verdilookahead på k+1 trekk
@@ -1281,20 +1281,43 @@ function childValue(ch, rootTurn) {
   return ch.turn === rootTurn ? v : -v;
 }
 // ---- MATERIELLE VERDIAR (spegl av sahkku_ai/materials.py) ----------------
-// Justerbare i sanntid: `setoption name Material value sHome=0.04,qAct=-0.12,...`
-// Skilnadene Lars bad om: heimeståande vs utløyst soldat; heimeståande vs
-// AKTIVERT dronning — ei aktivert dronning er ein FLEMM (ho kan kapast, og
-// tapet er umiddelbart når ho fell).
-var MAT_DEFAULT = { sHome: 0, sAct: 0, qHome: 0, qAct: 0, king: 0, kFar: 0, blend: 0 };
-var MAT = {"sHome": 0.03, "sAct": 0.05, "qHome": 0.04, "qAct": -0.2, "king": 0.02, "kFar": -0.02, "blend": 0.3};
+// Justerbare i sanntid: `setoption name Material value qActPerS=-0.05,...`
+// POV-DELTT: våre brikker +, deira − (FORLELESGNAD, ikkje invent-list).
+// Dronninga sin pris er SKALERT etters Lars sine reglar: fleire eigne
+// soldatar, fleire brikker på brettet, og kongen borte frå slottet gjer
+// aktiveringa stadig farlegare. FIENDEN sin utløyste dronning er GEVINST.
+var MAT_DEFAULT = {
+  sHome: 0.02, sAct: 0.05, qHome: 0.05,
+  qActBase: -0.08, qActPerS: -0.035, qActDen: -0.005, qActNoKing: -0.12,
+  qActEnemy: 0.14, king: 0.04, kFar: -0.03, blend: 0.30
+};
+var MAT = {"sHome": 0.02, "sAct": 0.05, "qHome": 0.05, "qActBase": -0.08, "qActPerS": -0.035, "qActDen": -0.005, "qActNoKing": -0.12, "qActEnemy": 0.14, "king": 0.04, "kFar": -0.03, "blend": 0.3};
+var KING_NEAR = 4;
 function materialSum(st_) {
-  var s = 0;
-  for (var i = 0; i < st_.pieces.length; i++) {
-    var p = st_.pieces[i];
+  var me = st_.turn, s = 0, mine = 0, n = 0, kp = null;
+  var i, p;
+  for (i = 0; i < st_.pieces.length; i++) {
+    p = st_.pieces[i];
     if (p.captured) continue;
-    if (p.t === 's') s += p.released ? MAT.sAct : MAT.sHome;
-    else if (p.t === 'q') s += p.released ? MAT.qAct : MAT.qHome;
-    else if (p.t === 'k') s += MAT.king + MAT.kFar * (Math.min(cheb(p.at, SS.CASTLE), 14) / 14);
+    n++;
+    if (p.t === 's' && p.o === me) mine++;
+    if (p.t === 'k' && p.o === me) kp = p;   // berre MIN konge vernar dronninga
+  }
+  // Lars: «viss du ikkje kontrollerer kongen, er det nesten umogleg å verne
+  // dronninga» — ANTAN manglande eigen konge, eller kongen langt frå slottet
+  var kingFar = !kp || Math.min(cheb(kp.at, SS.CASTLE), 14) > KING_NEAR;
+  for (i = 0; i < st_.pieces.length; i++) {
+    p = st_.pieces[i];
+    if (p.captured || p.o === null) continue;   // nøytral konge tel ikkje
+    var sign = p.o === me ? 1 : -1;
+    if (p.t === 's') s += sign * (p.released ? MAT.sAct : MAT.sHome);
+    else if (p.t === 'q') {
+      if (!p.released) s += sign * MAT.qHome;
+      else if (p.o === me) s += MAT.qActBase + MAT.qActPerS * mine + MAT.qActDen * n +
+                             (kingFar ? MAT.qActNoKing : 0);
+      else s += MAT.qActEnemy;
+    }
+    else if (p.t === 'k') s += sign * (MAT.king + MAT.kFar * (Math.min(cheb(p.at, SS.CASTLE), 14) / 14));
   }
   return s;
 }
@@ -1310,8 +1333,7 @@ function applyMatOption(oval) {
 }
 
 function matStr() {
-  return 'sHome=' + MAT.sHome + ',sAct=' + MAT.sAct + ',qHome=' + MAT.qHome +
-         ',qAct=' + MAT.qAct + ',king=' + MAT.king + ',kFar=' + MAT.kFar + ',blend=' + MAT.blend;
+  return Object.keys(MAT_DEFAULT).map(function (k) { return k + '=' + MAT[k]; }).join(',');
 }
 
 // 2-ply: etter vårt trekk er motstandaren i tur. Verdistett vårt trekk som
@@ -1749,9 +1771,7 @@ M.onLine = function (line) {
           ' ms=' + (Date.now() - t0) + (capped ? ' cap=1' : ''));
       out('bestmove none');
     } else if (cmd === 'material') {
-      out('info material sHome=' + MAT.sHome + ' sAct=' + MAT.sAct +
-          ' qHome=' + MAT.qHome + ' qAct=' + MAT.qAct + ' king=' + MAT.king +
-          ' kFar=' + MAT.kFar + ' blend=' + MAT.blend);
+      out('info material ' + matStr());
     } else if (cmd === 'diceroll') {
       if (words.length < 4) { out('error diceroll treng 3 terningar'); return; }
       var faces = [words[1], words[2], words[3]].map(function (f) {
