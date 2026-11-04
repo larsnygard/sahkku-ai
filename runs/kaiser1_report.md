@@ -60,3 +60,8 @@
 | 53 | 765533 | 0.542 | `checkpoints/kaiser1/c53.pt` |
 | 54 | 780678 | 0.542 | `checkpoints/kaiser1/c54.pt` |
 | 55 | 795619 | 0.542 | `checkpoints/kaiser1/c55.pt` |
+| 56 | 809597 | 0.542 | `checkpoints/kaiser1/c56.pt` |
+| 57 | 823885 | 0.542 | `checkpoints/kaiser1/c57.pt` |
+| 58 | 838254 | 0.542 | `checkpoints/kaiser1/c58.pt` |
+| 59 | 852875 | 0.542 | `checkpoints/kaiser1/c59.pt` |
+| 60 | 868150 | 0.542 | `checkpoints/kaiser1/c60.pt` |
