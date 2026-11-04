@@ -115,3 +115,8 @@
 | 108 | 1601881 | 0.542 | `checkpoints/kaiser1/c108.pt` |
 | 109 | 1616811 | 0.542 | `checkpoints/kaiser1/c109.pt` |
 | 110 | 1631612 | 0.542 | `checkpoints/kaiser1/c110.pt` |
+| 111 | 1646872 | 0.542 | `checkpoints/kaiser1/c111.pt` |
+| 112 | 1663380 | 0.542 | `checkpoints/kaiser1/c112.pt` |
+| 113 | 1679207 | 0.542 | `checkpoints/kaiser1/c113.pt` |
+| 114 | 1695296 | 0.542 | `checkpoints/kaiser1/c114.pt` |
+| 115 | 1710877 | 0.542 | `checkpoints/kaiser1/c115.pt` |
