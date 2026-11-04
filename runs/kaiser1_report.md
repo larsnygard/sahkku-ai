@@ -185,3 +185,8 @@
 | 178 | 2694573 | 0.542 | `checkpoints/kaiser1/c178.pt` |
 | 179 | 2710360 | 0.542 | `checkpoints/kaiser1/c179.pt` |
 | 180 | 2725655 | 0.542 | `checkpoints/kaiser1/c180.pt` |
+| 181 | 2742040 | 0.542 | `checkpoints/kaiser1/c181.pt` |
+| 182 | 2757781 | 0.542 | `checkpoints/kaiser1/c182.pt` |
+| 183 | 2773340 | 0.542 | `checkpoints/kaiser1/c183.pt` |
+| 184 | 2788966 | 0.542 | `checkpoints/kaiser1/c184.pt` |
+| 185 | 2805182 | 0.542 | `checkpoints/kaiser1/c185.pt` |
