@@ -100,3 +100,8 @@
 | 93 | 1371578 | 0.542 | `checkpoints/kaiser1/c93.pt` |
 | 94 | 1386964 | 0.542 | `checkpoints/kaiser1/c94.pt` |
 | 95 | 1403544 | 0.542 | `checkpoints/kaiser1/c95.pt` |
+| 96 | 1418392 | 0.542 | `checkpoints/kaiser1/c96.pt` |
+| 97 | 1433443 | 0.542 | `checkpoints/kaiser1/c97.pt` |
+| 98 | 1448666 | 0.542 | `checkpoints/kaiser1/c98.pt` |
+| 99 | 1464020 | 0.542 | `checkpoints/kaiser1/c99.pt` |
+| 100 | 1479436 | 0.542 | `checkpoints/kaiser1/c100.pt` |
