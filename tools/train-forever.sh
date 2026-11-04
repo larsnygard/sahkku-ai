@@ -8,7 +8,9 @@
 #   ./tools/train-forever.sh --run blanka3 --bench-only          # berre benk
 #
 # Kvar runde:
-#   1. badass-trainer.sh --run <run> --cycles 1     (neste syklus, ikkje fyrste)
+#   1. badass-trainer.sh --run <run> --cycles N     (N = sluttsyklus = siste+1;
+#                                                    pipelinen sin --cycles er eit
+#                                                    sluttnummer, ikkje eit tal)
 #   2. node tools/eval_match.js <run>-nn.js cpu_uci.js 20 <seed>
 #   3. ei line i runs/<run>_bench.csv + loggen runs/<run>_forever.log
 #
@@ -28,6 +30,7 @@ FREE_MB="3000"
 MAX_CYCLES="0"          # 0 = uendeleg
 BENCH_ONLY="0"
 NO_WAIT="0"
+DRY="0"
 PAUSE="10"              # sekund mellom rundar / etter feil
 EXTRA=()
 
@@ -47,6 +50,7 @@ while [ $# -gt 0 ]; do
     --pause)       PAUSE="$2"; shift 2 ;;
     --bench-only)  BENCH_ONLY="1"; shift ;;
     --no-wait)     NO_WAIT="1"; shift ;;
+    --dry)         DRY="1"; shift ;;
     -h|--help)     sed -n '2,20p' "$0"; exit 0 ;;
     --)            shift; EXTRA+=("$@"); break ;;
     *)             EXTRA+=("$1"); shift ;;
@@ -143,8 +147,16 @@ while :; do
   # -- 1. éin treningssyklus -------------------------------------------
   before=$(last_cycle)
   log "runde ${rounds}: trenar syklus $((before+1)) (${GAMES} parti)"
-  targs=( --run "$RUN" --games "$GAMES" --cycles 1 --train-opponent "$OPP" --hours 0 )
+  # MERK: --cycles er SLUTT-syklusnummeret i pipelinen (range(start, cycles+1)),
+  # ikkje eit tal. Difor $((before+1)) — «--cycles 1» på ein run som alt har
+  # syklus 1 gjer at løkka ikkje køyrer i det heile (0 nye syklusar, exit 0).
+  targs=( --run "$RUN" --games "$GAMES" --cycles "$((before+1))" --train-opponent "$OPP" --hours 0 )
   [ -n "$INIT" ] && targs+=( --init "$INIT" )
+  if [ "$DRY" = "1" ]; then
+    log "DRY: ./badass-trainer.sh ${targs[*]} ${EXTRA[*]+\"${EXTRA[*]}\"}"
+    log "DRY: node tools/eval_match.js \"node engines/${RUN}-nn.js\" \"node tools/cpu_uci.js\" ${BENCH_GAMES} $((SEED+before+1))"
+    continue
+  fi
   if ( cd "$ROOT" && ./badass-trainer.sh "${targs[@]}" "${EXTRA[@]+"${EXTRA[@]}"}" \
         >> "$ROOT/runs/${RUN}_run.log" 2>&1 ); then
     fails=0
