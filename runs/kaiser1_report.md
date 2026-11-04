@@ -150,3 +150,8 @@
 | 143 | 2147899 | 0.542 | `checkpoints/kaiser1/c143.pt` |
 | 144 | 2163096 | 0.542 | `checkpoints/kaiser1/c144.pt` |
 | 145 | 2178365 | 0.542 | `checkpoints/kaiser1/c145.pt` |
+| 146 | 2193554 | 0.542 | `checkpoints/kaiser1/c146.pt` |
+| 147 | 2209662 | 0.542 | `checkpoints/kaiser1/c147.pt` |
+| 148 | 2225880 | 0.542 | `checkpoints/kaiser1/c148.pt` |
+| 149 | 2241926 | 0.542 | `checkpoints/kaiser1/c149.pt` |
+| 150 | 2257254 | 0.542 | `checkpoints/kaiser1/c150.pt` |
