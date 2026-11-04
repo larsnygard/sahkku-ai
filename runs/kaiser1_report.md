@@ -90,3 +90,8 @@
 | 83 | 1215150 | 0.542 | `checkpoints/kaiser1/c83.pt` |
 | 84 | 1230988 | 0.542 | `checkpoints/kaiser1/c84.pt` |
 | 85 | 1246202 | 0.542 | `checkpoints/kaiser1/c85.pt` |
+| 86 | 1261791 | 0.542 | `checkpoints/kaiser1/c86.pt` |
+| 87 | 1277168 | 0.542 | `checkpoints/kaiser1/c87.pt` |
+| 88 | 1293047 | 0.542 | `checkpoints/kaiser1/c88.pt` |
+| 89 | 1308978 | 0.542 | `checkpoints/kaiser1/c89.pt` |
+| 90 | 1324606 | 0.542 | `checkpoints/kaiser1/c90.pt` |
