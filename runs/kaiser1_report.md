@@ -195,3 +195,8 @@
 | 188 | 2851046 | 0.542 | `checkpoints/kaiser1/c188.pt` |
 | 189 | 2866848 | 0.542 | `checkpoints/kaiser1/c189.pt` |
 | 190 | 2882601 | 0.542 | `checkpoints/kaiser1/c190.pt` |
+| 191 | 2899484 | 0.542 | `checkpoints/kaiser1/c191.pt` |
+| 192 | 2914575 | 0.542 | `checkpoints/kaiser1/c192.pt` |
+| 193 | 2929956 | 0.542 | `checkpoints/kaiser1/c193.pt` |
+| 194 | 2946020 | 0.542 | `checkpoints/kaiser1/c194.pt` |
+| 195 | 2961005 | 0.542 | `checkpoints/kaiser1/c195.pt` |
