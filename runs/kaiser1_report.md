@@ -200,3 +200,8 @@
 | 193 | 2929956 | 0.542 | `checkpoints/kaiser1/c193.pt` |
 | 194 | 2946020 | 0.542 | `checkpoints/kaiser1/c194.pt` |
 | 195 | 2961005 | 0.542 | `checkpoints/kaiser1/c195.pt` |
+| 196 | 2976410 | 0.542 | `checkpoints/kaiser1/c196.pt` |
+| 197 | 2991486 | 0.542 | `checkpoints/kaiser1/c197.pt` |
+| 198 | 3006301 | 0.542 | `checkpoints/kaiser1/c198.pt` |
+| 199 | 3022717 | 0.542 | `checkpoints/kaiser1/c199.pt` |
+| 200 | 3038143 | 0.542 | `checkpoints/kaiser1/c200.pt` |
