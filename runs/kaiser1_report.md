@@ -140,3 +140,8 @@
 | 133 | 1991273 | 0.542 | `checkpoints/kaiser1/c133.pt` |
 | 134 | 2007030 | 0.542 | `checkpoints/kaiser1/c134.pt` |
 | 135 | 2022853 | 0.542 | `checkpoints/kaiser1/c135.pt` |
+| 136 | 2039093 | 0.542 | `checkpoints/kaiser1/c136.pt` |
+| 137 | 2055502 | 0.542 | `checkpoints/kaiser1/c137.pt` |
+| 138 | 2070729 | 0.542 | `checkpoints/kaiser1/c138.pt` |
+| 139 | 2086062 | 0.542 | `checkpoints/kaiser1/c139.pt` |
+| 140 | 2101188 | 0.542 | `checkpoints/kaiser1/c140.pt` |
