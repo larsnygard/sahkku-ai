@@ -160,3 +160,8 @@
 | 153 | 2303233 | 0.542 | `checkpoints/kaiser1/c153.pt` |
 | 154 | 2318868 | 0.542 | `checkpoints/kaiser1/c154.pt` |
 | 155 | 2334706 | 0.542 | `checkpoints/kaiser1/c155.pt` |
+| 156 | 2349711 | 0.542 | `checkpoints/kaiser1/c156.pt` |
+| 157 | 2365354 | 0.542 | `checkpoints/kaiser1/c157.pt` |
+| 158 | 2381401 | 0.542 | `checkpoints/kaiser1/c158.pt` |
+| 159 | 2397242 | 0.542 | `checkpoints/kaiser1/c159.pt` |
+| 160 | 2413542 | 0.542 | `checkpoints/kaiser1/c160.pt` |
