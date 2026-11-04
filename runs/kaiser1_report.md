@@ -175,3 +175,8 @@
 | 168 | 2537698 | 0.542 | `checkpoints/kaiser1/c168.pt` |
 | 169 | 2553028 | 0.542 | `checkpoints/kaiser1/c169.pt` |
 | 170 | 2568404 | 0.542 | `checkpoints/kaiser1/c170.pt` |
+| 171 | 2584178 | 0.542 | `checkpoints/kaiser1/c171.pt` |
+| 172 | 2599787 | 0.542 | `checkpoints/kaiser1/c172.pt` |
+| 173 | 2614298 | 0.542 | `checkpoints/kaiser1/c173.pt` |
+| 174 | 2629904 | 0.542 | `checkpoints/kaiser1/c174.pt` |
+| 175 | 2645586 | 0.542 | `checkpoints/kaiser1/c175.pt` |
