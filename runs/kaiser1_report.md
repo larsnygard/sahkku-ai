@@ -105,3 +105,8 @@
 | 98 | 1448666 | 0.542 | `checkpoints/kaiser1/c98.pt` |
 | 99 | 1464020 | 0.542 | `checkpoints/kaiser1/c99.pt` |
 | 100 | 1479436 | 0.542 | `checkpoints/kaiser1/c100.pt` |
+| 101 | 1494993 | 0.542 | `checkpoints/kaiser1/c101.pt` |
+| 102 | 1510204 | 0.542 | `checkpoints/kaiser1/c102.pt` |
+| 103 | 1525305 | 0.542 | `checkpoints/kaiser1/c103.pt` |
+| 104 | 1540485 | 0.542 | `checkpoints/kaiser1/c104.pt` |
+| 105 | 1555814 | 0.542 | `checkpoints/kaiser1/c105.pt` |
