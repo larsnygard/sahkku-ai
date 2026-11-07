@@ -27,3 +27,4 @@
 | 26 | 114600 | 0.798 | `checkpoints/blanka3/c26.pt` |
 | 27 | 121931 | 0.798 | `checkpoints/blanka3/c27.pt` |
 | 28 | 128891 | 0.798 | `checkpoints/blanka3/c28.pt` |
+| 29 | 136393 | 0.798 | `checkpoints/blanka3/c29.pt` |
