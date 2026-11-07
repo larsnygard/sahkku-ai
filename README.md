@@ -555,6 +555,34 @@ styrer kor lenge ho varer, og begge er no eksplisitte:
   reknar «det finst shard-filer» som «syklusen er ferdig», so delvise shardar
   elles vert trena på i staden for å verte genererte på nytt.
 
+## 6c. Det eine trenings-skriptet: `tools/train.py` (TUI)
+
+`tools/train.py` er felles inngang for treningsøkter på boksen — TUIen samlar
+parametra (spill per syklus, varigheit i syklusar/timar, push-every, benk,
+kjerner, GPU-vent, diett) og startar same løkka som `--go`-flagga gjer
+hovudlaus. Den erstattar `tools/train-push.sh` og `tools/train-forever.sh`.
+
+```bash
+tmux new -s train './tools/train.py'          # TUI — F5 startar
+./tools/train.py --go --run nais10 --init engines/nais9-nn.pt \
+    --games 200 --cycles 40 --push-every 2 --bench 20 --hours 10
+./tools/train.py --go --dry ...               # vis planen, køyr ikkje
+```
+
+- **Éin syklus om gongene:** tren → eksporter → paritet + S-UCI → (valfri
+  lokal benk) → sykluslogg → commit + push kvar N-te. Ei krasj kostar éin
+  syklus, ikkje natta. `--cycles` er slutt-nummeret; løkka held fram frå
+  siste fullførte syklus av seg.
+- **`--hours`** er tidssjekk *mellom* syklusar (0 = ingen grense).
+- **`--bench N`** er den *lokale* benken per syklus (20 parti mot FLOKK/nesseby
+  — same som train-forever); **porten på Nox-sida** benkjar mot standardmotoren
+  og deployar uansett når ein push landsar, så 0 er eit fornuftig val for
+  lange køyringar.
+- **`--gpu-wait-mb`** ventar på ledig VRAM før kvar syklus (Strata m.m.) i
+  staden for å krasje på CUDA-OOM.
+- TUIen skriv ut den headless-kommandoen som tilsvarar skjemaet — kopier han
+  for å starte økter utan skjerm (cron, ssh, styrt frå Nox).
+
 ## 7. Kjøre motoren som HTTP-tenar (fjernmotor med API-nøklar)
 
 `python -m sahkku_ai.server` legg ein S-UCI-motor bak HTTP, so appen kan bruke
