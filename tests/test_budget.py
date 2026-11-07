@@ -35,6 +35,8 @@ def run(name, cycles, max_seconds, timeout=180):
     for p in (ROOT / "checkpoints").glob(name + "*"):
         shutil.rmtree(p, ignore_errors=True)
     cmd = [str(PY), "-m", "sahkku_ai.pipeline", "--run", name,
+           "--device", "cpu",     # tidslogikk, ikkje fart — og UMEUVEDKOMMEN
+           # av kva training måtte halde på GPU-en her og no
            "--init", "checkpoints/nais2/c4.pt", "--cycles", str(cycles),
            "--games", "2", "--workers", "1", "--sims", "2", "--leaf-batch", "2",
            "--steps", "2", "--batch", "8", "--nesseby", "--max-plies", "200",

@@ -2,16 +2,18 @@
 //
 // Så agenten kan møte den SAME CPU-en som spelarane møter i snart.com/sahkku,
 // i tools/eval_match.js og i benkar elles. Nivå 3 = FLOKK (dei sju reglane),
-// 2 = gamal greedy, 1 = tilfeldig. Ingen nett, ingen pakkar utanom appen.
+// 2 = gamal greedy, 1 = tilfeldig. Ingen nett, ingen pakkar — berre vendor/.
 //
 // Bruk:  node tools/cpu_uci.js [--level 3]
 //        (S-UCI på stdin/stdout: position/diceroll/go -> bestmove)
 'use strict';
 const path = require('path');
-const APP = path.resolve(__dirname, '..', '..', 'SnartSahkku');
-const SS = require(path.join(APP, 'js', 'engine.js'));
-require(path.join(APP, 'js', 'fen.js'));
-const CPU = require(path.join(APP, 'js', 'cpu.js'));
+// FLOKK-reglane er vendor-kopien av SnartSahkku (scripts/sync_vendor.sh) —
+// ingen avhengnad av ein app-checkout ved sidan av.
+const VENDOR = path.resolve(__dirname, '..', 'vendor');
+const SS = require(path.join(VENDOR, 'engine.js'));
+require(path.join(VENDOR, 'fen.js'));
+const CPU = require(path.join(VENDOR, 'cpu.js'));
 
 const START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-.' +
                   '/m-m-m-m-m-m-m-m-m-m-m-m-m-m-m w roll - 000 H2 0:0 0 *';

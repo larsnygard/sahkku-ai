@@ -337,7 +337,9 @@ def main():
     ap.add_argument("--spg-out", default=None)
     ap.add_argument("--out", default="engines/sahkku-nn")
     ap.add_argument("--eval-games", type=int, default=0)
-    ap.add_argument("--opponent", default="../SnartSahkku/engines/sahkku-ref.js")
+    ap.add_argument("--opponent", default="vendor/sahkku-ref.js",
+                    help="S-UCI opponent for the eval match; vendor/ is the "
+                         "synced copy of the app's classic CPU (no app needed)")
     ap.add_argument("--eval-timeout", type=int, default=3600)
     ap.add_argument("--log-every", type=int, default=25)
     ap.add_argument("--save-every", type=int, default=250)

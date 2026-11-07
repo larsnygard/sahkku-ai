@@ -12,8 +12,8 @@ Opponent names:
              engines.json; the training box has no app, so 'base' is SKIPPED
              there unless BASE_ID is given
   classic3   the classic CPU at level 3: app = sahkku-ref.js (classic rules),
-             box  = tools/cpu_uci.js (nesseby rules) — the box's FLOKK
-  <id>       any engine id: app = SnartSahkku/engines/<id>.js (nesseby rules)
+             box  = vendor/sahkku-ref.js — the same FLOKK, no app checkout
+  <id>       any engine id: app engines/<id>.js, else this repo engines/<id>-nn.js
 Games: '0' skips the match.
 Prints (one line per match):
   RESULT <opp> <games> <pct>          (pct = A's score, 0-100)
@@ -53,32 +53,28 @@ def resolve(opp: str, base_id: str) -> "tuple | None":
     """(cmd, env_extra) for one opponent, or None if unresolvable here."""
     env = {"EVAL_NESSBY": "1"}
     if opp == "classic3":
-        ref = APP / "engines" / "sahkku-ref.js"
-        if ref.exists():
-            return (["node", str(ref)],
-                    {"EVAL_NESSBY": "0", "EVAL_SETOPT_B": "Level=3"})
-        cpu = ROOT / "tools" / "cpu_uci.js"
-        if cpu.exists():
-            return (["node", str(cpu)],
-                    {"EVAL_NESSBY": "1", "EVAL_SETOPT_B": "Level=3"})
+        # the FLOKK CPU at level 3, classic (non-nesseby) rules.  vendor/ is
+        # the SYNCED COPY of the app's sahkku-ref (scripts/sync_vendor.sh),
+        # so the training box benches the same opponent with no app checkout.
+        for ref in (ROOT / "vendor" / "sahkku-ref.js", APP / "engines" / "sahkku-ref.js"):
+            if ref.exists():
+                return (["node", str(ref)],
+                        {"EVAL_NESSBY": "0", "EVAL_SETOPT_B": "Level=3"})
         return None
     if opp == "base":
         if not base_id:
             return None
-        js = APP / "engines" / f"{base_id}.js"
+        for js in (APP / "engines" / f"{base_id}.js",
+                   ROOT / "engines" / f"{base_id}.js",
+                   ROOT / "engines" / f"{base_id}-nn.js"):
+            if js.exists():
+                return (["node", str(js)], env)
+        return None
+    for js in (APP / "engines" / f"{opp}.js",
+               ROOT / "engines" / f"{opp}.js",
+               ROOT / "engines" / f"{opp}-nn.js"):
         if js.exists():
             return (["node", str(js)], env)
-        # box fallback: same-id engine exported in this repo
-        js2 = ROOT / "engines" / f"{base_id}.js"
-        if js2.exists():
-            return (["node", str(js2)], env)
-        return None
-    js = APP / "engines" / f"{opp}.js"
-    if js.exists():
-        return (["node", str(js)], env)
-    js2 = ROOT / "engines" / f"{opp}-nn.js"
-    if js2.exists():
-        return (["node", str(js2)], env)
     return None
 
 

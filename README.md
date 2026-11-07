@@ -9,6 +9,14 @@ Motoren dømmer etter **nøyaktig samme regler som SnartSáhkku-PWA-en**:
 regelfilene `js/engine.js` + `js/fen.js` blir *injisert* i motoren ved eksport
 (`vendor/` er verbatim-kopier). Ingen avskrevet regelkopi, ingen drift.
 
+**Repoet er sjølvforsynt:** trenings- og benkedrift treng IKKJE ein
+SnartSahkku-checkout — alt appen har av reglar, FLOKK-CPU (via
+`vendor/sahkku-ref.js`), SPG-skriveren og den ekte S-UCI-GUI-testen
+(`vendor/tests/suci.test.js`) ligg synka i `vendor/`
+(`./scripts/sync_vendor.sh` oppdaterer etter regelendringar i appen).
+Den einaste koplinga som står att er *publiseringa*: å legge ein motor i
+PWA-en sin `engines.json` og deploye (porten gjer det) — det høyrer appen til.
+
 - Protokoll: [`docs/SAHKKU-UCI.md`](../SnartSahkku/docs/SAHKKU-UCI.md) i SnartSahkku
 - Spilleregler: [sahkku.no/docs](https://sahkku.no/docs)
 
@@ -97,12 +105,11 @@ python -m venv .venv
 .venv/bin/pip install numpy
 ```
 
-Regelfilene hentes fra en SnartSahkku-checkout som ligger ved siden av
-(`../SnartSahkku`). Er den ikke der, kopierer du bare `js/engine.js` og
-`js/fen.js` inn i `vendor/` — eller kjører:
+`vendor/` er allereie synka og ligg i git — treningsboksen treng berre
+`git clone + .venv`. Vill du oppdatere reglane frå ein app-checkout:
 
 ```sh
-./scripts/sync_vendor.sh ../SnartSahkku    # oppdaterer vendor/ etter regelendringer
+./scripts/sync_vendor.sh ../SnartSahkku    # reglar + FLOKK + SPG + suci.test
 ```
 
 ## Kjør alt i én kommando
@@ -377,7 +384,7 @@ parti (sáhkku er asymmetrisk).
 
 ```sh
 node tools/eval_match.js "node engines/sahkku-nn.js" \
-                         "node ../SnartSahkku/engines/sahkku-ref.js" 20 41
+                         "node vendor/sahkku-ref.js" 20 41
 # parti 1 [A=Menn]: B (Giera) 33 halvtrekk {dronning}
 # ...
 # SUM: A=7  B=13  uavgjort=0  av 20  (82 s)

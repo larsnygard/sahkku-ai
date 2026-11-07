@@ -15,7 +15,7 @@
 //
 // Bruk:  node tools/eval_match.js "<kommando A>" "<kommando B>" [parti] [seed]
 // T.d.   node tools/eval_match.js "node engines/sahkku-nn.js" \
-//                                 "node ../SnartSahkku/engines/sahkku-ref.js" 20 7
+//                                 "node vendor/sahkku-ref.js" 20 7
 //
 // Sidene byter kvar part: A spelar Menn (w) i part 0,2,4… og Giera (b) i 1,3,5…
 // (sáhkku er asymmetrisk, så ein rein A-som-Menn-benk ville vore skeiv).
@@ -27,18 +27,10 @@ const ROOT = path.join(__dirname, '..');
 const vroot = path.join(ROOT, 'vendor');
 require(path.join(vroot, 'engine.js'));
 require(path.join(vroot, 'fen.js'));
-// SPG-skrivaren frå appen (kanonisk format), valfri: set EVAL_SPG=<fil>
+// SPG-skrivaren (kanonisk format), valfri: set EVAL_SPG=<fil>.  Frå vendor/,
+// slik at sahkku-ai ikkje krev ein SnartSahkku-checkout (sjå scripts/sync_vendor.sh).
 let SPG = null;
-try { require(path.join(vroot, '..', '..', 'SnartSahkku', 'js', 'spg.js')); SPG = global.SPG; }
-catch (e) {
-  // appen kan liggje ved sidan av repoet (vanleg) eller vere fråverande på
-  // treningsboksen; IKKJE hardkod ein brukar/sti.
-  var cands = ['../SnartSahkku/js/spg.js', '../../SnartSahkku/js/spg.js'];
-  SPG = null;
-  for (var ci = 0; ci < cands.length && !SPG; ci++) {
-    try { require(require('path').resolve(__dirname, cands[ci])); SPG = global.SPG; } catch (e2) {}
-  }
-}
+try { require(path.join(vroot, 'spg.js')); SPG = global.SPG; } catch (e) { SPG = null; }
 const SS = global.SS;
 
 const START_FEN = 'g-g-g-g-g-g-g-g-g-g-g-g-g-g-g/.-.-.-d-.-.-.-N-.-.-.-q-.-.-.' +

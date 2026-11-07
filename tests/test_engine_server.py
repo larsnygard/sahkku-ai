@@ -20,7 +20,23 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = ROOT.parent / "SnartSahkku"
-ENGINE = APP / "engines" / "nais2.js"
+
+
+def _engine() -> pathlib.Path:
+    """Any real S-UCI engine to talk to. The app's own when the checkout is
+    next door (dev machine); on the training box, a synced export from this
+    repo — sahkku-ai must pass its tests standalone."""
+    app_e = APP / "engines" / "nais2.js"
+    if app_e.exists():
+        return app_e
+    for pat in ("*nais7*-nn.js", "*nais*-nn.js", "*blanka*-nn.js", "*-nn.js"):
+        hits = sorted((ROOT / "engines").glob(pat))
+        if hits:
+            return hits[0]
+    raise SystemExit("no S-UCI engine found (vendor export missing?)")
+
+
+ENGINE = _engine()
 KEY = "test-key-" + "a1b2c3"
 PASS = FAIL = 0
 

@@ -110,5 +110,5 @@ cat <<EOF
   EVAL_NESSBY=1 node tools/eval_match.js "node engines/${RUN}-nn.js" \\
       "node engines/nais5-nn.js" 30 <seed>              # ≥55 % → standardmotor
   EVAL_SETOPT_B=Level=3 node tools/eval_match.js "node engines/${RUN}-nn.js" \\
-      "node engines/sahkku-ref.js" 40 <seed>            # ≥90 %
+      "node vendor/sahkku-ref.js" 40 <seed>            # ≥90 %
 EOF

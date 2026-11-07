@@ -27,11 +27,14 @@ $PY -m tests.test_net_parity
 echo "== 5/12 nettlesar-stien: modulen utan Node-globalar + vekter via loadWeights =="
 node tests/test_browser_path.js "$ENGINE"
 
-echo "== 6/12 S-UCI: den ekte GUI-testen frå SnartSahkku (heile parti) ============="
+echo "== 6/12 S-UCI: den ekte GUI-testen (heile parti) — frå appen eller vendor/ =="
 if [ -d "$SAHKKU" ]; then
   ( cd "$SAHKKU" && SAHKKU_ENGINE="node $ENGINE" node tests/suci.test.js )
+elif [ -f "$ROOT/vendor/tests/suci.test.js" ]; then
+  # same test, vendor-kopi (scripts/sync_vendor.sh) — treningsboksen heilt åleine
+  ( cd "$ROOT/vendor/tests" && SAHKKU_ENGINE="node $ENGINE" node suci.test.js )
 else
-  echo "  hoppar over: fann ikkje $SAHKKU (set SAHKKU=...)"
+  echo "  hoppar over: verken $SAHKKU eller vendor/tests/suci.test.js"
 fi
 
 echo "== 7/12 CLI-tekst i Python-verktøya er engelsk ================================"
@@ -41,7 +44,9 @@ echo "== 8/12 badass-trainer: feilmeldingane når ei køyring ikkje startar ====
 $PY -m tests.test_trainer_faults
 
 echo "== 9/12 tidsbudsjettet vert halde (ikkje berre «klokka er ute») ================"
-$PY -m tests.test_budget
+# pipeline-løkka tek GPU dersom ho finst; testen verifiserer TIDSLOGIKK, ikkje
+# fart — på CPU køyrer han uansett kva ein annan prosess (trening) har tatt av VRAM
+CUDA_VISIBLE_DEVICES="" $PY -m tests.test_budget
 echo "== 10/12 taktikk-stilar (few/many, kingfwd/kingguard) ========================="
 $PY -m tests.test_styles
 

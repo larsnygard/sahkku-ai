@@ -61,7 +61,9 @@ DEFAULTS: dict = {
     # the Nox gate (sent to it in runs/<run>_bench.txt).
     #   base      = the current default engine (gate resolves it)
     #   classic3  = the classic CPU at level 3 (sahkku-ref)
-    #   <id>      = any engine id in SnartSahkku (nais8, blanka2, kaiser1, …)
+    #   <id>      = any engine id (nais8, blanka2, kaiser1, …): the app's
+    #               engines/<id>.js if the checkout is next door, else this
+    #               repo's engines/<id>-nn.js (the box is self-sufficient)
     # Empty string / "0" = no local bench.
     "bench_list":   "base:30,classic3:40",
     "bench_seed":   181,

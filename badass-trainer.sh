@@ -435,8 +435,8 @@ if [ -n "$CK" ]; then
   say "next steps (export + engine validation):"
   cat <<EOF
   $PY -m sahkku_ai.export --net $CK --out $OUT --name "NAIS.x"
-  SAHKKU_ENGINE="node $OUT.js" node ../SnartSahkku/tests/suci.test.js
-  EVAL_NESSBY=1 node tools/eval_match.js "node $OUT.js" "node ../SnartSahkku/engines/nais2.js" 30 <seed>
+  (cd vendor/tests && SAHKKU_ENGINE="node $(cd ../../ && pwd)/$OUT.js" node suci.test.js)
+  EVAL_NESSBY=1 node tools/eval_match.js "node $OUT.js" "node vendor/sahkku-ref.js" 30 <seed>
 EOF
 else
   printf '\033[33mno c*.pt under checkpoints/%s — the run finished but wrote nothing; see %s\033[0m\n' "$RUN" "$LOG"
