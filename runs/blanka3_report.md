@@ -16,3 +16,4 @@
 | 14 | 51942 | ? | `checkpoints/blanka3/c14.pt` |
 | 16 | 58859 | 0.798 | `checkpoints/blanka3/c16.pt` |
 | 17 | 62766 | 0.798 | `checkpoints/blanka3/c17.pt` |
+| 18 | 67343 | 0.798 | `checkpoints/blanka3/c18.pt` |
