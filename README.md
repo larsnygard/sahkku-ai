@@ -565,7 +565,8 @@ hovudlaus. Den erstattar `tools/train-push.sh` og `tools/train-forever.sh`.
 ```bash
 tmux new -s train './tools/train.py'          # TUI — F5 startar
 ./tools/train.py --go --run nais10 --init engines/nais9-nn.pt \
-    --games 200 --cycles 40 --push-every 2 --bench 20 --hours 10
+    --games 200 --cycles 40 --push-every 2 --hours 10 \
+    --bench-list "base:30,classic3:40,nais8:20"
 ./tools/train.py --go --dry ...               # vis planen, køyr ikkje
 ```
 
@@ -574,10 +575,13 @@ tmux new -s train './tools/train.py'          # TUI — F5 startar
   syklus, ikkje natta. `--cycles` er slutt-nummeret; løkka held fram frå
   siste fullførte syklus av seg.
 - **`--hours`** er tidssjekk *mellom* syklusar (0 = ingen grense).
-- **`--bench N`** er den *lokale* benken per syklus (20 parti mot FLOKK/nesseby
-  — same som train-forever); **porten på Nox-sida** benkjar mot standardmotoren
-  og deployar uansett når ein push landsar, så 0 er eit fornuftig val for
-  lange køyringar.
+- **`--bench-list "motstandar:spel,…"`** vel kven motoren bench-ar mot og kor
+  mange parti: `base` = noverande standardmotor (porten løysir han),
+  `classic3` = klassisk CPU nivå 3, ellers eit motor-id (`nais8`, `blanka2`,
+  `kaiser1`, …). Lista vert lagd i `runs/<run>_bench.txt` og pusha med
+  kvart syklus — **porten på Nox-sida bench-ar nøyaktig den same lista** før
+  han publisierer (utan fil: standard `base:30,classic3:40`; «0» = berre
+  portens benk). Berre ei full `base`-benk ≥55 % gjer motoren til standard.
 - **`--gpu-wait-mb`** ventar på ledig VRAM før kvar syklus (Strata m.m.) i
   staden for å krasje på CUDA-OOM.
 - TUIen skriv ut den headless-kommandoen som tilsvarar skjemaet — kopier han

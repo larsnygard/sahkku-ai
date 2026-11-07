@@ -76,34 +76,44 @@ case "$PAR" in *"OK"*) ;; *) say "FEIL: nett-paritet feila — publiserer ikkje"
 # rekk å bli ferdig mellom to pushingar — men då vert han aldri standardmotor,
 # berre valfri. Er køyringa roleg, køyrer vi full benk som før.
 ENG_AGE=$(( $(date +%s) - $(git log -1 --format=%ct origin/main -- "engines/${RUN}-nn.pt" 2>/dev/null || echo 0) ))
-if [ "$ENG_AGE" -lt 2400 ]; then
-  SHORT=1; NBRUN=12; L3RUN=0
-  say "benk: KORT (sjekkpunktet er ${ENG_AGE}s gamalt — køyring pågår): Nesseby mot $BASE, 12 parti, ~20 min"
+# Benklista kjem frå treningsøktas --bench-list (runs/<run>_bench.txt, pusha
+# med kvart syklus). Utan fil (gamle køyringar, manuelle portar): dei faste
+# standardane — Nesseby 30 mot standardmotoren + klassisk nivå 3 40.
+SPEC_FILE="runs/${RUN}_bench.txt"
+SPEC=$(cat "$SPEC_FILE" 2>/dev/null | head -1 | tr -d ' ')
+# KORT benk under aktiv køyring: sjekkpunkt kjem kvart 12.-24. minutt, og ein
+# full benk blir alltid avløyst før han blir ferdig. Kort = 12 nesseby-parti
+# mot standardmotoren — og berre FULL benk kan gjere motoren til standardmotor.
+SHORT=0
+if [ "$ENG_AGE" -lt 2400 ] && [ -z "$SPEC" ]; then
+  SHORT=1
+fi
+if [ "$SHORT" = "1" ]; then
+  SPEC="base:12"
+  say "benk: KORT (sjekkpunktet er ${ENG_AGE}s gamalt — køyring pågår): 12 parti mot standardmotoren, ikkje-standard-avgjerd"
+elif [ -n "$SPEC" ]; then
+  say "benk:vald i treningsøktas --bench-list: $SPEC"
+  BENCH_NOTE="ja"
 else
-  SHORT=0; NBRUN=30; L3RUN=40
-  say "benk: full — Nesseby mot $BASE (30) og klassisk nivå 3 (40), ~1,5 t"
+  SPEC="base:30,classic3:40"
+  say "benk: standard — base:30 (nesseby) + classic3:40"
+  BENCH_NOTE=""
 fi
 # Treningsboksen pushar berre sjekkpunktet (.pt) for å halde git-historia
 # rimeleg. Difor bench-ar vi appen sin .js, som porten eksporterte rett over.
 NEWJS="$APP/engines/${RUN}.js"
-BASEJS="$APP/engines/${BASE}.js"
 [ -f "$NEWJS" ] || { say "FEIL: $NEWJS manglar etter eksport"; exit 1; }
-[ -f "$BASEJS" ] || { say "FEIL: $BASEJS manglar (base=$BASE)"; exit 1; }
-EVAL_NESSBY=1 node tools/eval_match.js "node $NEWJS" "node $BASEJS" "$NBRUN" 181 \
-  > "runs/eval/${RUN}_nesseby.txt" 2>&1
-L3=0
-if [ "$L3RUN" -gt 0 ]; then
-  EVAL_SETOPT_B=Level=3 node tools/eval_match.js "node $NEWJS" "node $APP/engines/sahkku-ref.js" "$L3RUN" 182 \
-    > "runs/eval/${RUN}_L3.txt" 2>&1
-fi
-NB=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_nesseby.txt" | tail -1 | grep -oE "[0-9.]+")
-L3=$(grep -oE "A-poengsum: [0-9.]+" "runs/eval/${RUN}_L3.txt" 2>/dev/null | tail -1 | grep -oE "[0-9.]+")
+.venv/bin/python3 tools/bench_list.py "$RUN" "$NEWJS" "$SPEC" 181 "$BASE" \
+  > "runs/eval/${RUN}_benchlist.txt" 2>&1
+BENCH_RC=$?
+[ "$BENCH_RC" = "0" ] || { say "FEIL: benklista feila (ingen benk spelte) — sjå runs/eval/${RUN}_benchlist.txt"; exit 1; }
+NB=$(awk '$1=="RESULT" && $2=="base" {print $4}' "runs/eval/${RUN}_benchlist.txt" | tail -1)
+L3=$(awk '$1=="RESULT" && $2=="classic3" {print $4}' "runs/eval/${RUN}_benchlist.txt" | tail -1)
 NB=${NB:-0}; L3=${L3:-0}
-if [ "$SHORT" = "1" ]; then
-  say "resultat: Nesseby $NB % mot $BASE (kort benk, 12 parti) · klassisk L3 ikkje køyrd"
-else
-  say "resultat: Nesseby $NB % mot $BASE · klassisk L3 $L3 %"
-fi
+say "resultat: $(grep '^RESULT' "runs/eval/${RUN}_benchlist.txt" | awk '{printf "%s %s spel: %s %% · ", $2, $3, $4}' | sed 's/ · $//')"
+# Kopier til dei vante rapportfilene (runs/eval/<run>_nesseby.txt, _L3.txt)
+[ -f "runs/eval/${RUN}_base.txt" ] && cp "runs/eval/${RUN}_base.txt" "runs/eval/${RUN}_nesseby.txt" 2>/dev/null
+[ -f "runs/eval/${RUN}_classic3.txt" ] && cp "runs/eval/${RUN}_classic3.txt" "runs/eval/${RUN}_L3.txt" 2>/dev/null
 
 # Er dette framleis siste vekt? Under ein lang treningskøyring kjem det nye
 # sjekkpunkt kvart 12. minutt, og då er det sløsing å publisere eit som alt er
@@ -133,9 +143,9 @@ if [ -f tools/punisher_probe.py ]; then
 fi
 
 # ---- 4. motorlista ------------------------------------------------------
-DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" "$SHORT" <<'PY'
+DEF=$( .venv/bin/python3 - "$RUN" "$NB" "$L3" "$BASE" "$SHORT" "$BENCH_NOTE" <<'PY'
 import datetime, json, pathlib, re, sys
-run, nb, l3, base, short = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5]
+run, nb, l3, base, short, bench_note = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5], sys.argv[6]
 p = pathlib.Path("/home/lars/src/SnartSahkku/engines/engines.json")
 m = json.loads(p.read_text())
 eid = run                      # nais7 / kaiser1
@@ -147,6 +157,7 @@ lagd = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 note = (f"Leggje ut {lagd} · Trena {run} (sjå sahkku-ai/docs og runs/README) — "
         f"{nb} % mot {base} i Nesseby ({'12 parti, kort benk medan køyringa går' if short == '1' else 'n=30'})"
         + (f" og {l3} % mot klassisk nivå 3 (n=40). " if short != "1" else ". ")
+        + (f"Benklista kom frå treningsøktas --bench-list. " if bench_note else "")
         + ("Standardmotor." if better else "Ikkje standardmotor (slår ikkje førre modell)."))
 entry = {"id": eid, "name": name, "type": "nn", "script": f"engines/{eid}.js",
          "weights": f"engines/{eid}.weights.json", "lookahead": 4, "lagd": lagd, "note": note}

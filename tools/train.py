@@ -4,7 +4,8 @@ tools/train.py — one entry point for every sáhkku training session.
 
   ./tools/train.py                    # curses TUI on the training box
   ./tools/train.py --go --run nais10 --init engines/nais9-nn.pt \
-      --games 200 --cycles 40 --push-every 2 --bench 20     # headless runner
+      --games 200 --cycles 40 --push-every 2 \
+      --bench-list "base:30,classic3:40,nais8:20"       # headless runner
 
 The runner loop, one cycle at a time (a crash costs one cycle, not the night):
   badass-trainer.sh (one cycle) -> export -> parity gate -> S-UCI gate ->
@@ -54,8 +55,13 @@ DEFAULTS: dict = {
     "aggressive":   False,
     "styles":       False,
     "push_every":   1,           # commit+push every N-th cycle (0 = only last)
-    "bench_games":  0,           # LOCAL bench games per cycle (0 = skip)
-    "bench_mode":   "nesseby",   # nes…by | classic3
+    # Bench list: "opponent:games" comma-separated, run every cycle AND by
+    # the Nox gate (sent to it in runs/<run>_bench.txt).
+    #   base      = the current default engine (gate resolves it)
+    #   classic3  = the classic CPU at level 3 (sahkku-ref)
+    #   <id>      = any engine id in SnartSahkku (nais8, blanka2, kaiser1, …)
+    # Empty string / "0" = no local bench.
+    "bench_list":   "base:30,classic3:40",
     "bench_seed":   181,
     "gpu_wait_mb":  3000,        # VRAM to free before each cycle starts
     "no_push":      False,
@@ -142,31 +148,31 @@ def export_and_gate(run: str, k: int, log_path: pathlib.Path):
         raise RuntimeError(f"[c{k}] S-UCI gate failed (no uciok)")
     say(f"[c{k}] S-UCI: OK")
 
-def bench_cycle(run: str, k: int, games: int, mode: str, seed: int,
-                log_path: pathlib.Path):
+def bench_cycle(run: str, k: int, spec: str, seed_base: int,
+                log_path: pathlib.Path) -> list:
+    """Run the local bench list; returns [(opp, games, pct)] parsed from
+    bench_list.py RESULT lines. 'base' self-matches on the box: the freshly
+    exported engine plays its own .js — same file, ~50 % — so 'base' is only
+    meaningful with an explicit opponent id; keep the spec app-agnostic."""
     say = lambda m: _log(m, log_path)
     eng = ROOT / f"engines/{run}-nn.js"
     if not eng.exists():
         say(f"[c{k}] bench skipped (no {eng.name})")
-        return None
-    seed_k = seed + k
+        return []
     env = os.environ.copy()
-    if mode == "nesseby":
-        env["EVAL_NESSBY"] = "1"
-    opp_cmd = "node tools/cpu_uci.js"
-    if mode == "classic3":
-        env["EVAL_SETOPT_B"] = "Level=3"
-    say(f"[c{k}] bench: {games} games vs {mode} (seed {seed_k})")
+    env["SAHKKU_APP"] = str(ROOT.parent / "SnartSahkku")  # if the app is here
     r = subprocess.run(
-        ["node", "tools/eval_match.js", f"node engines/{run}-nn.js",
-         opp_cmd, str(games), str(seed_k)],
-        cwd=ROOT, env=env, capture_output=True, text=True)
-    (ROOT / f"runs/{run}_bench_c{k}.txt").write_text(r.stdout + "\n" + r.stderr)
-    m = re.search(r"A-poengsum:\s*([\d.]+)", r.stdout)
-    pct = float(m.group(1)) if m else None
-    say(f"[c{k}] bench: {pct:.1f} %" if pct is not None
-        else f"[c{k}] bench gave no score — see runs/{run}_bench_c{k}.txt")
-    return pct
+        [str(PY), "tools/bench_list.py", run, f"engines/{run}-nn.js",
+         spec, str(seed_base + k)],
+        cwd=ROOT, capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    results = []
+    for m in re.finditer(r"^RESULT (\S+) (\d+) ([\d.]+)", out, re.M):
+        results.append((m.group(1), int(m.group(2)), float(m.group(3))))
+    for line in out.splitlines():
+        if line.startswith(("BENCH ", "SKIP ", "RESULT ")):
+            say(f"[c{k}] {line}")
+    return results
 
 def write_cycle_row(run: str, k: int, init: str, opp: str, hand: str,
                     log_path: pathlib.Path):
@@ -218,6 +224,11 @@ def commit_and_push(run: str, k: int, cycles: int, push_every: int,
                    capture_output=True)
     subprocess.run(["git", "add", "-f", f"runs/{run}_report.md"], cwd=ROOT,
                    capture_output=True)
+    # hand the bench spec to the Nox gate (it benches with exactly this list)
+    spec_file = ROOT / f"runs/{run}_bench.txt"
+    if spec_file.exists():
+        subprocess.run(["git", "add", "-f", f"runs/{run}_bench.txt"],
+                       cwd=ROOT, capture_output=True)
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT,
                       capture_output=True).returncode == 0:
         say(f"[c{k}] no staged changes — commit skipped")
@@ -288,7 +299,15 @@ def run_session(p: dict):
 
     say(f"=== session start: run={run} · {p['games']} games/cycle · "
         f"cycles ..{p['cycles']} · push every {p['push_every']} · "
-        f"local bench {p['bench_games']} {p['bench_mode']} ===")
+        f"bench {p['bench_list'] or 'none'} ===")
+
+    # the Nox gate reads the bench spec from runs/<run>_bench.txt (committed
+    # with each cycle) — so the publish bench plays exactly these opponents
+    spec_file = ROOT / f"runs/{run}_bench.txt"
+    if p["bench_list"] and p["bench_list"] != "0":
+        spec_file.write_text(p["bench_list"].strip() + "\n")
+    elif spec_file.exists():
+        spec_file.unlink()
 
     # pre-flight: everything that can break, break NOW (seconds, not hours)
     if not PY.exists():
@@ -380,8 +399,8 @@ def run_session(p: dict):
             continue
 
         export_and_gate(run, k, log_path)          # export + parity + S-UCI
-        if p["bench_games"] > 0:
-            bench_cycle(run, k, p["bench_games"], p["bench_mode"],
+        if p["bench_list"] and p["bench_list"] != "0":
+            bench_cycle(run, k, p["bench_list"],
                         p["bench_seed"], log_path)
         write_cycle_row(run, k, init, p["opponent"], p["hand_style"], log_path)
         commit_and_push(run, k, p["cycles"], p["push_every"],
@@ -413,8 +432,7 @@ FIELDS = [
     ("aggressive",   "Aggressive side",     "bool",  None),
     ("styles",       "Style duels",         "bool",  None),
     ("push_every",   "Push every N cycles", "int",   None),
-    ("bench_games",  "Local bench games",   "int",   None),
-    ("bench_mode",   "Bench mode",          "choice", ["nesseby", "classic3"]),
+    ("bench_list",   "Bench list",          "text",  None),
     ("bench_seed",   "Bench seed",          "int",   None),
     ("gpu_wait_mb",  "GPU wait MiB",        "int",   None),
     ("no_push",      "No push (local)",     "bool",  None),
@@ -453,8 +471,7 @@ def tui(stdscr):
         stdscr.addstr(min(h - 4, top + len(FIELDS) + 1), 2, (
             f"  plan: c{done + 1}..{vals['cycles']} = {n_left} cycles "
             f"~{cy} min each = ~{total / 60:.1f} h   GPU: {gpu_name()}   "
-            f"push every {vals['push_every']}   bench {vals['bench_games']}x"
-            f"{vals['bench_mode']}")[:w - 3], curses.A_DIM)
+            f"push every {vals['push_every']}   bench: {vals['bench_list'] or 'none'}")[:w - 3], curses.A_DIM)
         if status:
             stdscr.addstr(min(h - 3, top + len(FIELDS) + 2), 2,
                           status[:w - 3], curses.A_BOLD)
@@ -548,13 +565,12 @@ def build_parser():
     ap.add_argument("--push-every", dest="push_every", type=int,
                     default=DEFAULTS["push_every"],
                     help="push every N-th cycle (0 = only the last)")
-    ap.add_argument("--bench", dest="bench_games", type=int,
-                    default=DEFAULTS["bench_games"],
-                    help="local bench games per cycle (0 = skip; the Nox gate "
-                         "always runs the publish bench)")
-    ap.add_argument("--bench-mode", dest="bench_mode",
-                    default=DEFAULTS["bench_mode"],
-                    choices=["nesseby", "classic3"])
+    ap.add_argument("--bench-list", dest="bench_list",
+                    default=DEFAULTS["bench_list"],
+                    help='bench spec "opp:games,opp:games" — opp is base '
+                         '(current default engine), classic3 (FLOKK/L3), or '
+                         'any engine id (nais8, blanka2, …); "0" = no local '
+                         'bench. The same list is handed to the Nox gate.')
     ap.add_argument("--bench-seed", dest="bench_seed", type=int,
                     default=DEFAULTS["bench_seed"])
     ap.add_argument("--gpu-wait-mb", dest="gpu_wait_mb", type=int,
@@ -573,8 +589,8 @@ def headless_command(p: dict) -> str:
              "steps": "--steps", "threads": "--threads", "seed": "--seed",
              "opponent": "--opponent", "hand_style": "--hand-style",
              "nesseby_frac": "--nesseby-fraction",
-             "push_every": "--push-every", "bench_games": "--bench",
-             "bench_mode": "--bench-mode", "bench_seed": "--bench-seed",
+             "push_every": "--push-every", "bench_list": "--bench-list",
+             "bench_seed": "--bench-seed",
              "gpu_wait_mb": "--gpu-wait-mb"}
     for key, flag in flags.items():
         if p.get(key, DEFAULTS[key]) != DEFAULTS[key]:
