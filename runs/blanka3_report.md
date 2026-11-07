@@ -12,3 +12,4 @@
 | 10 | 40538 | ? | `checkpoints/blanka3/c10.pt` |
 | 11 | 43226 | ? | `checkpoints/blanka3/c11.pt` |
 | 12 | 46095 | ? | `checkpoints/blanka3/c12.pt` |
+| 13 | 48947 | ? | `checkpoints/blanka3/c13.pt` |
