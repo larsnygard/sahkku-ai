@@ -2,7 +2,8 @@
 
   * resume-friendly: --init loads weights from any checkpoint (meta carries
     net cfg; --init also accepts the output of a previous run)
-  * masked policy cross-entropy (played-move soft targets) + MSE value
+  * policy cross-entropy (played-move soft targets; the legal-action mask is
+    implicit — targets are zero outside the legal pool) + MSE value
   * cosine LR schedule, AdamW, AMP off (P100 = cc6.0, fp16 conv is a mixed
     bag on 6.0; fp32 keeps parity with the JS export numerics)
   * periodic checkpoints checkpoints/<run>/step<N>.pt + latest.pt, with
