@@ -22,5 +22,29 @@
     "no_push": false,
     "dry": false,
     "resume": true
+  },
+  "korttest": {
+    "run": "blanka3",
+    "init": "engines/blanka2-nn.pt",
+    "cycles": 40,
+    "hours": 1.0,
+    "games": 200,
+    "sims": 45,
+    "steps": 450,
+    "threads": 0,
+    "seed": 81,
+    "opponent": "punisher",
+    "hand_style": "hold",
+    "nesseby": true,
+    "nesseby_frac": 1.0,
+    "aggressive": false,
+    "styles": false,
+    "push_every": 1,
+    "bench_list": "base:30,classic3:40",
+    "bench_seed": 181,
+    "gpu_wait_mb": 3000,
+    "no_push": false,
+    "dry": false,
+    "resume": true
   }
 }
