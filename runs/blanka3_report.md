@@ -30,3 +30,4 @@
 | 29 | 136393 | 0.798 | `checkpoints/blanka3/c29.pt` |
 | 30 | 143961 | 0.798 | `checkpoints/blanka3/c30.pt` |
 | 31 | 151864 | 0.798 | `checkpoints/blanka3/c31.pt` |
+| 32 | 159158 | 0.798 | `checkpoints/blanka3/c32.pt` |
