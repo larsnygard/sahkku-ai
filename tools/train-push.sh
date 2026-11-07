@@ -3,6 +3,9 @@
 #   tren éin syklus → eksporter → lokale portar → commit → push → neste syklus
 # Porten på den andre sida (tools/gate-publish.sh, køyrd som cron) plukkar opp
 # kvar push, benkar han og deployar han. Framgangen er difor synleg undervegs,
+#
+# ── DEPREKERT: bruk tools/train.py (éitt skript, TUI + alle parameterar,
+#    same løkke + GPU-vent + lokal benk). Stand att for gamle kommandoar. ──
 # og ei krasjande natt mistar berre den eine syklusen.
 #
 # Kvifor eit eige skript og ikkje overnight.sh: overnight.sh trenar
