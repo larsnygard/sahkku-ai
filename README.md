@@ -70,7 +70,7 @@ eller alle fiendens soldatar er borte.
 | `sahkku_ai/features.py` | 16 plan à 3×15 + 10 globale tall; aksjonsrom 8282 |
 | `sahkku_ai/model.py` | PyTorch-nett (conv-trunk + resblokker, policy-/value-hode) |
 | `sahkku_ai/selfplay.py` | sjølvspel på GPU med batcha utspillinger |
-| `sahkku_ai/train.py` | treningsløkka (maskert policy-CE + value-MSE, gjenopptak) |
+| `sahkku_ai/train.py` | treningsløkka (policy-CE + value-MSE, cosine LR, checkpointing) |
 | `sahkku_ai/data.py` | SPG/sjølvspel → trening-shards |
 | `sahkku_ai/export.py` | checkpoint → `engines/sahkku-nn.js` + vekter (JSON) |
 | `sahkku_ai/pipeline.py` | heile løkka i én kommando |

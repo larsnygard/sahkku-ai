@@ -2,7 +2,8 @@
 
   * resume-friendly: --init loads weights from any checkpoint (meta carries
     net cfg; --init also accepts the output of a previous run)
-  * masked policy cross-entropy (played-move soft targets) + MSE value
+  * policy cross-entropy (played-move soft targets; the legal-action mask is
+    implicit — targets are zero outside the legal pool) + MSE value
   * cosine LR schedule, AdamW, AMP off (P100 = cc6.0, fp16 conv is a mixed
     bag on 6.0; fp32 keeps parity with the JS export numerics)
   * periodic checkpoints checkpoints/<run>/step<N>.pt + latest.pt, with
@@ -12,7 +13,7 @@ Usage: python -m sahkku_ai.train --shards 'runs/r1/*.npz data/*.npz' \
         --run r2 [--init checkpoints/r1/latest.pt] [--steps 2000] ...
 """
 from __future__ import annotations
-import argparse, glob as globmod, json, math, os, time
+import argparse, glob as globmod, math, os, time
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -22,21 +23,33 @@ from .model import Net
 from .data import load_shards
 
 
-def masked_policy_loss(logits, target, mask=None):
-    """-Σ target·log p, i praksis over dei lovlege aksjonane.
-
-    Målfordelinga (π) er alt bygd slik at ho er 0 utanfor den lovlege poolen
-    (data.py og selfplay.py), så maska er implisitt; `mask` er teken med for
-    å gjere kallstaden lesbar. Logp vert klipt på -30 mot -inf-søppel.
-    """
+def policy_cross_entropy(logits, target):
+    """Cross-entropy over the action space for legal-action policy targets."""
     logp = F.log_softmax(logits, dim=1)
-    return -(target * logp.clamp_min(-30)).sum(1).mean()
+    return -(target * logp).sum(1).mean()
 
 
 def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
           wd=1e-4, warmup=50, device="cuda", seed=13, val_holdout=0.05,
           ch=None, blocks=None, fc=None, log_every=20, save_every=200,
           extra=None, extra_weight=0.0):
+    if steps < 1:
+        raise ValueError("steps must be at least 1")
+    if batch < 1:
+        raise ValueError("batch must be at least 1")
+    if warmup < 0:
+        raise ValueError("warmup cannot be negative")
+    if log_every < 1 or save_every < 1:
+        raise ValueError("log_every and save_every must be at least 1")
+    if not math.isfinite(lr) or lr <= 0:
+        raise ValueError("lr must be a finite positive number")
+    if not math.isfinite(wd) or wd < 0:
+        raise ValueError("wd must be a finite non-negative number")
+    if not math.isfinite(val_holdout) or not 0 < val_holdout < 1:
+        raise ValueError("val_holdout must be between 0 and 1")
+    if not math.isfinite(extra_weight) or not 0 <= extra_weight < 1:
+        raise ValueError("extra_weight must be between 0 and 1")
+
     torch.manual_seed(seed)
     np.random.seed(seed)
     paths = sorted(set(sum([globmod.glob(g) for g in shards_glob.split()], [])))
@@ -44,8 +57,10 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
         raise SystemExit(f"no shard files in {shards_glob!r}")
     P, G, PI, V = load_shards(paths)
     n = len(V)
+    if n < 2:
+        raise ValueError(f"training needs at least 2 samples for a train/validation split (got {n})")
     idx = np.random.RandomState(seed).permutation(n)
-    n_val = int(n * val_holdout)
+    n_val = min(n - 1, max(1, int(n * val_holdout)))
     tr, va = idx[n_val:], idx[:n_val]
     print(f"training data: {n} samples from {len(paths)} shards "
           f"({len(tr)} train / {len(va)} val)")
@@ -56,13 +71,14 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
     if extra and extra_weight > 0:
         n0 = len(V)
         P2, G2, PI2, V2 = load_shards([extra])
+        if not len(V2):
+            raise ValueError(f"extra shard {extra!r} contains no samples")
         P = np.concatenate([P, P2]); G = np.concatenate([G, G2])
         PI = np.concatenate([PI, PI2]); V = np.concatenate([V, V2])
         ex_idx = np.arange(n0, n0 + len(V2))
         print(f"extra shard: {len(V2)} samples from {extra} "
               f"(weight {extra_weight:.2f} of each batch)")
 
-    legal_rows = (PI > 0)
     if init:
         net = Net.load(init, map_location="cpu")
         print(f"init from {init} (cfg {net.cfg}, meta {net.meta.get('steps','?')} steps)")
@@ -71,6 +87,10 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
                      if v is not None})
         net.meta = {}
         print(f"random init cfg {net.cfg}")
+    n_ex = int(round(batch * extra_weight)) if ex_idx is not None else 0
+    if n_ex >= batch:
+        raise ValueError(
+            f"extra_weight {extra_weight} leaves no self-play samples in batch {batch}")
     dev = torch.device(device)
     if dev.type == "cuda":
         print(f"device: {torch.cuda.get_device_name(dev)} "
@@ -80,9 +100,10 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
     else:
         print(f"device: {dev} (torch {torch.__version__}, fp32)", flush=True)
     net.to(dev)
+    net.train()
 
     P = torch.from_numpy(P); G = torch.from_numpy(G)
-    PI = torch.from_numpy(PI); LM = torch.from_numpy(legal_rows.astype(np.float32))
+    PI = torch.from_numpy(PI)
     V = torch.from_numpy(V)
 
     opt = torch.optim.AdamW(net.parameters(), lr=lr, weight_decay=wd)
@@ -101,20 +122,19 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
     for step in range(1, steps + 1):
         for g in opt.param_groups:
             g["lr"] = lr_at(step)
-        n_ex = int(round(batch * extra_weight)) if ex_idx is not None else 0
         rs = np.random.RandomState(seed + step)
         b = rs.choice(tr, batch - n_ex)
         if n_ex:
             b = np.concatenate([b, rs.choice(ex_idx, n_ex)])
         x = P[b].to(dev); gvec = G[b].to(dev)
-        tgt = PI[b].to(dev); lm = LM[b].to(dev); v = V[b].to(dev)
+        tgt = PI[b].to(dev); v = V[b].to(dev)
         pol, val = net(x, gvec)
-        loss_p = masked_policy_loss(pol, tgt, lm)
+        loss_p = policy_cross_entropy(pol, tgt)
         loss_v = F.mse_loss(val, v)
         loss = loss_p + loss_v
         opt.zero_grad(set_to_none=True)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(net.parameters(), 1.0)
+        torch.nn.utils.clip_grad_norm_(net.parameters(), 1.0, error_if_nonfinite=True)
         opt.step()
         if step % log_every == 0:
             el = time.time() - t0
@@ -139,16 +159,24 @@ def train(run, shards_glob, init=None, steps=2000, batch=256, lr=2e-3,
 
 @torch.no_grad()
 def evaluate(net, dev, P, G, PI, V, va, batch=1024):
+    if len(va) == 0:
+        raise ValueError("validation set must contain at least one sample")
+    if batch < 1:
+        raise ValueError("batch must be at least 1")
+    was_training = net.training
+    net.eval()
     tot_p, tot_v, cnt = 0.0, 0.0, 0
-    for i in range(0, len(va), batch):
-        b = va[i:i + batch]
-        x = P[b].to(dev); g = G[b].to(dev)
-        tgt = PI[b].to(dev); v = V[b].to(dev)
-        pol, val = net(x, g)
-        lm = (tgt > 0).float()
-        tot_p += masked_policy_loss(pol, tgt, lm).item() * len(b)
-        tot_v += F.mse_loss(val, v, reduction="sum").item()
-        cnt += len(b)
+    try:
+        for i in range(0, len(va), batch):
+            b = va[i:i + batch]
+            x = P[b].to(dev); g = G[b].to(dev)
+            tgt = PI[b].to(dev); v = V[b].to(dev)
+            pol, val = net(x, g)
+            tot_p += policy_cross_entropy(pol, tgt).item() * len(b)
+            tot_v += F.mse_loss(val, v, reduction="sum").item()
+            cnt += len(b)
+    finally:
+        net.train(was_training)
     return tot_p / cnt, tot_v / cnt
 
 
