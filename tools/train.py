@@ -32,6 +32,7 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -57,15 +58,19 @@ DEFAULTS: dict = {
     "aggressive":   False,
     "styles":       False,
     "push_every":   1,           # commit+push every N-th cycle (0 = only last)
-    # Bench list: "opponent:games" comma-separated, run every cycle AND by
-    # the Nox gate (sent to it in runs/<run>_bench.txt).
+    # Bench list: "opponent:games" comma-separated, MAX 3 (the picker caps at
+    # three), run per cycle (or once at session end — bench_when) AND by the
+    # Nox gate (sent to it in runs/<run>_bench.txt).
     #   base      = the current default engine (gate resolves it)
-    #   classic3  = the classic CPU at level 3 (sahkku-ref)
+    #   classic3  = the classic FLOKK CPU at level 3 (vendor/sahkku-ref.js)
     #   <id>      = any engine id (nais8, blanka2, kaiser1, …): the app's
     #               engines/<id>.js if the checkout is next door, else this
     #               repo's engines/<id>-nn.js (the box is self-sufficient)
+    # The TUI picks from a POPULATED list (opp_choices()); --list-opponents.
     # Empty string / "0" = no local bench.
-    "bench_list":   "base:30,classic3:40",
+    "bench_list":   "classic3:40",
+    "bench_when":   "cycle",     # "cycle" = bench after each cycle,
+    #                            # "end"   = once, after the last cycle
     "bench_seed":   181,
     "gpu_wait_mb":  3000,        # VRAM to free before each cycle starts
     "no_push":      False,
@@ -129,6 +134,39 @@ def resolve_init(init: str) -> str:
         return ch[0]
     return init
 
+# ── bench opponents: the POPULATED list ───────────────────────────────────
+MAX_BENCH = 3          # «up to three benchmarks» — the picker caps here
+
+def opp_choices(run: str = "") -> list:
+    """Selectable bench opponents: engines/*-nn.js (exported engines, newest
+    first; tmp-* and the engine being trained excluded) + base + classic3."""
+    files = [f for f in (ROOT / "engines").glob("*-nn.js")
+             if not f.name.startswith(("tmp-", "sahkku-nn"))]
+    files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+    ids = [f.name[:-len("-nn.js")] for f in files
+           if not (run and f.name.startswith(run + "-nn"))]
+    return ["classic3", "base"] + ids
+
+def parse_bench_spec(spec: str) -> list:
+    """'opp:games,...' -> [(opp, games)]; '0'/'' -> []."""
+    out = []
+    for part in (spec or "").split(","):
+        part = part.strip()
+        if not part or part == "0":
+            continue
+        opp, _, n = part.partition(":")
+        try:
+            games = int(n.strip() or 30)
+        except ValueError:
+            games = 30
+        out.append((opp.strip(), games))
+    return out
+
+def clamp_bench(spec: str) -> str:
+    """Keep at most MAX_BENCH matches — benching more is wasted box-hours."""
+    return ",".join(f"{o}:{g}"
+                    for o, g in parse_bench_spec(spec)[:MAX_BENCH])
+
 # ── presets + params files ────────────────────────────────────────────────
 def load_presets() -> dict:
     try:
@@ -160,6 +198,76 @@ def write_params_file(run: str, p: dict):
 def est_cycle_min(games: int, sims: int, workers: int) -> int:
     rate_pw = 27.0 / max(1, sims)        # games/min/worker (measured, P100)
     return max(1, round(games / (max(1, workers) * rate_pw)))
+
+# ── live progress bar (training cycles + benchmark) ───────────────────────
+class Progress:
+    """One status line, redrawn every few seconds from the run log: which
+    cycle of how many, games done inside the cycle (worker lines the pipeline
+    writes), and the bench fraction when a bench is running. train_status.py
+    reads the same log; this is the live in-session view."""
+
+    def __init__(self, run: str, cycles: int, log_path: pathlib.Path):
+        self.run, self.cycles, self.log_path = run, cycles, log_path
+        self.gpc = DEFAULTS["games"]
+        self.bench = (0.0, "")          # fraction, label
+        self.active = True
+        self._t = threading.Thread(target=self._loop, daemon=True)
+        self._t.start()
+
+    def set_games_per_cycle(self, g: int):
+        self.gpc = max(1, g)
+
+    def set_bench(self, frac: float, label: str = ""):
+        self.bench = (frac, label)
+
+    def stop(self):
+        self.active = False
+        sys.stdout.write("\r" + " " * 100 + "\r")
+        sys.stdout.flush()
+
+    def _parse(self):
+        done, cur, now = 0, 1, 0
+        try:
+            with open(self.log_path, "r", errors="replace") as f:
+                for line in f:
+                    m = re.match(r"^\[c(\d+)\] self-play: (\d+) parti", line)
+                    if m:
+                        cur, self.gpc = int(m.group(1)), int(m.group(2))
+                        now = 0
+                        continue
+                    m = re.match(r"^\[c(\d+)\] ferdig", line)
+                    if m:
+                        done = max(done, int(m.group(1)))
+                        now = self.gpc
+                        continue
+                    m = re.match(r"^\[w\d+\] (\d+)/(\d+) parti", line)
+                    if m:
+                        now = max(now, int(m.group(1)))
+        except OSError:
+            pass
+        return done, cur, now
+
+    def _loop(self):
+        w = 24
+        while self.active:
+            done, cur, now = self._parse()
+            frac = (done * self.gpc + min(now, self.gpc)) / \
+                   max(1, self.cycles * self.gpc)
+            n = max(0, min(w, int(round(frac * w))))
+            if self.bench[0] > 0 and self.bench[0] < 1:
+                tail = f"  BENCH {self.bench[1]} {self.bench[0] * 100:3.0f} %"
+            elif self.bench[0] >= 1 and self.bench[1]:
+                tail = f"  BENCH {self.bench[1]} done"
+            else:
+                tail = ""
+            line = (f"\r{self.run} c{min(cur, self.cycles)}/{self.cycles} "
+                    f"[{'#' * n}{'.' * (w - n)}] {frac * 100:5.1f} %{tail}")
+            try:
+                sys.stdout.write(line.ljust(99))
+                sys.stdout.flush()
+            except Exception:
+                break
+            time.sleep(4)
 
 # ── cycle steps (ported from train-push.sh / train-forever.sh) ────────────
 def _log(msg: str, log_path: pathlib.Path):
@@ -198,11 +306,13 @@ def export_and_gate(run: str, k: int, log_path: pathlib.Path):
     say(f"[c{k}] S-UCI: OK")
 
 def bench_cycle(run: str, k: int, spec: str, seed_base: int,
-                log_path: pathlib.Path) -> list:
+                log_path: pathlib.Path, progress=None) -> list:
     """Run the local bench list; returns [(opp, games, pct)] parsed from
-    bench_list.py RESULT lines. 'base' self-matches on the box: the freshly
-    exported engine plays its own .js — same file, ~50 % — so 'base' is only
-    meaningful with an explicit opponent id; keep the spec app-agnostic."""
+    bench_list.py RESULT lines. bench_list.py STREAMS one 'parti N/...' line
+    per finished game, so the progress fraction advances game by game (a
+    40-game match is ~30 min — a lumped call would freeze the bar). 'base'
+    self-matches on the box: the freshly exported engine plays its own .js —
+    same file, ~50 % — so 'base' is only meaningful with an explicit id."""
     say = lambda m: _log(m, log_path)
     eng = ROOT / f"engines/{run}-nn.js"
     if not eng.exists():
@@ -210,17 +320,29 @@ def bench_cycle(run: str, k: int, spec: str, seed_base: int,
         return []
     env = os.environ.copy()
     env["SAHKKU_APP"] = str(ROOT.parent / "SnartSahkku")  # if the app is here
-    r = subprocess.run(
+    r = subprocess.Popen(
         [str(PY), "tools/bench_list.py", run, f"engines/{run}-nn.js",
          spec, str(seed_base + k)],
-        cwd=ROOT, capture_output=True, text=True)
-    out = r.stdout + r.stderr
-    results = []
+        cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True)
+    results, out_lines = [], []
+    total = sum(g for _, g in parse_bench_spec(spec))
+    seen = 0                      # games finished, across all matches
+    assert r.stdout is not None
+    for line in r.stdout:
+        out_lines.append(line.rstrip())
+        if line.startswith(("BENCH ", "SKIP ", "RESULT ")):
+            say(f"[c{k}] {line.rstrip()}")
+        m = re.match(r"parti (\d+) ", line)
+        if m and progress and total:
+            seen += 1
+            progress(min(1.0, seen / total))
+    r.wait()
+    out = "\n".join(out_lines)
     for m in re.finditer(r"^RESULT (\S+) (\d+) ([\d.]+)", out, re.M):
         results.append((m.group(1), int(m.group(2)), float(m.group(3))))
-    for line in out.splitlines():
-        if line.startswith(("BENCH ", "SKIP ", "RESULT ")):
-            say(f"[c{k}] {line}")
+    if progress and total:
+        progress(1.0)
     return results
 
 def write_cycle_row(run: str, k: int, init: str, opp: str, hand: str,
@@ -354,12 +476,17 @@ def run_session(p: dict):
 
     say(f"=== session start: run={run} · {p['games']} games/cycle · "
         f"cycles ..{p['cycles']} · push every {p['push_every']} · "
-        f"bench {p['bench_list'] or 'none'} ===")
+        f"bench {p['bench_list'] or 'none'} ({p.get('bench_when', 'cycle')}) ===")
+
+    # at most three benchmarks — more is wasted box-hours (MAX_BENCH)
+    p["bench_list"] = clamp_bench(p["bench_list"])
+    bench_spec = p["bench_list"]
+    bench_each = bool(bench_spec) and p.get("bench_when", "cycle") == "cycle"
 
     # the Nox gate reads the bench spec from runs/<run>_bench.txt (committed
     # with each cycle) — so the publish bench plays exactly these opponents
     spec_file = ROOT / f"runs/{run}_bench.txt"
-    if p["bench_list"] and p["bench_list"] != "0":
+    if bench_spec:
         spec_file.write_text(p["bench_list"].strip() + "\n")
     elif spec_file.exists():
         spec_file.unlink()
@@ -423,6 +550,24 @@ def run_session(p: dict):
     k = done + 1
     t_start = time.time()
     fails = 0
+    prog = None
+    if sys.stdout.isatty():
+        prog = Progress(run, p["cycles"], log_path)
+        prog.set_games_per_cycle(p["games"])
+
+    def bench_now(k):
+        """Run the bench for cycle k (progress callback feeds the bar)."""
+        label = ",".join(o for o, _ in parse_bench_spec(bench_spec))
+        pr = prog                                   # narrowed for the closure
+        if pr:
+            pr.set_bench(0.0, label)
+        res = bench_cycle(run, k, bench_spec, p["bench_seed"], log_path,
+                          progress=(lambda f: pr.set_bench(f, label))
+                          if pr else None)
+        if pr:
+            pr.set_bench(1.0, label)
+        return res
+
     while k <= p["cycles"]:
         if p["hours"] > 0 and time.time() - t_start >= p["hours"] * 3600:
             say(f"time budget {p['hours']}h used — stopping after c{k - 1}")
@@ -454,15 +599,23 @@ def run_session(p: dict):
             continue
 
         export_and_gate(run, k, log_path)          # export + parity + S-UCI
-        if p["bench_list"] and p["bench_list"] != "0":
-            bench_cycle(run, k, p["bench_list"],
-                        p["bench_seed"], log_path)
+        if bench_each:
+            bench_now(k)
         write_cycle_row(run, k, init, p["opponent"], p["hand_style"], log_path)
         commit_and_push(run, k, p["cycles"], p["push_every"],
                         init, p["opponent"], p["hand_style"],
                         p["no_push"], log_path)
         k += 1
 
+    # bench_when='end': one bench on the last exported engine, after the last
+    # cycle — the cheap option when the box should spend its hours training.
+    if bench_spec and not bench_each and not p["dry"] and \
+            (ROOT / f"engines/{run}-nn.js").exists():
+        say(f"--- final bench (after c{k - 1}) " + "-" * 24)
+        bench_now(k - 1)
+
+    if prog:
+        prog.stop()
     say(f"=== session done: through cycle {k - 1} of {p['cycles']} ===")
     say(f"report:  runs/{run}_report.md")
     say(f"watch:   {PY.relative_to(ROOT)} tools/train_status.py {run} -w")
@@ -487,7 +640,8 @@ FIELDS = [
     ("aggressive",   "Aggressive side",     "bool",  None),
     ("styles",       "Style duels",         "bool",  None),
     ("push_every",   "Push every N cycles", "int",   None),
-    ("bench_list",   "Bench list",          "text",  None),
+    ("bench_list",   "Bench list (b: pick)", "bench", None),
+    ("bench_when",   "Bench when",          "choice", ["cycle", "end"]),
     ("bench_seed",   "Bench seed",          "int",   None),
     ("gpu_wait_mb",  "GPU wait MiB",        "int",   None),
     ("no_push",      "No push (local)",     "bool",  None),
@@ -500,6 +654,70 @@ def tui(stdscr):
     vals = dict(DEFAULTS)   # carries keys the form has no field for (resume)
     sel = 0
     status = ""
+
+    def bench_picker():
+        """Modal bench picker: the POPULATED opponent list (opp_choices),
+        space toggles a pick, ←/→ step the game count, max MAX_BENCH."""
+        nonlocal status
+        cursor = 0
+        picked = dict(parse_bench_spec(vals["bench_list"]))
+        while True:
+            chs = opp_choices(vals.get("run", ""))
+            stdscr.erase()
+            h, w = stdscr.getmaxyx()
+            stdscr.addstr(0, 2, "BENCH OPPONENTS — space: pick (max "
+                          f"{MAX_BENCH})   left/right: games   "
+                          "enter: apply   esc: cancel", curses.A_BOLD)
+            rows = max(1, h - 5)
+            top = max(0, min(cursor - rows + 1, len(chs) - rows))
+            for i in range(rows):
+                j = top + i
+                if j >= len(chs):
+                    break
+                opp = chs[j]
+                g = picked.get(opp)
+                line = (f" [{'x' if g is not None else ' '}] {opp:<12}"
+                        f" {g if g is not None else '-':>4} games")
+                stdscr.addstr(2 + i, 2, line[:w - 3],
+                              curses.A_REVERSE if j == cursor
+                              else curses.A_NORMAL)
+            spec = ",".join(f"{o}:{g}" for o, g in picked.items())
+            stdscr.addstr(min(2 + rows, h - 2), 2,
+                          f"  picked {len(picked)}/{MAX_BENCH}:"
+                          f" {spec or '(none)'}"[:w - 3], curses.A_DIM)
+            stdscr.refresh()
+            ch = stdscr.getch()
+            if ch in (27, ord("q")):
+                return
+            if ch in (curses.KEY_UP, ord("k")):
+                cursor = (cursor - 1) % len(chs)
+            elif ch in (curses.KEY_DOWN, ord("j")):
+                cursor = (cursor + 1) % len(chs)
+            elif ch == ord(" ") and chs:
+                opp = chs[cursor]
+                if opp in picked:
+                    del picked[opp]
+                elif len(picked) < MAX_BENCH:
+                    picked[opp] = 30
+            elif ch in (curses.KEY_LEFT, curses.KEY_RIGHT) and chs:
+                opp = chs[cursor]
+                if opp not in picked:
+                    if len(picked) >= MAX_BENCH:
+                        status = (f"bench: {MAX_BENCH} picks — unselect "
+                                  "one first (space)")
+                        continue
+                    picked[opp] = 10 if ch == curses.KEY_RIGHT else 0
+                else:
+                    step = 10 if ch == curses.KEY_RIGHT else -10
+                    picked[opp] = max(0, min(100, picked[opp] + step))
+                    if picked[opp] == 0:
+                        del picked[opp]
+            elif ch in (10, curses.KEY_ENTER):
+                order = [(o, picked[o]) for o in chs if o in picked]
+                order += [(o, g) for o, g in picked.items() if o not in chs]
+                vals["bench_list"] = ",".join(
+                    f"{o}:{g}" for o, g in order[:MAX_BENCH])
+                return
 
     def ask(prompt: str) -> str:
         curses.echo()
@@ -521,6 +739,12 @@ def tui(stdscr):
         v = vals[key]
         if ftype == "bool":
             return "yes" if v else "no"
+        if ftype == "bench":
+            parts = parse_bench_spec(v)
+            if not parts:
+                return "(no bench)"
+            spec = ",".join(f"{o}:{g}" for o, g in parts[:MAX_BENCH])
+            return f"{spec}  [{vals.get('bench_when', 'cycle')}]"
         if ftype == "dynlist" and key == "init":
             if not v:
                 ch = init_choices()
@@ -586,8 +810,14 @@ def tui(stdscr):
                 cur = choices.index(vals[key]) if vals[key] in choices else 0
                 step = 1 if ch == curses.KEY_RIGHT else -1
                 vals[key] = choices[(cur + step) % len(choices)]
+            elif ftype == "bench":
+                bench_picker()
+                status = f"bench: {vals['bench_list'] or '(none)'}"
             else:
                 status = f"{label}: type a value to edit"
+        elif ch == ord("b"):
+            bench_picker()
+            status = f"bench: {vals['bench_list'] or '(none)'}"
         elif ch == ord("p"):
             pres = load_presets()
             if pres:
@@ -654,6 +884,9 @@ def build_parser():
     ap.add_argument("--list-weights", action="store_true",
                     help="print the selectable init weights, newest first, "
                          "and exit")
+    ap.add_argument("--list-opponents", action="store_true",
+                    help="print the selectable bench opponents, one per line, "
+                         "and exit")
     ap.add_argument("--run", default=DEFAULTS["run"])
     ap.add_argument("--init", default=DEFAULTS["init"])
     ap.add_argument("--cycles", type=int, default=DEFAULTS["cycles"],
@@ -684,10 +917,15 @@ def build_parser():
                     help="push every N-th cycle (0 = only the last)")
     ap.add_argument("--bench-list", dest="bench_list",
                     default=DEFAULTS["bench_list"],
-                    help='bench spec "opp:games,opp:games" — opp is base '
-                         '(current default engine), classic3 (FLOKK/L3), or '
-                         'any engine id (nais8, blanka2, …); "0" = no local '
-                         'bench. The same list is handed to the Nox gate.')
+                    help='bench spec "opp:games,opp:games" — pick from the '
+                         'populated list (--list-opponents: classic3, base, '
+                         'every exported engine id); "0" = no local bench. '
+                         "Max three matches. The same list is handed to the "
+                         "Nox gate.")
+    ap.add_argument("--bench-when", dest="bench_when",
+                    choices=["cycle", "end"], default=DEFAULTS["bench_when"],
+                    help='"cycle" = bench after each training cycle, '
+                         '"end" = once, after the last cycle of the session')
     ap.add_argument("--bench-seed", dest="bench_seed", type=int,
                     default=DEFAULTS["bench_seed"])
     ap.add_argument("--gpu-wait-mb", dest="gpu_wait_mb", type=int,
@@ -707,6 +945,7 @@ def headless_command(p: dict) -> str:
              "opponent": "--opponent", "hand_style": "--hand-style",
              "nesseby_frac": "--nesseby-fraction",
              "push_every": "--push-every", "bench_list": "--bench-list",
+             "bench_when": "--bench-when",
              "bench_seed": "--bench-seed",
              "gpu_wait_mb": "--gpu-wait-mb"}
     for key, flag in flags.items():
@@ -731,6 +970,11 @@ def main():
     if args.list_weights:
         for i, w in enumerate(init_choices()):
             print(f"[{i}] {w}")
+        return
+
+    if args.list_opponents:
+        for i, o in enumerate(opp_choices(args.run)):
+            print(f"[{i}] {o}")
         return
 
     # parameter precedence: DEFAULTS < --params file < --preset < explicit flags

@@ -86,12 +86,21 @@ def play(eng_a: str, cmd_b: list, games: int, seed: int,
     # the file's exec bit (EACCES), so always run engines through node.
     if not eng_a.startswith("node "):
         eng_a = "node " + eng_a
-    r = subprocess.run(
+    p = subprocess.Popen(
         ["node", "tools/eval_match.js", eng_a, " ".join(cmd_b),
          str(games), str(seed)],
-        cwd=ROOT, env=env, capture_output=True, text=True)
-    outfile.write_text(r.stdout + "\n" + r.stderr)
-    m = re.search(r"A-poengsum:\s*([\d.]+)", r.stdout)
+        cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True)
+    lines = []
+    assert p.stdout is not None
+    for line in p.stdout:                    # STREAM: the caller's progress
+        lines.append(line)                   # bar counts games as they land
+        if line.startswith("parti "):
+            print(line.rstrip(), flush=True)
+    p.wait()
+    out = "".join(lines)
+    pathlib.Path(outfile).write_text(out)
+    m = re.search(r"A-poengsum:\s*([\d.]+)", out)
     return float(m.group(1)) if m else None
 
 
