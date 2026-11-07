@@ -6,3 +6,4 @@
 | cycle | samples (cum) | val loss | checkpoint |
 |---|---|---|---|
 | 6 | 30376 | ? | `checkpoints/blanka3/c6.pt` |
+| 7 | 32796 | ? | `checkpoints/blanka3/c7.pt` |
