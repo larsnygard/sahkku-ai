@@ -36,11 +36,13 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PY = ROOT / ".venv/bin/python3"
+PRESETS = ROOT / "tools" / "train_presets.json"
 
 # ── defaults ──────────────────────────────────────────────────────────────
 DEFAULTS: dict = {
-    "run":          "nais10",
-    "init":         "engines/nais9-nn.pt",
+    "run":          "blanka3",
+    "init":         "engines/blanka2-nn.pt",  # '' = newest file (mtime); blanka
+    #                                          # is the family trained now
     "cycles":       40,          # END cycle number (pipeline semantics)
     "hours":        0.0,         # 0 = no time limit; --cycles rules
     "games":        200,         # self-play games per cycle
@@ -107,6 +109,51 @@ def last_cycle(run: str) -> int:
         return max((r.get("cycle", 0) for r in rows), default=0)
     except Exception:
         return 0
+
+def init_choices() -> list:
+    """Selectable init weights: engines/*-nn.pt, newest first (tmp-* excluded).
+    The newest is the engine being trained right now — blanka2 per 2026-11-07."""
+    files = [f for f in (ROOT / "engines").glob("*-nn.pt")
+             if not f.name.startswith("tmp-")]
+    files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+    return [str(f.relative_to(ROOT)) for f in files]
+
+def resolve_init(init: str) -> str:
+    """'' means 'the newest engine weight' — the one we are training on."""
+    if not init:
+        ch = init_choices()
+        if not ch:
+            raise SystemExit("no engine weights found under engines/")
+        return ch[0]
+    return init
+
+# ── presets + params files ────────────────────────────────────────────────
+def load_presets() -> dict:
+    try:
+        return json.loads(PRESETS.read_text())
+    except Exception:
+        return {}
+
+def save_preset(name: str, p: dict):
+    pres = load_presets()
+    pres[name] = {k: p[k] for k in DEFAULTS}
+    PRESETS.write_text(json.dumps(pres, indent=2, ensure_ascii=False) + "\n")
+
+def load_preset(name: str, p: dict) -> dict:
+    pres = load_presets()
+    if name not in pres:
+        avail = ", ".join(sorted(pres)) or "(none)"
+        raise SystemExit(f"preset '{name}' not found — available: {avail}")
+    p.update({k: pres[name][k] for k in DEFAULTS if k in pres[name]})
+    return p
+
+def write_params_file(run: str, p: dict):
+    """runs/<run>_params.json — the exact parameters of this session, so a
+    restart is 'train.py --params runs/<run>_params.json', no typing."""
+    (ROOT / "runs").mkdir(exist_ok=True)
+    path = ROOT / f"runs/{run}_params.json"
+    path.write_text(json.dumps(p, indent=2, ensure_ascii=False) + "\n")
+    return path
 
 def est_cycle_min(games: int, sims: int, workers: int) -> int:
     rate_pw = 27.0 / max(1, sims)        # games/min/worker (measured, P100)
@@ -291,11 +338,17 @@ def gpu_wait(mb: int, log_path: pathlib.Path):
 
 # ── the runner: one session, cycle by cycle ───────────────────────────────
 def run_session(p: dict):
-    run, init = p["run"], p["init"]
+    run, init = p["run"], resolve_init(p["init"])
+    p["init"] = init
     os.chdir(ROOT)
     (ROOT / "runs").mkdir(exist_ok=True)
     log_path = ROOT / f"runs/{run}_run.log"
     say = lambda m: _log(m, log_path)
+
+    params_file = write_params_file(run, p)
+    say(f"params: {params_file.relative_to(ROOT)} "
+        f"(restart: {PY.relative_to(ROOT)} tools/train.py --go "
+        f"--params runs/{run}_params.json)")
 
     say(f"=== session start: run={run} · {p['games']} games/cycle · "
         f"cycles ..{p['cycles']} · push every {p['push_every']} · "
@@ -414,9 +467,9 @@ def run_session(p: dict):
 
 # ── curses TUI ────────────────────────────────────────────────────────────
 FIELDS = [
-    # (key, label, type, choices)
+    # (key, label, type, choices)   'dynlist' = init_choices() at runtime
     ("run",          "Run name",            "text",  None),
-    ("init",         "Init weight",         "text",  None),
+    ("init",         "Init weight (←→ list)", "dynlist", None),
     ("cycles",       "End cycle",           "int",   None),
     ("hours",        "Hours (0=no limit)",  "float", None),
     ("games",        "Games per cycle",     "int",   None),
@@ -445,20 +498,46 @@ def tui(stdscr):
     vals = dict(DEFAULTS)   # carries keys the form has no field for (resume)
     sel = 0
     status = ""
+
+    def ask(prompt: str) -> str:
+        curses.echo()
+        curses.curs_set(1)
+        row = min(stdscr.getmaxyx()[0] - 1, 3 + len(FIELDS) + 3)
+        stdscr.addstr(row, 2, " " * (stdscr.getmaxyx()[1] - 3))
+        stdscr.addstr(row, 2, prompt)
+        stdscr.move(row, 2 + len(prompt))
+        raw = b""
+        try:
+            raw = stdscr.getstr(row, 2 + len(prompt), 40)
+        except Exception:
+            pass
+        curses.noecho()
+        curses.curs_set(0)
+        return raw.decode("utf-8", "replace").strip()
+
+    def shown_val(key, ftype):
+        v = vals[key]
+        if ftype == "bool":
+            return "yes" if v else "no"
+        if ftype == "dynlist" and key == "init":
+            if not v:
+                ch = init_choices()
+                return f"(newest: {pathlib.Path(ch[0]).name})" if ch else "(none)"
+            return pathlib.Path(v).name
+        return v if v != "" else "(none)"
     while True:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
         stdscr.addstr(0, 2, "SAHKKU TRAINING SESSION", curses.A_BOLD)
-        stdscr.addstr(1, 2, "up/down: field   left/right/space: toggle   "
-                            "type: edit   Del: default   F5: start   F10: quit",
+        stdscr.addstr(1, 2, "up/down: field   left/right/space: toggle/list   "
+                            "type: edit   p: preset   s: save preset   "
+                            "Del: default   F5: start   F10: quit",
                       curses.A_DIM)
         col_val, top = 34, 3
         for i, (key, label, ftype, _ch) in enumerate(FIELDS):
             if i + top > h - 5:
                 break
-            v = vals[key]
-            shown = ("yes" if v else "no") if ftype == "bool" \
-                else (v if v not in ("",) else "(none)")
+            shown = shown_val(key, ftype)
             line = f"  {label:<30} {shown}"
             stdscr.addstr(i + top, 2, line[:w - 3],
                           curses.A_REVERSE if i == sel else curses.A_NORMAL)
@@ -495,12 +574,36 @@ def tui(stdscr):
         elif ch in (curses.KEY_LEFT, curses.KEY_RIGHT, ord(" ")):
             if ftype == "bool":
                 vals[key] = not vals[key]
+            elif ftype == "dynlist":
+                chs = init_choices()
+                if chs:
+                    cur = chs.index(vals[key]) if vals[key] in chs else -1
+                    step = 1 if ch == curses.KEY_RIGHT else -1
+                    vals[key] = chs[(cur + step) % len(chs)]
             elif ftype == "choice" and choices:
                 cur = choices.index(vals[key]) if vals[key] in choices else 0
                 step = 1 if ch == curses.KEY_RIGHT else -1
                 vals[key] = choices[(cur + step) % len(choices)]
             else:
                 status = f"{label}: type a value to edit"
+        elif ch == ord("p"):
+            pres = load_presets()
+            if pres:
+                names = sorted(pres)
+                name = ask("preset: " + ", ".join(names) + " › ")
+                if name in pres:
+                    vals.update({k: pres[name][k] for k in DEFAULTS
+                                 if k in pres[name]})
+                    status = f"loaded preset «{name}»"
+                elif name:
+                    status = f"no preset «{name}»"
+            else:
+                status = "no presets saved (s to save one)"
+        elif ch == ord("s"):
+            name = ask("save preset as: ")
+            if name:
+                save_preset(name, vals)
+                status = f"preset «{name}» saved to tools/train_presets.json"
         elif ch == curses.KEY_DC:
             vals[key] = DEFAULTS[key]
         elif ftype in ("text", "int", "float"):
@@ -537,6 +640,18 @@ def build_parser():
         description="Unified sáhkku trainer: run with no args for the TUI, "
                     "with --go for a headless session.")
     ap.add_argument("--go", action="store_true", help="headless: run, no TUI")
+    ap.add_argument("--preset", metavar="NAME",
+                    help="start from a saved preset (tools/train_presets.json); "
+                         "flags after it override")
+    ap.add_argument("--save-preset", dest="save_preset", metavar="NAME",
+                    help="write the resulting parameters (presets + flags) "
+                         "to the preset NAME and exit")
+    ap.add_argument("--params", metavar="FILE",
+                    help="read parameters from runs/<run>_params.json "
+                         "(written by every session); flags override")
+    ap.add_argument("--list-weights", action="store_true",
+                    help="print the selectable init weights, newest first, "
+                         "and exit")
     ap.add_argument("--run", default=DEFAULTS["run"])
     ap.add_argument("--init", default=DEFAULTS["init"])
     ap.add_argument("--cycles", type=int, default=DEFAULTS["cycles"],
@@ -608,8 +723,35 @@ def headless_command(p: dict) -> str:
     return " \\\n    ".join(parts)
 
 def main():
-    args = build_parser().parse_args()
-    p = {k: getattr(args, k, v) for k, v in DEFAULTS.items()}
+    ap = build_parser()
+    args = ap.parse_args()
+
+    if args.list_weights:
+        for i, w in enumerate(init_choices()):
+            print(f"[{i}] {w}")
+        return
+
+    # parameter precedence: DEFAULTS < --params file < --preset < explicit flags
+    p = dict(DEFAULTS)
+    if args.params:
+        try:
+            saved = json.loads(pathlib.Path(args.params).read_text())
+        except Exception as e:
+            raise SystemExit(f"--params: cannot read {args.params}: {e}")
+        p.update({k: saved[k] for k in DEFAULTS if k in saved})
+    if args.preset:
+        load_preset(args.preset, p)
+    for k in DEFAULTS:
+        v = getattr(args, k, None)
+        if v is not None and v != ap.get_default(k):
+            p[k] = v
+
+    if args.save_preset:
+        save_preset(args.save_preset, p)
+        print(f"preset «{args.save_preset}» saved to {PRESETS.relative_to(ROOT)}")
+        print(json.dumps(p, indent=2, ensure_ascii=False))
+        return
+
     if args.go:
         run_session(p)
         return

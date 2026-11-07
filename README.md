@@ -568,7 +568,20 @@ tmux new -s train './tools/train.py'          # TUI — F5 startar
     --games 200 --cycles 40 --push-every 2 --hours 10 \
     --bench-list "base:30,classic3:40,nais8:20"
 ./tools/train.py --go --dry ...               # vis planen, køyr ikkje
+./tools/train.py --list-weights               # kva init-vekter som finst
+./tools/train.py --go --preset blanka-lang    # namngjeven mal
+./tools/train.py --go --params runs/blanka3_params.json   # start frå forrige økt
 ```
+
+- **Init-vekta er ei valbar liste:** TUI-en blafrer med `←→` gjennom
+  `engines/*-nn.pt` (nyaste først); `--list-weights` viser dei nummerte.
+  Standarden er `blanka2-nn.pt` — blanka er familien vi trenar på no.
+- **Parametra vert skrivne til fil:** kvar økt lagar `runs/<run>_params.json`
+  med nøyaktig det ho køyrde. Ny økt med same oppsett:
+  `--go --params runs/<run>_params.json` — ingen flagg å huske.
+- **Presettar med namn** i `tools/train_presets.json` (git): TUI `s` lagrar,
+  TUI `p` lastar; CLI `--save-preset namn` / `--preset namn`. Rekkjefølgja er
+  standardar < `--params`-fil < `--preset` < flagg på kommandolinja.
 
 - **Éin syklus om gongene:** tren → eksporter → paritet + S-UCI → (valfri
   lokal benk) → sykluslogg → commit + push kvar N-te. Ei krasj kostar éin
