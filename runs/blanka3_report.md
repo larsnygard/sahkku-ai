@@ -34,3 +34,4 @@
 | 33 | 166872 | 0.798 | `checkpoints/blanka3/c33.pt` |
 | 34 | 174597 | 0.798 | `checkpoints/blanka3/c34.pt` |
 | 35 | 182559 | 0.798 | `checkpoints/blanka3/c35.pt` |
+| 36 | 190512 | 0.798 | `checkpoints/blanka3/c36.pt` |
