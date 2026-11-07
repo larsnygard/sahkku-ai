@@ -25,3 +25,4 @@
 | 24 | 100702 | 0.798 | `checkpoints/blanka3/c24.pt` |
 | 25 | 107683 | 0.798 | `checkpoints/blanka3/c25.pt` |
 | 26 | 114600 | 0.798 | `checkpoints/blanka3/c26.pt` |
+| 27 | 121931 | 0.798 | `checkpoints/blanka3/c27.pt` |
