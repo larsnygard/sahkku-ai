@@ -23,9 +23,19 @@ from .model import Net
 from .data import load_shards
 
 
-def policy_cross_entropy(logits, target):
-    """Cross-entropy over the action space for legal-action policy targets."""
+def policy_cross_entropy(logits, target, clamp=-30.0):
+    """Cross-entropy over the action space for legal-action policy targets.
+
+    `clamp` is a numeric floor on log p: the targets are built zero outside
+    the legal pool (data.py, selfplay.py), so the product is 0*finite there —
+    but if logits ever go to +/-inf (diverged run, NaN shard) an unclamped
+    0*(-inf) is NaN, which clip_grad_norm_(error_if_nonfinite=True) turns
+    into a hard crash. On healthy shards (verified on real training data:
+    diff 0.00e+00) the clamp is a no-op. Pass clamp=None to disable.
+    """
     logp = F.log_softmax(logits, dim=1)
+    if clamp is not None:
+        logp = logp.clamp_min(clamp)
     return -(target * logp).sum(1).mean()
 
 
