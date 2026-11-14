@@ -1,0 +1,1447 @@
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:32:42"]
+[UTC "2026-11-14T00:32:42Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open#1: M(III X III) K(_ III X)
+1. open#2: M(X _ _) K(II _ _) -> M
+1. M: X III II
+   X->O2
+2. K: _ III III
+3. M: III _ _
+4. K: _ _ X
+   X->A2
+5. M: III III _
+6. K: III _ III
+7. M: _ X II
+   X->O1
+   II: MO2->M2
+8. K: _ III X
+   X->A3
+   III: KA3->C2
+9. M: X III _
+   X->N1
+   III: MO1->M2
+10. K: _ II II
+   II: KC2->E2
+   II: KE2->G2
+11. M: X II X
+   MN1->O1
+   X->M1
+   II: MM1->O1
+12. K: II X _
+   KG2->H2§
+   II: kH2->F2
+13. M: X X _
+   X->L1
+   MO1->O2
+14. K: II X _
+   X->B3
+   II: KH2->J2
+15. M: _ III II
+   III: MM2->J2x [J2K]
+   II: MJ2->H2
+16. K: II II II
+   II: kF2->H2x [H2M]
+   II: KB3->A2
+   II: kH2->F2
+17. M: II II III
+   III: MM2->J2
+   II: MO1->N2
+   II: ML1->N1
+18. K: _ III III
+   III: kF2->C2
+   III: kC2->A3
+19. M: II II II
+   II: MO2->M2
+   II: MN1->O2
+   II: MJ2->H2
+20. K: III _ _
+   III: kA3->C2
+21. M: II X II
+   MH2->G2
+   II: MO2->M2
+   II: MG2->E2
+22. K: III III II
+   III: kC2->A3
+   III: kA3->C2
+   II: kC2->E2x [E2M]
+23. M: II X III
+   X->K1
+   III: MN2->K2
+   II: MK2->I2
+24. K: _ III _
+   III: kE2->B2
+25. M: II X X
+   MK1->L1
+   ML1->M1
+   II: MM2->K2
+26. K: III III III
+   III: kB2->B3
+   III: kB3->B2
+   III: kB2->E2
+27. M: III III II
+   III: MK2->H2
+   III: MH2->E2§
+   II: MI2->G2
+28. K: II X _
+   X->E2
+   II: QE2->G2x [G2M]
+29. M: X III II
+   X->J1
+   III: MM2->J2
+   II: MJ2->H2
+30. K: X _ III
+   QG2->H2x [H2M]
+   III: QH2->K2
+31. M: II II _
+   II: MJ1->L1
+   II: ML1->N1
+32. K: _ III III
+   III: kE2->B2
+   III: QK2->H2
+33. M: III III III
+   III: MM1->O2
+   III: MN1->N2
+   III: MN2->K2
+34. K: III X III
+   X->C3
+   III: QH2->K2x [K2M]
+   III: kB2->B3
+35. M: _ _ _
+36. K: _ X III
+   X->D3
+   III: KC3->A2
+37. M: III _ _
+38. K: _ II _
+   II: QK2->I2
+39. M: X _ II
+   MO2->N2
+40. K: X II II
+   X->E3
+   II: QI2->G2
+   II: KE3->C3
+41. M: III _ _
+   III: MN2->K2
+42. K: III II II
+   III: KC3->A2
+   II: QG2->E2
+   II: QE2->C2
+43. M: II III _
+   III: MK2->H2
+   II: MH2->F2
+44. K: II III X
+   QC2->C3
+   III: QC3->F3
+   II: KA2->C2
+45. M: II II III
+   III: MF2->C2x [C2K]
+   II: MC2->A2x [A2K,A2K,A2K]
+   II: MA2->B3§
+46. K: _ _ II
+   II: KD3->B3§
+47. M: _ III II
+48. K: X X _
+   QF3->F2
+   X->F3
+49. M: X _ II
+   X->I1
+   II: MI1->K1
+50. K: _ _ _
+51. M: X III X
+   MK1->L1
+   ML1->M1
+   III: MM1->O2
+52. K: _ _ X
+   X->G3
+53. M: II X X
+   X->H1
+   X->G1
+   II: MH1->J1
+54. K: II _ X
+   QF2->G2
+   II: QG2->E2
+55. M: III II X
+   MG1->H1
+   III: MJ1->M1
+   II: MH1->J1
+56. K: III _ II
+   III: QE2->B2
+   II: KB3->A2
+57. M: X _ II
+   X->F1
+   II: MM1->O1
+58. K: _ III _
+   III: QB2->E2
+59. M: X _ _
+   MO1->O2
+60. K: _ III _
+   III: KF3->C3
+61. M: _ _ II
+   II: MF1->H1
+62. K: III III III
+   III: QE2->B2
+   III: QB2->E2
+   III: kB3->B2
+63. M: _ _ III
+   III: MJ1->M1
+64. K: _ X X
+   X->H3
+   QE2->E3
+65. M: III II II
+   III: MH1->K1
+   II: MO2->M2
+   II: MM1->O1
+66. K: X X _
+   X->I3
+   QE3->D3
+67. M: X X II
+   MO1->O2
+   MK1->L1
+   II: MM2->K2
+68. K: II II II
+   II: QD3->B3
+   II: KC3->A3
+   II: QB3->D3
+69. M: III _ III
+   III: MK2->H2
+   III: MH2->E2
+70. K: II III II
+   III: kB2->E2x [E2M]
+   II: QD3->F3
+   II: QF3->F1
+71. M: X _ II
+   MO2->N2
+   II: ML1->N1
+72. K: X III _
+   X->J3
+   III: kE2->B2
+73. M: III _ _
+   III: MN2->K2
+74. K: III _ X
+   X->K3
+   III: QF1->I1
+75. M: _ II X
+   MK2->J2
+   II: MN1->O2
+76. K: II III _
+   III: QI1->F1
+   II: QF1->F3
+77. M: X III _
+   X->E1
+   III: ME1->H1
+78. K: II II X
+   X->L3
+   II: QF3->F1
+   II: QF1->H1x [H1M]
+79. M: II X III
+   X->D1
+   III: MD1->G1
+   II: MG1->I1
+80. K: _ II X
+   QH1->I1x [I1M]
+   II: QI1->K1
+81. M: III II II
+   III: MJ2->G2
+   II: MG2->E2
+   II: MO2->M2
+82. K: X III X
+   X->M3
+   X->N3
+   III: kB2->E2x [E2M]
+83. M: III III _
+   III: MM2->J2
+   III: MJ2->G2
+84. K: _ II III
+   III: QK1->H1
+   II: kE2->G2x [G2M]
+85. M: II _ III
+86. K: III II X
+   kG2->G1
+   III: QH1->E1
+   II: QE1->C1
+87. M: II II III
+88. K: III _ II
+   III: kG1->D1
+   II: QC1->C3
+89. M: X _ _
+   X->C1
+90. K: III X II
+   kD1->C1x [C1M]
+   III: QC3->F3
+   II: QF3->F1
+91. M: X III X
+   X->B1
+   MB1->C1§
+   III: MC1->F1x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:32:52"]
+[UTC "2026-11-14T00:32:52Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(_ III X) K(II II III) -> M
+1. M: _ X III
+   X->O2
+2. K: _ III II
+3. M: _ _ _
+4. K: II III X
+   X->E2
+   III: QE2->H2§
+   II: QH2->F2
+5. M: _ X _
+   X->O1
+6. K: III III _
+   III: kH2->E2
+   III: kE2->B2
+7. M: _ X III
+   X->M2
+   III: MO2->L2
+8. K: X X X
+   QF2->G2
+   kB2->C2
+   kC2->D2
+9. M: III II II
+   III: QM2->J2
+   II: QJ2->H2
+   II: ML2->J2
+10. K: III II _
+   III: QG2->J2x [J2M]
+   II: QJ2->H2x [Q]
+0-1 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:33:02"]
+[UTC "2026-11-14T00:33:02Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open#1: M(III _ _) K(_ III _)
+1. open#2: M(_ _ _) K(II II X) -> K
+1. M: _ III _
+2. K: III X _
+   X->A2
+3. M: III X II
+   X->K2
+   III: QK2->N2
+   II: QN2->L2
+4. K: _ X _
+   X->A3
+5. M: X _ III
+   QL2->K2
+   III: QK2->H2§
+6. K: II III II
+   III: KA3->C2
+   II: KA2->C2
+   II: KC2->E2
+7. M: III X III
+   QH2->I2
+   III: QI2->L2
+   III: kH2->E2x [E2K]
+8. K: II III II
+   III: KC2->F2
+   II: KF2->H2
+   II: KH2->J2
+9. M: X II X
+   kE2->F2
+   kF2->E2
+   II: QL2->J2x [J2K]
+10. K: II II X
+   X->E2
+   II: QE2->G2
+   II: QG2->I2
+11. M: II III X
+   QJ2->I2x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:33:07"]
+[UTC "2026-11-14T00:33:07Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open#1: M(II X III) K(III X II)
+1. open#2: M(III II II) K(X III III) -> K
+1. M: II X _
+   X->O2
+   II: MO2->M2
+2. K: X III II
+   X->E2
+   III: QE2->H2§
+   II: QH2->F2
+3. M: X X _
+   X->O1
+   X->N1
+4. K: _ II III
+   III: QF2->I2
+   II: kH2->F2
+5. M: X _ _
+   X->K2
+6. K: II II _
+   II: QI2->K2x [Q]
+0-1 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:33:34"]
+[UTC "2026-11-14T00:33:34Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(III X II) K(III _ II) -> M
+1. M: II III X
+   X->O2
+2. K: II II X
+   X->C2
+   II: QC2->A2
+   II: QA2->C2
+3. M: _ III II
+4. K: III III II
+   III: QC2->F2
+   III: QF2->I2
+   II: QI2->K2
+5. M: II III II
+6. K: III III II
+   III: QK2->H2§
+   III: QH2->K2
+   II: QK2->I2
+7. M: III II _
+8. K: X III _
+   X->A2
+   III: QI2->F2
+9. M: X II X
+   X->O1
+   X->N1
+   II: MN1->O2
+10. K: _ III III
+   III: QF2->I2
+   III: kH2->K2
+11. M: II X II
+   MO2->N2
+   II: MO2->M2
+   II: MM2->K2§
+12. K: _ X III
+   X->A3
+   III: QI2->F2
+13. M: III II X
+   MK2->J2
+   III: MJ2->G2
+   II: MO1->N2
+14. K: III II III
+   III: QF2->C2
+   III: KA2->D2
+   II: QC2->A2
+15. M: _ II II
+   II: MG2->E2
+   II: ME2->C2
+16. K: _ _ _
+17. M: III X III
+   kK2->J2
+   III: MN2->K2
+   III: MK2->H2
+18. K: II X II
+   X->B3
+   II: QA2->C2x [C2M]
+   II: KA3->B2
+19. M: _ _ III
+   III: MH2->E2
+20. K: X II _
+   KD2->E2x [E2M]
+   II: QC2->A2
+21. M: III X X
+   kJ2->I2
+   MN2->M2
+   III: kI2->F2
+22. K: III X III
+   KE2->F2§
+   III: QA2->D2
+   III: kF2->C2
+23. M: III X II
+   X->M1
+   III: MM1->O2
+   II: MO2->M2
+24. K: _ III II
+   III: QD2->G2
+   II: kC2->A2
+25. M: X _ _
+   X->L1
+26. K: III X III
+   X->C3
+   III: KB3->B2
+   III: QG2->D2
+27. M: X _ III
+   ML1->M1
+   III: MM1->O2
+28. K: _ _ _
+29. M: _ II II
+   II: MO2->M2
+   II: MM2->K2
+30. K: II X III
+   X->D3
+   III: KF2->I2
+   II: KI2->K2x [K2M]
+31. M: III X X
+   X->K2
+   QK2->L2
+   III: QL2->I2
+32. K: II II _
+   II: QD2->F2
+   II: QF2->H2
+33. M: _ _ X
+   QI2->H2x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:33:44"]
+[UTC "2026-11-14T00:33:44Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(_ X X) K(_ III _) -> M
+1. M: III III _
+2. K: X _ II
+   X->A2
+   II: KA2->C2
+3. M: II III III
+4. K: III III III
+   III: KC2->F2
+   III: KF2->I2
+5. M: II _ _
+6. K: II II II
+   II: KI2->K2
+   II: KK2->M2
+   II: KM2->O2
+7. M: II _ II
+8. K: X III II
+   X->E2
+   III: QE2->H2§
+   II: QH2->F2
+9. M: X II _
+   X->O2
+   II: MO2->M2
+10. K: _ II _
+   II: kH2->J2
+11. M: X III II
+   X->O1
+   III: MM2->J2§
+   II: MJ2->H2
+12. K: X II III
+   QF2->G2
+   III: QG2->D2
+   II: QD2->F2
+13. M: X X III
+   X->N1
+   X->M2
+   III: kJ2->G2
+14. K: X II III
+   QF2->G2§
+   III: QG2->D2
+   II: QD2->F2
+15. M: II X X
+   MH2->G2§
+   MG2->F2x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:34:02"]
+[UTC "2026-11-14T00:34:02Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open#1: M(II _ II) K(III _ II)
+1. open#2: M(_ III II) K(III _ II)
+1. open#3: M(III II _) K(_ III III)
+1. open#4: M(III X III) K(II II II) -> M
+1. M: _ III III
+2. K: II _ _
+3. M: III III II
+4. K: X X III
+   X->A2
+   X->A3
+   III: KA3->C2
+5. M: II II III
+6. K: III II _
+   III: KC2->F2
+   II: KF2->H2§
+7. M: II X II
+   X->O2
+   II: MO2->M2
+   II: MM2->K2
+8. K: _ X II
+   kH2->G2
+   II: KH2->J2
+9. M: II II III
+   III: MK2->H2
+   II: MH2->F2
+10. K: _ X II
+   kG2->F2x [F2M]
+   II: kF2->H2
+11. M: III III _
+12. K: _ X _
+   X->B3
+13. M: II X X
+   X->O1
+   X->N1
+   II: MN1->O2
+14. K: X III _
+   X->C3
+   III: kH2->E2
+15. M: II X X
+   X->M1
+   MO1->O2
+   II: MO2->M2
+16. K: II II _
+   II: KC3->A3
+   II: kE2->G2
+17. M: _ II III
+   III: MM2->J2x [J2K]
+   II: MJ2->H2
+18. K: X II _
+   kG2->H2x [H2M]
+   II: KB3->A2
+19. M: II III _
+   III: MM1->O2
+   II: MO2->M2
+20. K: X _ II
+   X->D3
+   II: kH2->F2
+21. M: _ X II
+   MO2->N2
+   II: MM2->K2
+22. K: II _ X
+   X->E3
+   II: KA3->B2
+23. M: II III _
+   III: MK2->H2
+   II: MH2->F2§
+24. K: III X III
+   X->F3
+   III: KD3->A3
+   III: KF3->C3
+25. M: III _ II
+   III: kF2->I2
+   II: kI2->G2
+26. K: III X _
+   X->G3
+   III: KC3->A2
+27. M: III X III
+   MN2->M2
+   III: MM2->J2
+   III: MF2->C2
+28. K: II III _
+   III: KA3->C2x [C2M]
+   II: KE3->C3
+29. M: _ III X
+   MJ2->I2
+   III: kG2->J2
+30. K: X X II
+   X->E2
+   X->H3
+   II: KC3->A3
+31. M: _ II III
+   III: kJ2->G2
+   II: kG2->E2x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:34:09"]
+[UTC "2026-11-14T00:34:09Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(II _ _) K(III X X) -> K
+1. M: III _ X
+   X->O2
+2. K: X II III
+   X->E2
+   III: QE2->H2§
+   II: QH2->F2
+3. M: III III II
+4. K: III _ _
+   III: kH2->E2
+5. M: II X X
+   X->O1
+   X->K2
+   II: QK2->I2
+6. K: X X _
+   QF2->G2
+   kE2->D2
+7. M: III III III
+   III: QI2->L2
+   III: QL2->I2
+   III: QI2->L2
+8. K: _ X _
+   QG2->F2
+9. M: _ X II
+   X->N1
+   II: QL2->J2
+10. K: _ II _
+   II: kD2->B2
+11. M: X X X
+   X->M1
+   QJ2->I2
+   X->L1
+12. K: III III III
+   III: QF2->I2x [Q]
+0-1 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:35:11"]
+[UTC "2026-11-14T00:35:11Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open#1: M(II _ III) K(_ _ III)
+1. open#2: M(X III _) K(III X X) -> K
+1. M: X III _
+   X->O2
+2. K: II II X
+   X->A2
+   II: KA2->C2
+   II: KC2->E2
+3. M: III _ III
+4. K: II _ _
+   II: KE2->G2
+5. M: _ II III
+6. K: _ II II
+   II: KG2->I2
+   II: KI2->K2
+7. M: III II _
+8. K: II III _
+   III: KK2->N2
+   II: KN2->O1
+9. M: II _ _
+   II: MO2->M2
+10. K: X X II
+   X->A3
+   X->B3
+   II: KA3->B2
+11. M: II II _
+   II: MM2->K2
+   II: MK2->I2
+12. K: III X _
+   X->C3
+   III: KB3->B2
+13. M: _ _ III
+   III: MI2->F2
+14. K: II X II
+   X->D3
+   II: KD3->B3
+   II: KC3->A3
+15. M: II III II
+   III: MF2->C2
+   II: MC2->A2
+   II: MA2->B3x [B3K]
+16. K: II X X
+   X->C2
+   X->E3
+   II: QC2->A2
+17. M: II II X
+   X->O1
+   II: MO1->N2
+   II: MB3->D3
+18. K: III X X
+   KE3->D3x [D3M]
+   X->F3
+   III: QA2->D2
+19. M: X _ X
+   MN2->M2
+   X->N1
+20. K: X _ X
+   X->G3
+   QD2->C2
+21. M: _ X II
+   X->M1
+   II: MM1->O1
+22. K: X III X
+   X->H3
+   X->I3
+   III: QC2->F2
+23. M: X III II
+   MO1->O2
+   III: MM2->J2
+   II: MJ2->H2§
+24. K: II II _
+   II: QF2->H2§
+   II: QH2->F2
+25. M: X X _
+   X->L1
+   X->K1
+26. K: X X _
+   X->J3
+   X->K3
+27. M: X III _
+   X->J1
+   III: ML1->O1
+28. K: _ _ X
+   X->L3
+29. M: X III X
+   X->I1
+   X->H1
+   III: MH1->K1
+30. K: _ _ X
+   kH2->H1
+31. M: X II II
+   X->G1
+   II: MN1->O2
+   II: MK1->M1
+32. K: II X _
+   kH1->I1x [I1M]
+   II: kI1->G1x [G1M]
+33. M: II III X
+   X->F1
+   III: MJ1->M1
+   II: MF1->H1
+34. K: III III III
+   III: QF2->I2
+   III: KD3->A3
+   III: KA3->C2
+35. M: X X II
+   MO2->N2
+   MN2->M2
+   II: MH1->J1
+36. K: X II X
+   QI2->I1
+   QI1->J1x [J1M]
+   II: kG1->I1
+37. M: _ II II
+   II: MM2->K2
+   II: MK2->I2
+38. K: X II X
+   QJ1->K1x [K1M]
+   kI1->I2x [I2M]
+   II: QK1->M1x [M1M,M1M]
+39. M: II _ _
+   II: MO2->M2
+40. K: III X III
+   X->M3
+   III: KC2->F2
+   III: QM1->J1
+41. M: _ X _
+   X->E1
+42. K: _ X X
+   X->N3
+   QJ1->K1
+43. M: X III II
+   X->D1
+   III: MD1->G1
+   II: MG1->I1
+44. K: III III _
+   III: QK1->N1
+   III: KF3->C3
+45. M: III _ X
+   X->C1
+   III: ME1->H1
+46. K: II _ II
+   II: KF2->H2
+   II: KH2->J2
+47. M: X III X
+   MH1->I1
+   X->B1
+   III: MI1->L1
+48. K: III III _
+   III: KJ2->M2x [M2M]
+   III: KM2->O1x [O1M]
+49. M: III X _
+   MI1->J1
+   III: ML1->O1x [O1K]
+50. K: _ _ II
+   II: KC3->A3
+51. M: X X II
+   MB1->C1
+   MO1->O2
+   II: MO2->M2
+52. K: III X _
+   kI2->I1
+   III: KN3->K3
+53. M: _ II III
+   III: MM2->J2
+   II: MJ2->H2
+54. K: III III II
+   III: KM3->J3
+   III: QN1->N2
+   II: kI1->K1
+55. M: III _ _
+   III: MH2->E2
+56. K: III III II
+   III: KB2->E2x [E2M]
+   III: KE2->H2
+   II: kK1->I1
+57. M: _ III III
+   III: MJ1->M1
+   III: MC1->F1
+58. K: X III X
+   QN2->M2
+   QM2->M1x [M1M]
+   III: kI1->F1x [F1M]
+59. M: X _ X
+   X->L3
+   MC1->D1
+60. K: X X III
+   QM1->N1
+   QN1->O1
+   III: QO1->M2
+61. M: III III X
+   QL3->K3x [K3K,K3K]
+   III: MD1->G1
+   III: MG1->J1
+62. K: III _ _
+   III: KH2->K2
+63. M: II X _
+   QK3->J3x [J3K,J3K]
+   II: QJ3->H3x [H3K]
+64. K: _ III III
+   III: KA3->C2
+   III: KC2->F2
+65. M: _ X _
+   QH3->I3x [I3K]
+66. K: X _ _
+   QM2->M3
+67. M: _ II X
+   QI3->J3
+   II: QJ3->L3
+68. K: _ X _
+   QM3->L3x [Q]
+0-1 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:35:27"]
+[UTC "2026-11-14T00:35:27Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(_ III X) K(_ _ _) -> M
+1. M: _ _ II
+2. K: X _ III
+   X->E2
+   III: QE2->B2
+3. M: X III _
+   X->O2
+4. K: _ _ III
+   III: QB2->E2
+5. M: X II X
+   X->O1
+   X->N1
+   II: MO2->M2
+6. K: X _ X
+   X->A2
+   QE2->F2
+7. M: III X III
+   X->M1
+   III: MM2->J2
+   III: MO1->M2
+8. K: II II _
+   II: QF2->H2§
+   II: QH2->F2
+9. M: _ X X
+   X->L1
+   X->K1
+10. K: II III _
+   III: KA2->D2
+   II: kH2->J2x [J2M]
+11. M: III III _
+   III: MM2->J2§
+   III: kJ2->M2
+12. K: X X X
+   X->A3
+   KA3->A2
+   X->B3
+13. M: _ _ _
+14. K: III III II
+   III: KB3->B2
+   III: KA2->D2
+   II: KB2->D2
+15. M: _ X X
+   X->J1
+   X->I1
+16. K: X II II
+   X->C3
+   II: KC3->A3
+   II: KA3->B2
+17. M: III III _
+   III: kM2->O1
+   III: MJ2->G2
+18. K: _ III X
+   QF2->G2x [G2M]
+   III: KB2->E2
+19. M: II II _
+   II: MN1->O2
+   II: MK1->M1
+20. K: III X _
+   QG2->H2
+   III: QH2->K2
+21. M: X X III
+   X->K2
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:35:38"]
+[UTC "2026-11-14T00:35:38Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(II III III) K(_ X III) -> K
+1. M: _ X X
+   X->O2
+   MO2->N2
+2. K: III II _
+3. M: _ III III
+   III: MN2->K2
+   III: MK2->H2§
+4. K: _ II III
+5. M: X _ _
+   kH2->I2
+6. K: X _ II
+   X->A2
+   II: KA2->C2
+7. M: _ X II
+   MH2->G2
+   II: MG2->E2
+8. K: _ III X
+   X->E2
+   III: QE2->B2
+9. M: X III III
+   X->O1
+   III: MO1->M2
+   III: MM2->J2
+10. K: III X II
+   X->A3
+   III: QB2->B3
+   II: QB3->A2
+11. M: _ _ II
+   II: kI2->G2
+12. K: X III X
+   X->B3
+   QA2->B2
+   III: QB2->E2
+13. M: X II X
+   MJ2->I2
+   X->N1
+   II: kG2->E2x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:35:52"]
+[UTC "2026-11-14T00:35:52Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(_ X X) K(II II X) -> M
+1. M: _ III X
+   X->O2
+2. K: II III III
+3. M: _ II III
+4. K: II III II
+5. M: III III _
+6. K: II _ _
+7. M: II II _
+   II: MO2->M2
+   II: MM2->K2
+8. K: II II III
+9. M: II III III
+   III: MK2->H2§
+   III: MH2->E2
+   II: kH2->F2
+10. K: III X X
+   X->A2
+   X->A3
+   III: KA3->C2
+11. M: III _ X
+   X->O1
+   III: kF2->C2x [C2K]
+12. K: III III _
+13. M: X III _
+   X->K2
+   III: QK2->H2
+14. K: II X _
+   KA2->B2
+15. M: _ X III
+   kC2->B2x [B2K]
+   III: MO1->M2
+16. K: II _ X
+   X->B3
+   II: KB3->A2
+17. M: II II _
+   II: QH2->J2
+   II: kB2->A3
+18. K: X _ _
+   KA2->B2
+19. M: II X X
+   X->N1
+   X->M1
+   II: kA3->B2x [B2K]
+20. K: X X _
+   X->C3
+   X->D3
+21. M: X II X
+   kB2->B3
+   kB3->C3x [C3K]
+   II: QJ2->H2
+22. K: _ III X
+   X->E3
+   III: KD3->A3
+23. M: X II _
+   X->L1
+   II: kC3->E3x [E3K]
+24. K: X II III
+   X->F3
+   III: KA3->C2
+   II: KF3->D3
+25. M: III _ _
+   III: MM1->O2
+26. K: III II X
+   X->G3
+   III: KC2->F2
+   II: KF2->H2x [Q]
+0-1 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:37:03"]
+[UTC "2026-11-14T00:37:03Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(III III II) K(III III X) -> K
+1. M: X II _
+   X->O2
+   II: MO2->M2
+2. K: II _ X
+   X->A2
+   II: KA2->C2
+3. M: III X III
+   X->K2
+   III: QK2->N2
+   III: MM2->J2
+4. K: III II _
+   III: KC2->F2
+   II: KF2->H2§
+5. M: X _ X
+   X->O1
+   QN2->M2
+6. K: III _ X
+   X->A3
+   III: kH2->E2
+7. M: II II X
+   MO1->O2
+   II: MJ2->H2x [H2K]
+   II: MH2->F2
+8. K: III III X
+   kE2->F2x [F2M]
+   III: kF2->I2
+   III: kI2->F2
+9. M: X II _
+   X->N1
+   II: MN1->O2
+10. K: _ III X
+   X->B3
+   III: kF2->C2
+11. M: X X X
+   X->M1
+   X->L1
+   MO2->N2
+12. K: X III II
+   X->C3
+   III: KC3->A2
+   II: KB3->A2
+13. M: II X III
+   X->K1
+   III: MO2->L2
+   II: QM2->O2
+14. K: _ II III
+   III: kC2->F2
+   II: KA2->C2
+15. M: _ II _
+   II: MK1->M1
+16. K: II _ II
+   II: KA3->B2
+   II: kF2->H2
+17. M: III II _
+   III: MN2->K2
+   II: MK2->I2
+18. K: III III _
+   III: kH2->E2
+   III: kE2->H2
+19. M: III III II
+   III: MI2->F2
+   III: MF2->C2x [C2K]
+   II: MC2->A2x [A2K]
+20. K: _ _ X
+   X->D3
+21. M: II III X
+   MM1->N1
+   III: ML1->O1
+   II: MA2->B3
+22. K: _ _ _
+23. M: II X _
+   X->J1
+   II: ML2->J2
+24. K: X III III
+   X->E3
+   III: KE3->B3x [B3M]
+   III: kH2->E2
+25. M: _ X II
+   X->I1
+   II: MI1->K1
+26. K: III X II
+   X->F3
+   III: KB3->B2
+   II: kE2->C2
+27. M: _ X III
+   X->H1
+   III: MJ2->G2
+28. K: III X X
+   X->G3
+   X->H3
+   III: KF3->C3
+29. M: _ _ X
+   X->G1
+30. K: _ II II
+   II: KH3->F3
+   II: KD3->B3
+31. M: _ X X
+   X->F1
+   MG1->H1
+32. K: X III III
+   X->I3
+   III: KF3->C3
+   III: KC3->A2
+33. M: III III X
+   MK1->L1
+   III: MF1->I1
+   III: MN1->N2
+34. K: III X _
+   X->J3
+   III: KC3->A2
+35. M: III III III
+   III: MN2->K2
+   III: MO1->M2
+   III: MI1->L1
+36. K: III III II
+   III: KG3->D3
+   III: KB3->B2
+   II: KJ3->H3
+37. M: X _ III
+   MG2->F2
+   III: MF2->C2§
+38. K: _ III X
+   X->C2
+   III: KD3->A3
+39. M: _ II X
+   MJ1->K1
+   II: MH1->J1
+40. K: X _ II
+   QC2->D2
+   II: KH3->F3
+41. M: _ X _
+   MK1->L1
+42. K: II III _
+   III: QD2->G2
+   II: QG2->E2
+43. M: III X X
+   MM1->N1
+   MN1->O1
+   III: MH1->K1
+44. K: _ X III
+   QE2->D2
+   III: KI3->F3
+45. M: II III X
+   QO2->N2
+   III: MJ1->M1
+   II: QN2->L2
+46. K: X X X
+   X->K3
+   X->L3
+   X->M3
+47. M: III III II
+   III: MM1->O2
+   III: MK1->N1
+   II: QL2->J2
+48. K: X _ _
+   X->N3
+49. M: III _ III
+   III: MN1->N2
+   III: MN2->K2
+50. K: _ _ _
+51. M: _ II III
+   III: MK2->H2
+   II: MK2->I2
+52. K: III _ X
+   QD2->D3
+   III: QD3->G3
+53. M: III II X
+   MO2->N2
+   III: MI2->F2
+   II: MN2->L2
+54. K: _ III II
+   III: kC2->F2x [F2M]
+   II: kF2->H2x [H2M]
+55. M: III _ _
+   III: ML2->I2
+56. K: _ III _
+   III: QG3->D3
+57. M: _ III III
+   III: MO1->M2
+   III: QJ2->G2
+58. K: X X _
+   kH2->G2x [Q]
+0-1 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:37:07"]
+[UTC "2026-11-14T00:37:07Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open#1: M(III X III) K(II II X)
+1. open#2: M(_ X X) K(X X X) -> K
+1. M: _ II X
+   X->O2
+   II: MO2->M2
+2. K: III II X
+   X->E2
+   III: QE2->H2§
+   II: QH2->F2
+3. M: II _ _
+   II: MM2->K2
+4. K: X _ X
+   QF2->G2
+   QG2->F2
+5. M: III II II
+   III: MK2->H2§
+   II: MH2->F2x [Q]
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:37:14"]
+[UTC "2026-11-14T00:37:14Z"]
+[Menn "Menn — A"]
+[Koner "Koner — B"]
+[Result "1-0"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(II III X) K(_ III III) -> M
+1. M: III X III
+   X->O2
+2. K: II III III
+3. M: X II _
+   MO2->N2
+4. K: X II _
+   X->C2
+   II: QC2->A2
+5. M: II X II
+   MN2->M2
+   II: MM2->K2
+   II: MK2->I2
+6. K: III III II
+   III: QA2->D2
+   III: QD2->A2
+   II: QA2->C2
+7. M: X X II
+   MI2->H2§
+   X->O1
+   II: MO1->N2
+8. K: III _ II
+   III: QC2->F2
+   II: QF2->H2§
+9. M: III III II
+   III: MN2->K2
+   III: MK2->H2§
+1-0 {dronning}
+
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:37:19"]
+[UTC "2026-11-14T00:37:19Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "0-1"]
+[Termination "dronning"]
+SPG-V1
+
+1. open: M(_ III III) K(X _ II) -> K
+1. M: X _ X
+   X->O2
+   X->O1
+2. K: III X _
+   X->E2
+   III: QE2->B2
+3. M: _ III _
+   III: MO1->M2
+4. K: X II II
+   QB2->A2
+   II: QA2->C2
+   II: QC2->E2
+5. M: II III _
+   III: MM2->J2
+   II: MJ2->H2§
+6. K: III II _
+   III: QE2->H2§
+   II: QH2->F2
+7. M: II X II
+   X->K2
+   II: QK2->M2
+   II: QM2->K2
+8. K: III III III
+   III: kH2->K2x [Q]
+0-1 {dronning}
+

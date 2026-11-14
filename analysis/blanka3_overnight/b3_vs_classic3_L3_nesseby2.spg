@@ -1,0 +1,16 @@
+[Event "eval_match: A mot B"]
+[Date "2026-11-14"]
+[Time "01:37:31"]
+[UTC "2026-11-14T00:37:31Z"]
+[Menn "Menn — B"]
+[Koner "Koner — A"]
+[Result "0-1"]
+[Termination "motoren sa none"]
+[Variant "Nesseby"]
+SPG-V1
+
+1. open#1: M(_ _ II) K(_ III II)
+1. open#2: M(X X _) K(X _ II) -> M
+1. M: _ _ _
+0-1 {motoren sa none}
+
