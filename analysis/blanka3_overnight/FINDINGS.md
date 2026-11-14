@@ -196,3 +196,13 @@ classic3n ≥55 %, spegel ≥48 % på begge sider, eiga-dronning-talen <50 %.
 med alle flagga → eksport → paritet → commit/push → morgonporten med alle
 P0–P4-tala). Alt er commit-a; ingenting ventar på handarbeid.
 
+**Kvifor flagga verkeleg når heilt fram (2026-11-15, morgonen):**
+`--dry`-porten avdekket at `badass-trainer.sh` berre kjende `--train-opponent`
+— dei fem andre faga (z-blend, z-clip, side-aug, opponent-fraction, train-opponent-level) hadde
+fortalt pipeline-systemet sin dag heilt utan å gå vidare. Fiksa og verifyt:
+dry-køyringa skriv no heile pipeline-kommandoen med alle P1–P3-faga.
+`tools/overnight-blanka4.sh --dry` er port som viser dette utan å trena.
+`tests/test_cli_english` fann og fiksa norsk i CLI-teksten til porta.
+`tests/test_budget` slost med parallelle sim-jobbar — grønt åleine og grønt
+i reint kjøyr av heile suiten.
+
