@@ -70,16 +70,17 @@ say "trenar: $RUN i $CYCLES syklusar / maks $HOURS t (blanda reglar, 50 % classi
     "${EXTRA[@]}" "${DRYARG[@]}" \
     || die "treninga stoppa med feil — ingen commit/push gjort"
 
+if [ "$DRY" = "1" ]; then
+  say "(dry) ville committa: engines/${RUN}-nn.js .pt .weights.json"
+  exit 0
+fi
+
 CK=$(ls -1t "checkpoints/$RUN"/c*.pt 2>/dev/null | head -1 || true)
 [ -n "$CK" ] || die "fann ingen c*.pt under checkpoints/$RUN"
 say "eksporterer $CK → engines/${RUN}-nn"
 .venv/bin/python3 -m sahkku_ai.export --net "$CK" --out "engines/${RUN}-nn" --name "${RUN^^}" >/dev/null
 .venv/bin/python3 tests/test_net_parity.py "engines/${RUN}-nn.pt" --js "engines/${RUN}-nn.js" 2>&1 | tail -1
 
-if [ "$DRY" = "1" ]; then
-  say "(dry) ville committa: engines/${RUN}-nn.js .pt .weights.json"
-  exit 0
-fi
 git add "engines/${RUN}-nn.js" "engines/${RUN}-nn.pt" "engines/${RUN}-nn.weights.json"
 if git diff --cached --quiet; then
   say "inga endring i motor-filene — hoppar over commit"

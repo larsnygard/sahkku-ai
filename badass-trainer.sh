@@ -86,6 +86,11 @@ while [ $# -gt 0 ]; do
     --style-both) STYLES="1"; STYLEBOTH="$2"; shift 2 ;;
     --style-fraction) STYLEFRAC="$2"; shift 2 ;;
     --train-opponent) OPP="$2"; shift 2 ;;
+    --train-opponent-level) OPPLVL="$2"; shift 2 ;;
+    --opponent-fraction) OPPFRAC="$2"; shift 2 ;;
+    --z-blend) ZBLEND="$2"; shift 2 ;;
+    --z-clip) ZCLIP="$2"; shift 2 ;;
+    --side-aug) SIDEAUG="1"; shift ;;
     --hand-style)  HAND="$2"; shift 2 ;;
     --aggressive) AGGR="1"; shift ;;
     --aggressive-fraction) AGGRFRAC="$2"; shift 2 ;;
@@ -97,6 +102,9 @@ while [ $# -gt 0 ]; do
     *)            die "ukjent val «$1» (sjå --help)" ;;
   esac
 done
+
+ZBLEND="${ZBLEND:-1.0}"
+ZCLIP="${ZCLIP:-1.0}"
 
 # ---- miljø ---------------------------------------------------------------
 [ -x .venv/bin/python3 ] || die "fann ingen .venv. Køyr fyrst:
@@ -322,6 +330,11 @@ if [ -n "$HAND" ] && [ -z "$OPP" ]; then
   die "--hand-style krev --train-opponent (handikapet gjeld berre i spel mot motstandar)"
 fi
 [ -z "$OPP" ] || CMD+=(--train-opponent "$OPP")
+[ -z "${OPPLVL:-}" ] || CMD+=(--train-opponent-level "$OPPLVL")
+[ -z "${OPPFRAC:-}" ] || CMD+=(--opponent-fraction "$OPPFRAC")
+[ "${ZBLEND:-1.0}" = "1.0" ] || CMD+=(--z-blend "$ZBLEND")
+[ "${ZCLIP:-1.0}" = "1.0" ] || CMD+=(--z-clip "$ZCLIP")
+[ "${SIDEAUG:-}" = "1" ] && CMD+=(--side-aug)
 [ -z "$HAND" ] || CMD+=(--hand-style "$HAND")
 
 if [ "$STYLES" = "1" ]; then
