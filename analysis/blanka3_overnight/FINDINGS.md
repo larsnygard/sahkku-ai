@@ -177,3 +177,22 @@ bytt til klassiske reglar mot L3, fordi:
 `tools/overnight.sh --run blanka4`), P2 + P3 i blanka4-konfigurasjonen,
 P4 som port på blanka4-eksporten. Målt suksess: classic3c ≥55 %,
 classic3n ≥55 %, spegel ≥48 % på begge sider, eiga-dronning-talen <50 %.
+
+## 5. Status etter denne natta (kva er alt bygt)
+
+| P | Kva | Kvar | Verifisert korleis |
+|---|---|---|---|
+| P0.1 | `classic3c` / `classic3n` i benken | `tools/bench_list.py` (`resolve`) | `classic3` = klassisk (uendra), `classic3n` set `EVAL_NESSBY=1` |
+| P0.2 | Nesseby-option i CPU-referen | `SnartSahkku/engines/sahkku-ref.js` → `scripts/sync_vendor.sh` | M4-konfigurasjonen som før gav 30/30 «ulovleg» spelar no 4/4 parti utan feil |
+| P0.3 | spegel/tal i porten | `runs/eval/<run>_<opp>.spg` vert skrive av benken; `tools/value_health.py --side-split` | SPG-filene finst etter kvar benk |
+| P1.4 | z-blend + klipping | `--z-blend 0.75 --z-clip 0.9` (`sahkku_ai/selfplay.py`, `pipeline.py`) | køyrd: målverdiane vart {−0.9…0.9} i staden for {−1,1} |
+| P1.5 | metningsmålet | `tools/value_health.py` (exit 1 når >30 %) | blanka3: 55.2 % (menn 62.9 / giera 48.0) |
+| P1.6 | abiaslane på nytt nett | `analysis/blanka3_overnight/run_ab.sh [motor] [tag]` | no med `base`-armen og parameterisert motor |
+| P2.7/8/9 | blanda reglar + classic3 + storleik | `--nesseby-fraction 0.5 --train-opponent classic3 --opponent-fraction 0.5 --games 400 --steps 900` | `--opponent-fraction` er NY (1.0 = gamal åtferd); køyrd blanda test |
+| P3.10 | side-augmentering | `sahkku_ai/symmetry.py` + `--side-aug` | **symmetrien prova**: 97 stillingar/262 trekk, 0 feil, FEN-kommutativitet; `tests/test_side_flip.py` |
+| P4.11/12 | dronningport + djupn | `tools/punish_rate.py`, `tools/queen_autopsy.py`; `run_ab.sh` Deep-armen | tala finst i køyringsloggen under |
+
+**Køyr blanka4 med:** `tools/overnight-blanka4.sh` (symmetri-sjekk → trening
+med alle flagga → eksport → paritet → commit/push → morgonporten med alle
+P0–P4-tala). Alt er commit-a; ingenting ventar på handarbeid.
+

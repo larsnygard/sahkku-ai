@@ -57,11 +57,11 @@ def main():
             q = E.queen(fin, s) if fin is not None else None
             if q is None or q.captured:
                 games[s] += 1
-    print(f"parti: {nq}")
+    print(f"games: {nq}")
     for s, nm in enumerate(("Menn", "Giera")):
         opp = tot[s] / max(1, nq)
-        print(f"{nm}: dronninga til motstandaren slagbar {opp:.1f} ply/parti i snitt | "
-              f"dronningeslag utførte {caps[s] / nq:.2f}/parti | eiga dronning teken i {games[s]}/{nq} parti")
+        print(f"{nm}: opponent queen attackable {opp:.1f} plies/game on average | "
+              f"queen captures made {caps[s] / nq:.2f}/game | own queen taken in {games[s]}/{nq} games")
 
 
 if __name__ == "__main__":

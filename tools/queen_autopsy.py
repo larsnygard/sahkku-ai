@@ -74,12 +74,12 @@ def main():
                 legal.append((float(probs[aid]), leg, aid == FT.move_id(stj, mvj)))
             legal.sort(reverse=True)
             chosen = next((l for l in legal if l[2]), None)
-            print(f"\n--- parti {gi} ply {i+1}: {side} tek dronninga ({mv})")
-            print(f"    tapar-siste-trekk (ply {j+1}): {mvj}")
-            print(f"    nettverdi stilling: {float(val[0]):+.3f}")
+            print(f"\n--- game {gi} ply {i+1}: {side} takes the queen ({mv})")
+            print(f"    loser's last move (ply {j+1}): {mvj}")
+            print(f"    net value of the position: {float(val[0]):+.3f}")
             print(f"    TOPP: " + " | ".join(f"{p:.3f} {d}{' <VALT' if c else ''}" for p, d, c in legal[:5]))
             if chosen and chosen not in legal[:5]:
-                print(f"    det dødelege trekket: rank {legal.index(chosen)+1}/{len(legal)} prob {chosen[0]:.3f}")
+                print(f"    the fatal move: rank {legal.index(chosen)+1}/{len(legal)} prob {chosen[0]:.3f}")
             shown += 1
             if shown >= maxk:
                 return

@@ -68,10 +68,10 @@ def main():
                     qpol += 1
             if mv.get("kind") == "mv" and e_land in caps:
                 hang_eng += 1
-    print(f"trekk: {n}   policy-argmax != motorval: {dev}/{n} ({100*dev/n:.1f} %)")
-    print(f"policy-argmax flyttar ut på slagfelt:  {hang_pol}/{nq} ({100*hang_pol/max(1,nq):.1f} %)")
-    print(f"motoren (med LA4+CAP_MARGIN) same tal: {hang_eng}/{nq} — skilnad = lookaheads sin fortjeneste")
-    print(f"policy-argmax hengar DRONNINGA si:     {qpol}/{nq} ({100*qpol/max(1,nq):.2f} %)")
+    print(f"moves: {n}   policy-argmax != engine choice: {dev}/{n} ({100*dev/n:.1f} %)")
+    print(f"policy-argmax lands on an attacked square:  {hang_pol}/{nq} ({100*hang_pol/max(1,nq):.1f} %)")
+    print(f"engine (with LA4+CAP_MARGIN) same count: {hang_eng}/{nq} — the difference is the lookahead's gain")
+    print(f"policy-argmax hangs its own QUEEN:      {qpol}/{nq} ({100*qpol/max(1,nq):.2f} %)")
 
 
 if __name__ == "__main__":

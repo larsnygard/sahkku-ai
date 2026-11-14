@@ -1,1 +1,31 @@
-classic3:40
+=== BLANKA.3 vs NAIS.7 (Nesseby) ===
+parti 29 [A=Menn]: A (Menn) 201 halvtrekk {dronning}
+parti 30 [A=Giera]: B (Menn) 14 halvtrekk {dronning}
+SUM: A=3  B=27  uavgjort=0  av 30  (1181 s)
+  A som Menn: 3-12
+  A som Giera: 0-15
+  A-poengsum: 10.0 %  (seier=1, uavgjort=0,5)
+
+=== BLANKA.3 vs CLASSIC-STRONG (FLOKK L3) ===
+parti 39 [A=Menn]: A (Menn) 61 halvtrekk {dronning}
+parti 40 [A=Giera]: B (Menn) 62 halvtrekk {dronning}
+SUM: A=4  B=36  uavgjort=0  av 40  (650 s)
+  A som Menn: 3-17
+  A som Giera: 1-19
+  A-poengsum: 10.0 %  (seier=1, uavgjort=0,5)
+
+=== BLANKA.3 vs NAIS.9 ===
+parti 29 [A=Menn]: B (Giera) 190 halvtrekk {dronning}
+parti 30 [A=Giera]: B (Menn) 12 halvtrekk {dronning}
+SUM: A=7  B=23  uavgjort=0  av 30  (1045 s)
+  A som Menn: 4-11
+  A som Giera: 3-12
+  A-poengsum: 23.3 %  (seier=1, uavgjort=0,5)
+
+=== BLANKA.3 vs BLANKA.2 ===
+parti 29 [A=Menn]: A (Menn) 67 halvtrekk {dronning}
+parti 30 [A=Giera]: B (Menn) 44 halvtrekk {dronning}
+SUM: A=17  B=13  uavgjort=0  av 30  (628 s)
+  A som Menn: 12-3
+  A som Giera: 5-10
+  A-poengsum: 56.7 %  (seier=1, uavgjort=0,5)

@@ -96,7 +96,7 @@ def main():
     for i in range(0, len(args), 2):
         path, mode = args[i], args[i + 1]
         rows = load(path)
-        print(f"\n===== {path}  ({len(rows)} parti) =====")
+        print(f"\n===== {path}  ({len(rows)} games) =====")
         if mode == "menndom":
             # eval_match: game g (0-idx): A=Menn (side0) om g partall
             for label, pick in (

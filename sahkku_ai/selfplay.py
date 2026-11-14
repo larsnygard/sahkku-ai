@@ -595,6 +595,16 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
         samples_out.append((planes.reshape(-1), g, pol, np.float32(z)))
         if pred is not None and cfg.get("sims", 0) > 0:
             outcome_idx.append((len(samples_out) - 1, st.turn))
+        # Side-augmentering (P3): spegla stillinga 180° og byt eigarar — same
+        # parti vert òg eit Giera-parti (symmetry.py; sanning testa i
+        # tests/test_side_flip.py). z er målt frå sida-som-trekk sin POV og
+        # er uendra av bytet; policy-målet vert spegla med same transform.
+        if cfg.get("side_aug", False):
+            from . import symmetry as SY
+            _pl, _g, _pol, _ = SY.flip_sample(st, pol)
+            samples_out.append((_pl.reshape(-1), _g, _pol, np.float32(z)))
+            if pred is not None and cfg.get("sims", 0) > 0:
+                outcome_idx.append((len(samples_out) - 1, 1 - st.turn))
         # Play the outcome-weighted best action (π), not the raw prior.
         best = max(legal, key=lambda a: pi[a])
         # Aggressiv side: vekt policyen hennar mot slag og framrykk, og vel
@@ -665,10 +675,25 @@ def play_selfplay_game(net, device, cfg, rng, samples_out, pred=None):
     # søkets eige verdianslag — elles vert måla mjuke tal som ikkje lærer
     # nettet kven som faktisk vann.
     if outcome_idx and st.winner is not None:
+        # Verdimålet: rein utfallsmål er ±1 (AlphaZero), men eit nett på ~15k
+        # prøver mettar tanh-hovudet på det (±1.000 overalt — sjå
+        # analysis/blanka3_overnight/FINDINGS.md). z_blend blandar inn
+        # søkets verdi (mjuke mål i avgjerande stillingar) og z_clip klipper
+        # |z| under 1 (label smoothing), so verdihovudet held oppløysing.
+        za = float(cfg.get("z_blend", 1.0))     # 1.0 = gamal åtferd
+        zc = float(cfg.get("z_clip", 1.0))      # 1.0 = inga klipping
         for i, side in outcome_idx:
-            pl_, g_, pol_, _ = samples_out[i]
+            pl_, g_, pol_, z_search = samples_out[i]
+            z = za * (1.0 if st.winner == side else -1.0) \
+                + (1.0 - za) * float(z_search)
+            samples_out[i] = (pl_, g_, pol_, np.float32(z))
+    # Klippinga må gjelde ALLE prøvene: eit parti som ikkje fekk vinnar
+    # (max_plies) hoppar over utfallsblokka, og då står søkets eige ±1 att.
+    zc = float(cfg.get("z_clip", 1.0))
+    if zc < 1.0:
+        for i, (pl_, g_, pol_, zv) in enumerate(samples_out):
             samples_out[i] = (pl_, g_, pol_,
-                              np.float32(1.0 if st.winner == side else -1.0))
+                              np.float32(max(-zc, min(zc, float(zv)))))
     return st.winner
 
 
@@ -738,13 +763,35 @@ def play_vs_opponent(net, device, cfg, rng, samples_out, pred=None):
             pol[a] = pi[a]
         samples_out.append((planes.reshape(-1), g, pol, np.float32(z)))
         outcome_idx.append((len(samples_out) - 1, st.turn))
+        # Side-augmentering (P3): same spegel som i sjølvspel — òg kampane
+        # mot motstandaren lærer nettet Giera-sida like godt som Menn-sida.
+        if cfg.get("side_aug", False):
+            from . import symmetry as SY
+            _pl, _g, _pol, _ = SY.flip_sample(st, pol)
+            samples_out.append((_pl.reshape(-1), _g, _pol, np.float32(z)))
+            outcome_idx.append((len(samples_out) - 1, 1 - st.turn))
         best = max(legal, key=lambda a: pi[a])
         apply_choice(st, ids, best, rng)
     if outcome_idx and st.winner is not None:
+        # Verdimålet: rein utfallsmål er ±1 (AlphaZero), men eit nett på ~15k
+        # prøver mettar tanh-hovudet på det (±1.000 overalt — sjå
+        # analysis/blanka3_overnight/FINDINGS.md). z_blend blandar inn
+        # søkets verdi (mjuke mål i avgjerande stillingar) og z_clip klipper
+        # |z| under 1 (label smoothing), so verdihovudet held oppløysing.
+        za = float(cfg.get("z_blend", 1.0))     # 1.0 = gamal åtferd
+        zc = float(cfg.get("z_clip", 1.0))      # 1.0 = inga klipping
         for i, side in outcome_idx:
-            pl_, g_, pol_, _ = samples_out[i]
+            pl_, g_, pol_, z_search = samples_out[i]
+            z = za * (1.0 if st.winner == side else -1.0) \
+                + (1.0 - za) * float(z_search)
+            samples_out[i] = (pl_, g_, pol_, np.float32(z))
+    # Klippinga må gjelde ALLE prøvene: eit parti som ikkje fekk vinnar
+    # (max_plies) hoppar over utfallsblokka, og då står søkets eige ±1 att.
+    zc = float(cfg.get("z_clip", 1.0))
+    if zc < 1.0:
+        for i, (pl_, g_, pol_, zv) in enumerate(samples_out):
             samples_out[i] = (pl_, g_, pol_,
-                              np.float32(1.0 if st.winner == side else -1.0))
+                              np.float32(max(-zc, min(zc, float(zv)))))
     return st.winner
 
 
@@ -774,7 +821,14 @@ def worker(args):
     t0 = time.time()
     for g in range(cfg["games_per_worker"]):
         opp = cfg.get("opponent", "")
-        if opp.startswith("classic") or opp.startswith("punisher"):
+        # Motstandar-blanding: opponent_fraction = kor stor del av partia som
+        # går mot motstandaren (resten er sjølvspel). 1.0 = alle (gamal
+        # åtferd), 0.5 = halvparten — ei blanding er det som gjev både
+        # straffe-erfaringa og sjølvspel-utforskinga i same økt.
+        _ofrac = float(cfg.get("opponent_fraction", 1.0))
+        _use_opp = bool(opp) and (_ofrac >= 1.0 or
+                                  (_ofrac > 0.0 and rng.random() < _ofrac))
+        if _use_opp and (opp.startswith("classic") or opp.startswith("punisher")):
             w = play_vs_opponent(net, device, cfg, rng, samples, pred)
         else:
             w = play_selfplay_game(net, device, cfg, rng, samples, pred)
@@ -813,7 +867,8 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
                  nesseby=False, nesseby_fraction=1.0,
                  aggressive=False, aggressive_fraction=1.0,
                  styles=False, style_fraction=1.0, style_both=None,
-                 hand_style=""):
+                 hand_style="", z_blend=1.0, z_clip=1.0, side_aug=False,
+                 opponent_fraction=1.0):
     os.makedirs(outdir, exist_ok=True)
     cfg = {"net": net_path, "device": device, "outdir": outdir,
            "games_per_worker": max(1, games // workers),
@@ -823,6 +878,9 @@ def run_selfplay(net_path, outdir, device="cuda", games=64, workers=8,
            "k_games": k_games, "batch": batch,
            "sims": sims, "c_puct": c_puct, "leaf_batch": leaf_batch,
            "opponent": opponent, "opponent_level": opponent_level,
+           "opponent_fraction": float(opponent_fraction),
+           "z_blend": float(z_blend), "z_clip": float(z_clip),
+           "side_aug": bool(side_aug),
            "queen_delay": queen_delay,
            "queen_delay_soldiers": queen_delay_soldiers,
            "max_plies": max_plies, "nesseby": bool(nesseby),
@@ -897,6 +955,11 @@ if __name__ == "__main__":
     ap.add_argument("--opponent", default="",
                     help="train against this instead of self-play (e.g. \"classic3\")")
     ap.add_argument("--opponent-level", type=int, default=3)
+    ap.add_argument("--opponent-fraction", type=float, default=1.0,
+                    help="share of games against --opponent (rest self-play)")
+    ap.add_argument("--z-blend", type=float, default=1.0)
+    ap.add_argument("--z-clip", type=float, default=1.0)
+    ap.add_argument("--side-aug", action="store_true")
     a = ap.parse_args()
     run_selfplay(a.net, a.outdir, a.device, a.games, a.workers,
                  a.rollouts, a.temp, a.noise_alpha, a.noise_eps, a.seed,
@@ -905,4 +968,6 @@ if __name__ == "__main__":
                  a.queen_delay, a.queen_delay_soldiers, a.max_plies,
                  a.nesseby, a.nesseby_fraction,
                  a.aggressive, a.aggressive_fraction,
-                 a.styles, a.style_fraction, a.style_both)
+                 a.styles, a.style_fraction, a.style_both,
+                 z_blend=a.z_blend, z_clip=a.z_clip, side_aug=a.side_aug,
+                 opponent_fraction=a.opponent_fraction)

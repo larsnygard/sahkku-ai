@@ -162,6 +162,7 @@ def run_loop(args):
                             leaf_batch=args.leaf_batch,
                             opponent=args.train_opponent,
                             opponent_level=args.train_opponent_level,
+                            opponent_fraction=args.opponent_fraction,
                             queen_delay=args.queen_delay,
                             queen_delay_soldiers=args.queen_delay_soldiers,
                             max_plies=args.max_plies,
@@ -172,7 +173,10 @@ def run_loop(args):
                             styles=args.styles,
                             style_fraction=args.style_fraction,
                             style_both=args.style_both,
-                            hand_style=args.hand_style)
+                            hand_style=args.hand_style,
+                            z_blend=args.z_blend,
+                            z_clip=args.z_clip,
+                            side_aug=args.side_aug)
 
         # -- 2. train ---------------------------------------------------
         pats = [os.path.join(rundir, f"cycle{c}", "*.npz")
@@ -287,6 +291,11 @@ def main():
     ap.add_argument("--train-opponent", dest="train_opponent", default="",
                     help="train against the classic CPU instead of self-play (e.g. \"classic3\")")
     ap.add_argument("--train-opponent-level", dest="train_opponent_level", type=int, default=3)
+    ap.add_argument("--opponent-fraction", dest="opponent_fraction", type=float,
+                    default=1.0,
+                    help="share of games played against --train-opponent (the rest "
+                         "is self-play). 1.0 = every game (the old behaviour), "
+                         "0.5 = a mixed curriculum")
     # Handikap på nettsida medan ho spelar mot motstandaren: «few» tvingar henne
     # til å halde få soldatar ute, so straffaren faktisk får noko å ta.
     ap.add_argument("--hand-style", dest="hand_style", default="",
@@ -304,6 +313,20 @@ def main():
     ap.add_argument("--nesseby-fraction", type=float, default=1.0,
                     help="share of games played with Nesseby when --nesseby is on "
                          "(0.5 = mixed; one net then learns both rule sets)")
+    ap.add_argument("--z-blend", dest="z_blend", type=float, default=1.0,
+                    help="value target: 1.0 = pure game outcome (AlphaZero, the old "
+                         "behaviour), <1 blends in the search's own value.  A small "
+                         "net on few samples saturates tanh at ±1 otherwise "
+                         "(blanka3: 55 %% of midgame positions |v|>0.9); 0.75 is the "
+                         "recommended setting for the next run")
+    ap.add_argument("--z-clip", dest="z_clip", type=float, default=1.0,
+                    help="value target label smoothing: clip |z| to this (0.9 keeps "
+                         "the head from pinning at ±1.000). 1.0 = no clipping")
+    ap.add_argument("--side-aug", dest="side_aug", action="store_true",
+                    help="side augmentation: every recorded position is also stored "
+                         "mirrored 180° with the owners swapped (symmetry.py, proven "
+                         "by tests/test_side_flip.py) — the net learns the Giera side "
+                         "from the Menn side's data. Doubles the samples")
     ap.add_argument("--styles", action="store_true",
                     help="tactic duels: one side plays 'few' or 'kingfwd' "
                          "against 'many' or 'kingguard' (see selfplay.PAIRS)")

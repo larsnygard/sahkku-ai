@@ -205,3 +205,52 @@
 | 198 | 3006301 | 0.542 | `checkpoints/kaiser1/c198.pt` |
 | 199 | 3022717 | 0.542 | `checkpoints/kaiser1/c199.pt` |
 | 200 | 3038143 | 0.542 | `checkpoints/kaiser1/c200.pt` |
+
+**kaiser1 er publisert** — v1.46.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.46.0
+
+**kaiser1 er publisert** — v1.48.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.48.0
+
+**kaiser1 er publisert** — v1.50.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.50.0
+
+**kaiser1 er publisert** — v1.53.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.53.0
+
+**kaiser1 er publisert** — v1.55.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.55.0
+
+**kaiser1 er publisert** — v1.58.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.58.0
+
+**kaiser1 er publisert** — v1.60.0
+- Nesseby mot nais7: **6.7 %** (n=30)
+- klassisk nivå 3: **15.0 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 168 pass, 0 fail
+- deploy:   live no:   v1.60.0

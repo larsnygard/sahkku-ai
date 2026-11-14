@@ -52,14 +52,21 @@ def parse_list(spec: str) -> list:
 def resolve(opp: str, base_id: str) -> "tuple | None":
     """(cmd, env_extra) for one opponent, or None if unresolvable here."""
     env = {"EVAL_NESSBY": "1"}
-    if opp == "classic3":
-        # the FLOKK CPU at level 3, classic (non-nesseby) rules.  vendor/ is
-        # the SYNCED COPY of the app's sahkku-ref (scripts/sync_vendor.sh),
-        # so the training box benches the same opponent with no app checkout.
+    if opp in ("classic3", "classic3c", "classic3n"):
+        # the FLOKK CPU at level 3.  vendor/ is the SYNCED COPY of the app's
+        # sahkku-ref (scripts/sync_vendor.sh), so the training box benches the
+        # same opponent with no app checkout.
+        #   classic3 / classic3c — classic (non-nesseby) rules: the original
+        #                          gate, kept under both names
+        #   classic3n            — the SAME CPU under Nesseby rules.  A net
+        #                          trained 50/50 must clear both; a Nesseby-
+        #                          only net shows the rule-variant gap here
+        #                          (blanka3: 53 % n / 7.5 % c, 2026-11-14).
         for ref in (ROOT / "vendor" / "sahkku-ref.js", APP / "engines" / "sahkku-ref.js"):
             if ref.exists():
                 return (["node", str(ref)],
-                        {"EVAL_NESSBY": "0", "EVAL_SETOPT_B": "Level=3"})
+                        {"EVAL_NESSBY": "1" if opp == "classic3n" else "0",
+                         "EVAL_SETOPT_B": "Level=3"})
         return None
     if opp == "base":
         if not base_id:
@@ -79,9 +86,15 @@ def resolve(opp: str, base_id: str) -> "tuple | None":
 
 
 def play(eng_a: str, cmd_b: list, games: int, seed: int,
-         env_extra: dict, outfile: pathlib.Path) -> float | None:
+         env_extra: dict, outfile: pathlib.Path,
+         spgfile: pathlib.Path | None = None) -> float | None:
     env = os.environ.copy()
     env.update(env_extra)
+    if spgfile is not None:
+        # SPG-opptak av benken: porten (value_health/punish_rate/queen_autopsy)
+        # treng partia, ikkje berre poengsummen.
+        spgfile.parent.mkdir(parents=True, exist_ok=True)
+        env["EVAL_SPG"] = str(spgfile)
     # eval_match spawns each side as a shell command — a bare path would hit
     # the file's exec bit (EACCES), so always run engines through node.
     if not eng_a.startswith("node "):
@@ -132,7 +145,8 @@ def main():
         cmd_b, env_extra = res
         out = ROOT / f"runs/eval/{run}_{opp}.txt"
         print(f"BENCH {run} vs {opp} ({games} games, seed {seed0 + i})")
-        pct = play(str(eng), cmd_b, games, seed0 + i, env_extra, out)
+        spg = ROOT / f"runs/eval/{run}_{opp}.spg"
+        pct = play(str(eng), cmd_b, games, seed0 + i, env_extra, out, spg)
         if pct is None:
             print(f"RESULT {opp} {games} 0.0  (no score — see {out})")
         else:

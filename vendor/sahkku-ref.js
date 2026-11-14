@@ -15,6 +15,7 @@ const SS = global.SS;
 const DEC = { X: 'X', '2': 'II', '3': 'III', '_': '_' };
 
 let optLevel = 2;
+let optNesseby = false;          // regelmodus: false = klassisk, true = Nesseby
 let dbg = false;
 
 // ---------- trekk-koding: {pid,dir,v,kind} -> "A1-B1" ----------
@@ -93,6 +94,9 @@ function parsePosition(words) {
     st = SS.fromFEN(fen);
     i = mIx >= 0 ? i + 1 + mIx + 1 : words.length;
   } else throw new Error('position: startpos|fen');
+  // Regelmodusen må inn FØR trekka vert brukte: same POSITION-token under
+  // Nesseby og klassisk er ikkje same stilling.
+  st.nesseby = optNesseby === true;
   if (words[i] === 'moves') i++;      // spec §5: "position startpos moves <t…>" er lovleg
   while (i < words.length) i += applyToken(st, words[i], words, i);
   return st;
@@ -135,11 +139,13 @@ rl.on('line', function (line) {
       out('id name SahkkuRef 1.0');
       out('id author SnartSahkku (reference)');
       out('option name Level type spin default 2 min 1 max 3');
+      out('option name Nesseby type check default false');
       out('uciok');
     } else if (cmd === 'isready') {
       out('readyok');
     } else if (cmd === 'ucinewgame') {
       st = SS.fromFEN(START_FEN);
+      st.nesseby = optNesseby === true;
       illegalStreak = 0;
     } else if (cmd === 'setoption') {
       const nameIx = words.indexOf('name');
@@ -148,6 +154,10 @@ rl.on('line', function (line) {
       if (name === 'Level' && vIx >= 0) {
         const v = parseInt(words[vIx + 1], 10);
         if (v >= 1 && v <= 3) optLevel = v; else out('error Level 1-3');
+      } else if (name === 'Nesseby' && vIx >= 0) {
+        const s = String(words[vIx + 1] || '').toLowerCase();
+        optNesseby = (s === 'true' || s === '1' || s === 'on' || s === 'yes');
+        if (st) st.nesseby = optNesseby;   // gjelda òg ei alt oppsett stilling
       } // ukjende namn: ignorer (spec §2)
     } else if (cmd === 'position') {
       st = parsePosition(words);

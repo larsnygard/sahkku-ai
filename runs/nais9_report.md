@@ -356,3 +356,59 @@
 | 349 | 5274392 | 0.542 | `checkpoints/nais9/c349.pt` |
 | 350 | 5289092 | 0.542 | `checkpoints/nais9/c350.pt` |
 | 351 | 5304344 | 0.542 | `checkpoints/nais9/c351.pt` |
+
+**nais9 er publisert** — v1.47.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.47.0
+
+**nais9 er publisert** — v1.49.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.49.0
+
+**nais9 er publisert** — v1.51.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.51.0
+
+**nais9 er publisert** — v1.52.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.52.0
+
+**nais9 er publisert** — v1.54.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.54.0
+
+**nais9 er publisert** — v1.56.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.56.0
+
+**nais9 er publisert** — v1.59.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.59.0
+
+**nais9 er publisert** — v1.61.0
+- Nesseby mot nais7: **3.3 %** (n=30)
+- klassisk nivå 3: **17.5 %** (n=40)
+- standardmotor: nei — nais7 står
+- S-UCI: 89 pass, 0 fail
+- deploy:   live no:   v1.61.0
